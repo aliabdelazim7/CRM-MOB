@@ -1,0 +1,40 @@
+                            </button>
+                        `;
+                        colorsContainer.appendChild(colorItem);
+                    }
+                    
+                    // Load platform discounts
+                    const discountsList = document.getElementById('platformDiscountsList');
+                    if (discountsList) {
+                        discountsList.innerHTML = '';
+                        if (product.platformDiscounts && product.platformDiscounts.length > 0) {
+                        product.platformDiscounts.forEach(discount => {
+                            const discountId = Date.now() + Math.random();
+                            const discountItem = document.createElement('div');
+                            discountItem.className = 'platform-discount-item';
+                            discountItem.id = 'discount_' + discountId;
+                            discountItem.style.cssText = 'display: flex; gap: 8px; align-items: center; padding: 8px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap;';
+                            discountItem.innerHTML = `
+                                <select id="discountPlatform_${discountId}" onchange="calculatePlatformProfits()" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; flex: 1; min-width: 100px; font-size: 0.85rem;">
+                                    <option value="website" ${discount.platform === 'website' ? 'selected' : ''}>موقع الويب</option>
+                                    <option value="jumia" ${discount.platform === 'jumia' ? 'selected' : ''}>جوميا</option>
+                                    <option value="noon" ${discount.platform === 'noon' ? 'selected' : ''}>نون</option>
+                                </select>
+                                <input type="number" id="discountValue_${discountId}" oninput="calculatePlatformProfits()" value="${discount.price}" placeholder="السعر" step="0.01" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; width: 100px; font-size: 0.85rem;">
+                                <span style="color: #666; font-size: 0.8rem;">جنيه</span>
+                                <button type="button" onclick="removePlatformDiscount(${discountId})" class="btn btn-delete" style="padding: 5px 8px; font-size: 0.8rem;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                            discountsList.appendChild(discountItem);
+                        });
+                    }
+                    
+                    document.querySelector('#productModal .modal-header h3').innerHTML = '<i class="fas fa-edit"></i> تعديل المنتج';
+                    calculateProfits(); // Calculate profits after loading data
+                }
+            } else {
+                // Reset form for new product
+                document.getElementById('productForm').reset();
+                // Auto-generate unique barcode for new product
+                const newBarcode = 'HC' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000).toString().padStart(3, '0');

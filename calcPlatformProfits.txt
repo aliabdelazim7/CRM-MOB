@@ -1,0 +1,258 @@
+5346:         function calculatePlatformProfits() {
+5347:             // Get purchase price from the product-level field
+5348:             const purchasePriceInput = document.getElementById('purchasePrice');
+5349:             const purchasePrice = purchasePriceInput ? (parseFloat(purchasePriceInput.value) || 0) : 0;
+5350:             
+5351:             const noonCommissionInput = document.getElementById('noonCommission');
+5352:             const noonCommission = noonCommissionInput ? (parseFloat(noonCommissionInput.value) || 0) : 0;
+5353:             
+5354:             const noonShippingInput = document.getElementById('noonShipping');
+5355:             const noonShipping = noonShippingInput ? (parseFloat(noonShippingInput.value) || 0) : 0;
+5356:             
+5357:             const jumiaCommissionInput = document.getElementById('jumiaCommission');
+5358:             const jumiaCommission = jumiaCommissionInput ? (parseFloat(jumiaCommissionInput.value) || 0) : 0;
+5359:             
+5360:             const jumiaShippingInput = document.getElementById('jumiaShipping');
+5361:             const jumiaShipping = jumiaShippingInput ? (parseFloat(jumiaShippingInput.value) || 0) : 0;
+5362:             
+5363:             const items = document.querySelectorAll('.platform-discount-item');
+5364:             
+5365:             // Reset profits
+5366:             let websiteProfit = 0;
+5367:             let jumiaProfit = 0;
+5368:             let noonProfit = 0;
+5369:             
+5370:             console.log('calculatePlatformProfits:', { purchasePrice, itemsCount: items.length });
+5371:             
+5372:             items.forEach(item => {
+5373:                 const id = item.id.replace('discount_', '');
+5374:                 const platformSelect = document.getElementById('discountPlatform_' + id);
+5375:                 const platform = platformSelect ? platformSelect.value : '';
+5376:                 const priceInput = document.getElementById('discountValue_' + id);
+5377:                 const price = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
+5378:                 
+5379:                 console.log('Platform item:', { platform, price, purchasePrice });
+5380:                 
+5381:                 if (price > 0 && purchasePrice > 0) {
+5382:                     let profit = price - purchasePrice;
+5383:                     
+5384:                     // خصم العمولة والشحن للمنصات
+5385:                     if (platform === 'jumia') {
+5386:                         const commissionAmount = price * jumiaCommission / 100;
+5387:                         const shippingCost = jumiaShipping; // سعر الشحن للقطعة الواحدة
+5388:                         profit = profit - commissionAmount - shippingCost;
+5389:                     } else if (platform === 'noon') {
+5390:                         const commissionAmount = price * noonCommission / 100;
+5391:                         const shippingCost = noonShipping; // سعر الشحن للقطعة الواحدة
+5392:                         profit = profit - commissionAmount - shippingCost;
+5393:                     }
+5394:                     
+5395:                     if (platform === 'website') {
+5396:                         websiteProfit = profit;
+5397:                     } else if (platform === 'jumia') {
+5398:                         jumiaProfit = profit;
+5399:                     } else if (platform === 'noon') {
+5400:                         noonProfit = profit;
+5401:                     }
+5402:                 }
+5403:             });
+5404:             
+5405:             // Update display
+5406:             const profitWebsiteEl = document.getElementById('profitWebsite');
+5407:             const profitJumiaEl = document.getElementById('profitJumia');
+5408:             const profitNoonEl = document.getElementById('profitNoon');
+5409:             
+5410:             if (profitWebsiteEl) profitWebsiteEl.textContent = websiteProfit.toFixed(2);
+5411:             if (profitJumiaEl) profitJumiaEl.textContent = jumiaProfit.toFixed(2);
+5412:             if (profitNoonEl) profitNoonEl.textContent = noonProfit.toFixed(2);
+5413:             
+5414:             // Color coding
+5415:             if (profitWebsiteEl) profitWebsiteEl.style.color = websiteProfit >= 0 ? '#28a745' : '#dc3545';
+5416:             if (profitJumiaEl) profitJumiaEl.style.color = jumiaProfit >= 0 ? '#28a745' : '#dc3545';
+5417:             if (profitNoonEl) profitNoonEl.style.color = noonProfit >= 0 ? '#28a745' : '#dc3545';
+5418:         }
+5419:         
+5420:         function getPlatformDiscounts() {
+5421:             const discounts = [];
+5422:             const items = document.querySelectorAll('.platform-discount-item');
+5423:             items.forEach(item => {
+5424:                 const id = item.id.replace('discount_', '');
+5425:                 const platformSelect = document.getElementById('discountPlatform_' + id);
+5426:                 const platform = platformSelect ? platformSelect.value : '';
+5427:                 const priceInput = document.getElementById('discountValue_' + id);
+5428:                 const price = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
+5429:                 if (platform && price > 0) {
+5430:                     discounts.push({ platform, price });
+5431:                 }
+5432:             });
+5433:             return discounts;
+5434:         }
+5435:         
+5436:         // Color Management Functions
+5437:         function addColorItem() {
+5438:             const container = document.getElementById('colorsContainer');
+5439:             const colorItem = document.createElement('div');
+5440:             colorItem.className = 'color-item';
+5441:             colorItem.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 8px;';
+5442:             
+5443:             // Generate unique barcode for this color
+5444:             const uniqueBarcode = 'C' + Date.now() + Math.floor(Math.random() * 1000);
+5445:             
+5446:             // If this is the first color, update the main barcode field too
+5447:             const mainBarcodeField = document.getElementById('productBarcode');
+5448:             if (!mainBarcodeField.value) {
+5449:                 mainBarcodeField.value = uniqueBarcode;
+5450:             }
+5451:             
+5452:             colorItem.innerHTML = `
+5453:                 <input type="text" placeholder="اللون" class="color-name" style="flex: 1; min-width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+5454:                 <input type="text" placeholder="كود اللون" class="color-code" style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+5455:                 <input type="text" placeholder="باركود اللون" class="color-barcode" value="${uniqueBarcode}" style="width: 130px; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+5456:                 <input type="number" placeholder="العدد" class="color-quantity" min="0" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+5457:                 <button type="button" onclick="removeColorItem(this)" class="btn btn-delete" style="padding: 8px;">
+5458:                     <i class="fas fa-trash"></i>
+5459:                 </button>
+5460:             `;
+5461:             container.appendChild(colorItem);
+5462:         }
+5463: 
+5464:         function removeColorItem(button) {
+5465:             const colorItem = button.closest('.color-item');
+5466:             const container = document.getElementById('colorsContainer');
+5467:             if (container.children.length > 1) {
+5468:                 colorItem.remove();
+5469:             } else {
+5470:                 showErrorMessage('يجب أن يكون هناك لون واحد على الأقل');
+5471:             }
+5472:         }
+5473: 
+5474:         function addNewSupplier() {
+5475:             const name = prompt('اسم المورد الجديد:');
+5476:             if (name && name.trim()) {
+5477:                 suppliers.push(name.trim());
+5478:                 saveData();
+5479:                 loadSupplierOptions();
+5480:                 loadPurchaseSupplierOptions();
+5481:                 // Set the value in products form if it exists
+5482:                 const productSupplierSelect = document.getElementById('productSupplier');
+5483:                 if (productSupplierSelect) {
+5484:                     productSupplierSelect.value = name.trim();
+5485:                 }
+5486:                 showSuccessMessage('تم إضافة المورد بنجاح!');
+5487:             }
+5488:         }
+5489: 
+5490:         // Get the active price for a product (always returns sellingPrice now)
+5491:         function getActivePrice(product) {
+5492:             return {
+5493:                 price: product.sellingPrice,
+5494:                 isDiscount: false,
+5495:                 originalPrice: null
+5496:             };
+5497:         }
+5498:         
+5499:         // Calculate Noon price with 14% VAT (for saving)
+5500:         function getNoonPriceWithVAT() {
+5501:             const noonPriceInput = document.getElementById('noonPrice');
+5502:             let originalPrice = parseFloat(noonPriceInput.value) || 0;
+5503:             
+5504:             // Add 14% VAT
+5505:             const priceWithVAT = originalPrice * 1.14;
+5506:             return priceWithVAT;
+5507:         }
+5508:         
+5509:         // Profit Calculation Function
+5510:         
+5511:         // ==== CUSTOM STORES DYNAMIC MANAGEMENT ====
+5512:         function addCustomStoreField(storeData = {}) {
+5513:             const container = document.getElementById('customStoresContainer');
+5514:             if (!container) return;
+5515: 
+5516:             const storeId = storeData.id || Date.now() + Math.floor(Math.random() * 1000);
+5517:             const storeItem = document.createElement('div');
+5518:             storeItem.className = 'custom-store-item';
+5519:             storeItem.dataset.storeId = storeId;
+5520:             storeItem.style.cssText = 'background: white; border: 1px solid #ce93d8; border-radius: 10px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: all 0.3s ease;';
+5521: 
+5522:             storeItem.innerHTML = `
+5523:                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+5524:                     <div style="display: flex; align-items: center; gap: 8px; flex: 1; margin-right: 10px;">
+5525:                         <i class="fas fa-store-alt" style="color: #8e24aa;"></i>
+5526:                         <input type="text" class="custom-store-name" placeholder="اسم المتجر (مثال: تيك توك، شوبيفاي...)" value="${storeData.name || ''}" style="padding: 6px 10px; border: 1px solid #ab47bc; border-radius: 6px; font-weight: bold; width: 100%; font-size: 0.95rem;">
+5527:                     </div>
+5528:                     <div style="display: flex; align-items: center; gap: 10px;">
+5529:                         <span class="custom-store-profit-badge" style="background: #8e24aa; color: white; padding: 3px 8px; border-radius: 15px; font-size: 0.8rem; font-weight: bold;">الربح: 0.00 ج.م</span>
+5530:                         <button type="button" onclick="removeCustomStoreField(this)" class="btn btn-delete" style="padding: 5px 8px;" title="حذف المتجر">
+5531:                             <i class="fas fa-trash"></i>
+5532:                         </button>
+5533:                     </div>
+5534:                 </div>
+5535:                 <div class="form-row" style="margin-bottom: 0;">
+5536:                     <div class="form-group" style="margin-bottom: 0;">
+5537:                         <label style="font-size: 0.8rem;"><i class="fas fa-money-bill"></i> سعر البيع (جنيه)</label>
+5538:                         <input type="number" class="custom-store-price" step="0.01" placeholder="0.00" value="${storeData.price || ''}" oninput="calculateProfits()">
+5539:                     </div>
+5540:                     <div class="form-group" style="margin-bottom: 0;">
+5541:                         <label style="font-size: 0.8rem;"><i class="fas fa-percentage"></i> العمولة (%)</label>
+5542:                         <input type="number" class="custom-store-commission" step="0.01" max="100" placeholder="0" value="${storeData.commission || ''}" oninput="calculateProfits()">
+5543:                     </div>
+5544:                     <div class="form-group" style="margin-bottom: 0;">
+5545:                         <label style="font-size: 0.8rem;"><i class="fas fa-shipping-fast"></i> الشحن (جنيه)</label>
+5546:                         <input type="number" class="custom-store-shipping" step="0.01" placeholder="0.00" value="${storeData.shipping || ''}" oninput="calculateProfits()">
+5547:                     </div>
+5548:                     <div class="form-group" style="margin-bottom: 0;">
+5549:                         <label style="font-size: 0.8rem;"><i class="fas fa-bullhorn"></i> الإعلانات (جنيه)</label>
+5550:                         <input type="number" class="custom-store-ads" step="0.01" placeholder="0.00" value="${storeData.ads || ''}" oninput="calculateProfits()">
+5551:                     </div>
+5552:                 </div>
+5553:             `;
+5554: 
+5555:             container.appendChild(storeItem);
+5556:             calculateProfits();
+5557:         }
+5558: 
+5559:         function removeCustomStoreField(button) {
+5560:             const item = button.closest('.custom-store-item');
+5561:             if (item) {
+5562:                 item.remove();
+5563:                 calculateProfits();
+5564:             }
+5565:         }
+5566: 
+5567:         function getCustomStoresData() {
+5568:             const items = document.querySelectorAll('.custom-store-item');
+5569:             const stores = [];
+5570:             items.forEach(item => {
+5571:                 const name = item.querySelector('.custom-store-name').value.trim();
+5572:                 const price = parseFloat(item.querySelector('.custom-store-price').value) || 0;
+5573:                 const commission = parseFloat(item.querySelector('.custom-store-commission').value) || 0;
+5574:                 const shipping = parseFloat(item.querySelector('.custom-store-shipping').value) || 0;
+5575:                 const ads = parseFloat(item.querySelector('.custom-store-ads').value) || 0;
+5576: 
+5577:                 if (name || price > 0) {
+5578:                     stores.push({
+5579:                         id: item.dataset.storeId || Date.now(),
+5580:                         name: name || 'متجر مخصص',
+5581:                         price: price,
+5582:                         commission: commission,
+5583:                         shipping: shipping,
+5584:                         ads: ads
+5585:                     });
+5586:                 }
+5587:             });
+5588:             return stores;
+5589:         }
+5590: 
+5591: 
+5592: function calculateProfits() {
+5593:             const purchasePrice = parseFloat(document.getElementById('purchasePrice')?.value) || 0;
+5594:             const sellingPrice = parseFloat(document.getElementById('sellingPrice')?.value) || 0;
+5595:             const siteAds = parseFloat(document.getElementById('siteAdsExpense')?.value) || 0;
+5596: 
+5597:             // 1. Website Profit
+5598:             const websiteProfit = sellingPrice > 0 ? (sellingPrice - purchasePrice - siteAds) : 0;
+5599:             const webBadge = document.getElementById('websiteProfitBadge');
+5600:             if (webBadge) {
+5601:                 webBadge.textContent = `صافي الربح: ${websiteProfit.toFixed(2)} ج.م`;
+5602:                 webBadge.style.background = websiteProfit >= 0 ? '#2e7d32' : '#c62828';
+5603:             }

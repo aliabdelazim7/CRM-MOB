@@ -1,0 +1,100 @@
+        function addInvoiceItem() {
+            console.log('=== ADD INVOICE ITEM STARTED ===');
+            
+            const productId = parseInt(document.getElementById('invoiceProduct').value);
+            const quantity = parseInt(document.getElementById('invoiceQuantity').value);
+            const platform = document.getElementById('salesPlatform').value;
+            const selectedColor = document.getElementById('selectedProductColor').value;
+            const priceOption = document.getElementById('selectedPriceOption').value;
+            const customPrice = parseFloat(document.getElementById('customUnitPrice').value) || 0;
+            
+            console.log('Add item fields:', { productId, quantity, platform, priceOption, customPrice });
+            
+            if (!productId) { showErrorMessage('اختر منتج أولاً'); return; }
+            if (!platform) { showErrorMessage('اختر منصة البيع أولاً'); return; }
+            if (!priceOption && !customPrice) { showErrorMessage('اختر السعر أو أدخل سعر مخصص'); return; }
+            if (!quantity || quantity < 1) { showErrorMessage('اختر كمية صحيحة'); return; }
+
+            const product = products.find(p => p.id == productId);
+            if (!product) { showErrorMessage('المنتج غير موجود'); return; }
+
+            let availableQuantity = 0;
+            if (product.colors && product.colors.length > 0) {
+                if (!selectedColor) { showErrorMessage('يرجى اختيار اللون'); return; }
+                const colorData = product.colors.find(c => c.name === selectedColor);
+                availableQuantity = colorData ? colorData.quantity : 0;
+            } else {
+                availableQuantity = product.totalQuantity || product.quantity || 0;
+            }
+
+            const alreadySelected = currentInvoiceItems
+                .filter(i => i.productId == productId && (i.selectedColor || '') === (selectedColor || ''))
+                .reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0);
+            const remaining = availableQuantity - alreadySelected;
+
+            if (quantity > remaining) {
+                showErrorMessage(`الكمية المطلوبة غير متوفرة. المتاح: ${remaining} قطعة`);
+                return;
+            }
+
+            // Calculate price - Custom price has highest priority
+            let unitPrice = 0;
+            if (customPrice > 0) {
+                unitPrice = customPrice;
+            } else if (priceOption === 'discount') {
+                if (product.platformDiscounts && product.platformDiscounts.length > 0) {
+                    const platformDiscount = product.platformDiscounts.find(d => d.platform === platform);
+                    if (platformDiscount && platformDiscount.price > 0) {
+                        unitPrice = platformDiscount.price;
+                    }
+                }
+            } else if (priceOption === 'amazon_orig' && product.amazonPrice) {
+                unitPrice = product.amazonPrice;
+            } else if (priceOption === 'jumia_orig' && product.jumiaPrice) {
+                unitPrice = product.jumiaPrice;
+            } else if (priceOption === 'noon_orig' && product.noonPrice) {
+                unitPrice = product.noonPrice;
+            } else if (priceOption === 'other_orig' && product.otherPrice) {
+                unitPrice = product.otherPrice;
+            } else {
+                // Default to platform specific price if set, otherwise sellingPrice
+                if (platform === 'amazon' && product.amazonPrice > 0) unitPrice = product.amazonPrice;
+                else if (platform === 'noon' && product.noonPrice > 0) unitPrice = product.noonPrice;
+                else if (platform === 'jumia' && product.jumiaPrice > 0) unitPrice = product.jumiaPrice;
+                else if ((platform === 'tiktok' || platform === 'other') && product.otherPrice > 0) unitPrice = product.otherPrice;
+                else unitPrice = product.sellingPrice || 0;
+            }
+
+            const grossTotal = unitPrice * quantity;
+            let commission = 0;
+            let shipping = 0;
+            
+            // Calculate commission and shipping for marketplace platforms
+            if (platform === 'noon') {
+                commission = grossTotal * (product.noonCommission || 0) / 100;
+                shipping = (product.noonShipping || 0) * quantity;
+            } else if (platform === 'jumia') {
+                commission = grossTotal * (product.jumiaCommission || 0) / 100;
+                shipping = (product.jumiaShipping || 0) * quantity;
+            }
+
+            const netTotal = grossTotal - commission - shipping;
+
+            const existingIndex = currentInvoiceItems.findIndex(i => i.productId == productId && (i.selectedColor || '') === (selectedColor || ''));
+            if (existingIndex >= 0) {
+                const newQty = (parseInt(currentInvoiceItems[existingIndex].quantity) || 0) + quantity;
+                const newGrossTotal = unitPrice * newQty;
+                let newCommission = 0;
+                let newShipping = 0;
+                if (platform === 'noon') {
+                    newCommission = newGrossTotal * (product.noonCommission || 0) / 100;
+                    newShipping = (product.noonShipping || 0) * newQty;
+                } else if (platform === 'jumia') {
+                    newCommission = newGrossTotal * (product.jumiaCommission || 0) / 100;
+                    newShipping = (product.jumiaShipping || 0) * newQty;
+                }
+                currentInvoiceItems[existingIndex] = {
+                    ...currentInvoiceItems[existingIndex],
+                    quantity: newQty,
+                    unitPrice: unitPrice,
+                    grossTotal: newGrossTotal,

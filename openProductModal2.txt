@@ -1,0 +1,52 @@
+                // Initialize profit displays for new product
+                calculateProfits();
+            }
+            document.getElementById('productModal').style.display = 'block';
+        }
+
+        function loadCollectionOptions() {
+            const select = document.getElementById('productCollection');
+            select.innerHTML = '<option value="">اختر الكوليكشن</option>';
+            collections.forEach(collection => {
+                select.innerHTML += `<option value="${collection.name}">${collection.name}</option>`;
+            });
+
+            const filterSelect = document.getElementById('collectionFilter');
+            if (filterSelect) {
+                filterSelect.innerHTML = '<option value="">جميع الكوليكشن</option>';
+                collections.forEach(collection => {
+                    filterSelect.innerHTML += `<option value="${collection.name}">${collection.name}</option>`;
+                });
+            }
+        }
+
+        function loadSupplierOptions() {
+            const select = document.getElementById('supplierName');
+            select.innerHTML = '<option value="">اختر التاجر</option>';
+            suppliers.forEach(supplier => {
+                select.innerHTML += `<option value="${supplier}">${supplier}</option>`;
+            });
+        }
+
+        // Pagination rendering function
+        function renderPagination(totalItems, currentPage, paginationId, loadFunction) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const paginationContainer = document.getElementById(paginationId);
+            
+            if (!paginationContainer || totalPages <= 1) {
+                if (paginationContainer) paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            if (currentPage > 1) {
+                paginationHTML += `<button onclick="${loadFunction}(${currentPage - 1})" class="btn" style="padding: 5px 10px; margin: 0 2px;"><i class="fas fa-chevron-right"></i></button>`;
+            }
+            
+            // Show first page always
+            paginationHTML += `<button onclick="${loadFunction}(1)" class="btn ${currentPage === 1 ? 'btn-primary' : ''}" style="padding: 5px 10px; margin: 0 2px;">1</button>`;
+            
+            // Show ellipsis if needed
+            if (currentPage > 3) {

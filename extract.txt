@@ -1,0 +1,200 @@
+            document.getElementById('productForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Product form submitted');
+                
+                const name = document.getElementById('productName').value.trim();
+                const code = document.getElementById('productCode').value.trim();
+                const barcode = document.getElementById('productBarcode').value.trim();
+                const collection = document.getElementById('productCollection').value;
+                const supplier = document.getElementById('productSupplier').value;
+                const purchasePrice = parseFloat(document.getElementById('purchasePrice').value) || 0;
+                const sellingPrice = parseFloat(document.getElementById('sellingPrice').value) || 0;
+                const minStock = parseInt(document.getElementById('minStock').value) || 5;
+                const noonPriceOriginal = parseFloat(document.getElementById('noonPrice').value) || 0;
+                const noonPrice = noonPriceOriginal > 0 ? noonPriceOriginal * 1.14 : 0;
+                const noonCommission = parseFloat(document.getElementById('noonCommission').value) || 0;
+                const noonShipping = parseFloat(document.getElementById('noonShipping').value) || 0;
+                const jumiaPrice = parseFloat(document.getElementById('jumiaPrice').value) || 0;
+                const jumiaCommission = parseFloat(document.getElementById('jumiaCommission').value) || 0;
+                const jumiaShipping = parseFloat(document.getElementById('jumiaShipping').value) || 0;
+                const siteAds = parseFloat(document.getElementById('siteAdsExpense').value) || 0;
+                const jumiaAds = parseFloat(document.getElementById('jumiaAdsExpense').value) || 0;
+                const noonAds = parseFloat(document.getElementById('noonAdsExpense').value) || 0;
+                const amazonPrice = parseFloat(document.getElementById('amazonPrice').value) || 0;
+                const amazonCommission = parseFloat(document.getElementById('amazonCommission').value) || 0;
+                const amazonAds = parseFloat(document.getElementById('amazonAdsExpense').value) || 0;
+                const otherPrice = parseFloat(document.getElementById('otherPrice').value) || 0;
+                const imageUrlInput = document.getElementById('productImageUrl') ? document.getElementById('productImageUrl').value.trim() : '';
+                const imageFile = document.getElementById('productImage').files[0];
+                
+                console.log('Product data collected:', { name, code, collection, supplier, sellingPrice });
+                
+                // Collect platform discounts
+                const platformDiscounts = getPlatformDiscounts();
+                console.log('Platform discounts:', platformDiscounts);
+
+                // Collect colors data
+                const colorItems = document.querySelectorAll('.color-item');
+                const colors = [];
+                let totalQuantity = 0;
+
+                colorItems.forEach(item => {
+                    const colorName = item.querySelector('.color-name').value.trim();
+                    const colorCode = item.querySelector('.color-code').value.trim();
+                    const colorBarcode = item.querySelector('.color-barcode')?.value.trim() || '';
+                    const quantity = parseInt(item.querySelector('.color-quantity').value) || 0;
+                    
+                    if (colorName && quantity > 0) {
+                        colors.push({
+                            name: colorName,
+                            code: colorCode,
+                            barcode: colorBarcode,
+                            quantity: quantity
+                        });
+                        totalQuantity += quantity;
+                    }
+                });
+                
+                // Set main barcode to first color's barcode if available
+                const mainBarcode = colors.length > 0 && colors[0].barcode ? colors[0].barcode : (barcode || '');
+
+                console.log('Colors collected:', colors);
+
+                // Debug log all values
+                console.log('Validation debug:', {
+                    name: name,
+                    code: code,
+                    collection: collection,
+                    supplier: supplier,
+                    purchasePrice: purchasePrice,
+                    sellingPrice: sellingPrice,
+                    colorsLength: colors.length
+                });
+
+                if (!name || !code || !collection || !supplier || sellingPrice === undefined || sellingPrice === null || (!purchasePrice && purchasePrice !== 0)) {
+                    console.log('Missing required fields');
+                    showErrorMessage('يرجى ملء جميع الحقول المطلوبة');
+                    return;
+                }
+
+                if (colors.length === 0) {
+                    console.log('No colors added');
+                    showErrorMessage('يرجى إضافة لون واحد على الأقل مع العدد');
+                    return;
+                }
+
+                // Check for duplicate code (except when editing)
+                const existingProduct = products.find(p => p.code === code && p.id !== editingProductId);
+                if (existingProduct) {
+                    showErrorMessage('كود المنتج موجود بالفعل');
+                    return;
+                }
+
+                const customStores = getCustomStoresData();
+                const productData = {
+                    customStores,
+                    name,
+                    code,
+                    barcode: mainBarcode || barcode,
+                    colors,
+                    totalQuantity,
+                    collection,
+                    supplier,
+                    purchasePrice,
+                    sellingPrice,
+                    amazonPrice: amazonPrice || sellingPrice,
+                    amazonCommission,
+                    amazonAds,
+                    otherPrice: otherPrice || sellingPrice,
+                    minStock,
+                    noonPrice: noonPriceOriginal, // Save original price
+                    noonPriceWithVAT: noonPrice, // Save calculated VAT price
+                    noonCommission,
+                    noonShipping,
+                    noonAds,
+                    jumiaPrice,
+                    jumiaCommission,
+                    jumiaShipping,
+                    jumiaAds,
+                    siteAds,
+                    platformDiscounts,
+                    imageUrl: imageUrlInput,
+                    image: imageUrlInput || (editingProductId ? (products.find(p => p.id === editingProductId)?.image || '') : '')
+                };
+
+                console.log('Product data prepared:', productData);
+
+                // Image compression function - more aggressive compression
+                function compressImage(file, maxWidth = 400, quality = 0.4) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = function(event) {
+                            const img = new Image();
+                            img.src = event.target.result;
+                            img.onload = function() {
+                                const canvas = document.createElement('canvas');
+                                let width = img.width;
+                                let height = img.height;
+                                
+                                // Resize if needed - more aggressive
+                                if (width > maxWidth) {
+                                    height = (height * maxWidth) / width;
+                                    width = maxWidth;
+                                }
+                                
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                
+                                // Draw with smoothing for better quality
+                                ctx.imageSmoothingEnabled = true;
+                                ctx.imageSmoothingQuality = 'medium';
+                                ctx.drawImage(img, 0, 0, width, height);
+                                
+                                // Compress and get base64 - use JPEG with lower quality
+                                const compressedData = canvas.toDataURL('image/jpeg', quality);
+                                console.log('Original size:', file.size, 'Compressed size:', compressedData.length);
+                                resolve(compressedData);
+                            };
+                            img.onerror = reject;
+                        };
+                        reader.onerror = reject;
+                    });
+                }
+
+                if (imageFile) {
+                    // Compress image before saving
+                    compressImage(imageFile).then(function(compressedImage) {
+                        productData.image = compressedImage;
+                        saveProduct(productData);
+                    }).catch(function(err) {
+                        console.error('Error compressing image:', err);
+                        // If compression fails, try original
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            productData.image = e.target.result;
+                            saveProduct(productData);
+                        };
+                        reader.readAsDataURL(imageFile);
+                    });
+                } else {
+                    if (editingProductId) {
+                        const existingProduct = products.find(p => p.id === editingProductId);
+                        productData.image = existingProduct ? existingProduct.image : null;
+                    }
+                    saveProduct(productData);
+                }
+            });
+
+            function saveProduct(productData) {
+                console.log('Saving product...', productData);
+                
+                try {
+                    if (editingProductId) {
+                        const index = products.findIndex(p => p.id === editingProductId);
+                        products[index] = { ...products[index], ...productData };
+                    } else {
+                        productData.id = Date.now();
+                        products.push(productData);

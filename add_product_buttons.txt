@@ -1,0 +1,8 @@
+1434: <i class="fas fa-plus"></i> إضافة منتج
+1476: <i class="fas fa-plus"></i> إضافة منتج
+3417: <h3><i class="fas fa-box"></i> إضافة منتج جديد</h3>
+4010: <h4 style="margin: 0 0 15px 0; color: #1976d2;"><i class="fas fa-plus-circle"></i> إضافة منتج للفاتورة</h4>
+5112: document.querySelector('#productModal .modal-header h3').innerHTML = '<i class="fas fa-box"></i> إضافة منتج جديد';
+5897: document.querySelector('#productModal .modal-header h3').innerHTML = '<i class="fas fa-box"></i> إضافة منتج جديد';
+7822: showErrorMessage('يرجى إضافة منتج واحد على الأقل للفاتورة');
+7949: showErrorMessage('يرجى إضافة منتجات للفاتورة');
