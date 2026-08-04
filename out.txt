@@ -1,0 +1,14 @@
+class="main-content">
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section active">
+            <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); padding: 25px 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 12px;">
+                        <i class="fas fa-chart-line" style="font-size: 2rem; color: white;"></i>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0; color: white; font-size: 1.8rem;">Dashboard</h2>
+                        <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.8); font-size: 0.9rem;">نظرة شاملة على أداء عملك</p>
+                    </div>
+  
