@@ -1304,10 +1304,10 @@ export default function Finance() {
       </div>
 
       {/* Daily Transactions Table */}
-      <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden mb-8">
-        <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-          <h3 className="font-black text-slate-800 flex items-center gap-2">
-            <ArrowRightLeft size={20} className="text-indigo-600" />
+      <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden mb-8">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+          <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2">
+            <ArrowRightLeft size={20} className="text-indigo-600 dark:text-indigo-400" />
             سجل معاملات {filterType === 'daily' ? 'اليوم' : (filterType === 'monthly' ? 'الشهر' : 'السنة')}
           </h3>
           <div className="flex items-center gap-2">
@@ -1315,14 +1315,14 @@ export default function Finance() {
               <button
                 type="button"
                 onClick={() => setMethodFilter(null)}
-                className="text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-indigo-100 transition"
+                className="text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-indigo-100 transition"
                 title="عرض كل المعاملات"
               >
                 {payLabelOf(storeSettings as any, methodFilter)}
                 <X size={12} />
               </button>
             )}
-            <span className="text-xs font-bold bg-slate-100 text-slate-500 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-3 py-1 rounded-full">
               {visibleTransactions.length} عملية
             </span>
           </div>
@@ -1331,7 +1331,7 @@ export default function Finance() {
         <div className="overflow-x-auto">
           <table className="w-full text-right">
             <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+              <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-700">
                 <th className="p-6">الوقت</th>
                 <th className="p-6">النوع</th>
                 <th className="p-6">التفاصيل</th>
@@ -1340,13 +1340,13 @@ export default function Finance() {
                 <th className="p-6 text-left">إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
               {visibleTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-20 text-center">
-                    <div className="flex flex-col items-center opacity-20">
+                    <div className="flex flex-col items-center opacity-40 dark:opacity-60 text-slate-400 dark:text-slate-400">
                       <Search size={64} />
-                      <p className="text-xl font-bold mt-4">
+                      <p className="text-xl font-bold mt-4 text-slate-500 dark:text-slate-300">
                         {methodFilter ? `لا توجد معاملات على ${payLabelOf(storeSettings as any, methodFilter)}` : 'لا توجد معاملات في هذا اليوم'}
                       </p>
                     </div>
@@ -1354,17 +1354,17 @@ export default function Finance() {
                 </tr>
               ) : (
                 visibleTransactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="p-6 text-slate-400 text-xs font-bold">{t.time}</td>
+                  <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors group">
+                    <td className="p-6 text-slate-400 dark:text-slate-400 text-xs font-bold">{t.time}</td>
                     <td className="p-6">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-[10px] ${
-                        t.isTransfer ? 'bg-blue-50 text-blue-600 border border-blue-100' : t.isOut ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                        t.isTransfer ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50' : t.isOut ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50'
                       }`}>
                         {t.isTransfer ? <ArrowRightLeft size={10} /> : t.isOut ? <ArrowDown size={10} /> : <ArrowUp size={10} />}
                         {t.type}
                       </span>
                     </td>
-                    <td className="p-6 font-medium text-slate-600 text-sm">{t.note}</td>
+                    <td className="p-6 font-medium text-slate-600 dark:text-slate-300 text-sm">{t.note}</td>
                     <td className="p-6">
                       <div className="flex flex-col gap-1">
                         {t.isTransfer ? (
@@ -1373,7 +1373,7 @@ export default function Finance() {
                               if (val === 0) return null;
                               const icons: Record<string, any> = { cash: <Landmark size={12} />, visa: <CreditCard size={12} />, wallet: <Smartphone size={12} />, instapay: <Zap size={12} /> };
                               return (
-                                <span key={key} className={`text-[10px] font-black flex items-center gap-1 ${val < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                <span key={key} className={`text-[10px] font-black flex items-center gap-1 ${val < 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                   {icons[key] || <Wallet size={12} />} {payLabelOf(storeSettings as any, key)}: {val > 0 ? '+' : ''}{val.toLocaleString()}
                                 </span>
                               );
@@ -1382,12 +1382,12 @@ export default function Finance() {
                         ) : (
                           <>
                             {t.split?.cash > 0 && (
-                              <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1">
+                              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                                 <Landmark size={12} /> {t.split.cash.toLocaleString()}
                               </span>
                             )}
                             {t.split?.visa > 0 && (
-                              <span className="text-[10px] font-black text-blue-600 flex items-center gap-1">
+                              <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 flex items-center gap-1">
                                 <CreditCard size={12} /> {t.split.visa.toLocaleString()}
                               </span>
                             )}
