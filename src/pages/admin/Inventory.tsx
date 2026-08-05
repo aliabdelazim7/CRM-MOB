@@ -902,9 +902,10 @@ export default function Inventory() {
                 </div>
 
                 {/* Product Barcode line + Generate Button */}
-                <div>
+                <div className="relative">
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-xs font-bold text-slate-300">
+                    <label className="block text-xs font-bold text-slate-300 flex items-center gap-1">
+                      <ScanLine size={14} className="text-emerald-400" />
                       🔢 باركود المنتج <span className="text-[10px] text-slate-400">(يتولّد تلقائياً تسلسلياً لو فاضي)</span>
                     </label>
                     <button
@@ -919,14 +920,20 @@ export default function Inventory() {
                       ⚡ توليد
                     </button>
                   </div>
-                  <input
-                    type="text"
-                    dir="ltr"
-                    value={formData.barcode}
-                    onChange={e => setFormData({ ...formData, barcode: e.target.value })}
-                    placeholder="امسح الباركود أو انقر على توليد..."
-                    className="w-full bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono font-bold text-sm text-left"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={formData.barcode}
+                      onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                      onKeyDown={handleBarcodeKeyDown}
+                      placeholder="امسح الباركود أو انقر على توليد..."
+                      className={`w-full bg-slate-950 border text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono font-bold text-sm text-left transition ${scanSuccess ? 'border-emerald-500 bg-emerald-950/40' : 'border-slate-700/80'}`}
+                    />
+                    {scanSuccess && (
+                      <CheckCircle2 className="absolute left-3 top-3.5 text-emerald-400 animate-in zoom-in" size={18} />
+                    )}
+                  </div>
                 </div>
 
                 {/* Colors & Codes Repeater Section */}
