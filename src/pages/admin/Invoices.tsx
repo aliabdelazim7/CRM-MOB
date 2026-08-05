@@ -510,16 +510,16 @@ export default function Invoices() {
         </div>
       </div>
 
-      <div id="invoices-table" className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-[500px]">
+      <div id="invoices-table" className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col min-h-[500px]">
         {/* Advanced Filters */}
-        <div className="p-5 border-b border-slate-100 bg-slate-50 grid grid-cols-1 xl:grid-cols-5 gap-4 items-center">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 grid grid-cols-1 xl:grid-cols-5 gap-4 items-center">
           <div className="relative xl:col-span-2">
             <Search className="absolute right-4 top-3 text-slate-400" size={20} />
             <input
               type="text"
               placeholder="ابحث برقم الفاتورة، اسم العميل، أو رقم الهاتف..."
               style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-              className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 shadow-sm transition"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-xl py-2.5 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 shadow-sm transition"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -527,11 +527,11 @@ export default function Invoices() {
           
           <div className="flex flex-wrap gap-3 xl:col-span-3 justify-end items-center">
             {/* أساس التاريخ — بيحدد الفلاتر اللي جنبه (يوم/شهر/سنة) تتطبّق على إيه */}
-            <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-1">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-900 rounded-xl p-1 gap-1">
               <button
                 onClick={() => setDateBasis('invoice')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition ${
-                  dateBasis === 'invoice' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  dateBasis === 'invoice' ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
                 title="فلترة اليوم/الشهر/السنة على تاريخ الفاتورة"
               >
@@ -540,7 +540,7 @@ export default function Invoices() {
               <button
                 onClick={() => setDateBasis('refund')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition ${
-                  dateBasis === 'refund' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  dateBasis === 'refund' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
                 title="عرض الفواتير المُرتجعة فقط، مفلترة بيوم الاسترجاع نفسه"
               >
@@ -549,7 +549,7 @@ export default function Invoices() {
               <button
                 onClick={() => setDateBasis('exchange')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition ${
-                  dateBasis === 'exchange' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  dateBasis === 'exchange' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
                 title="عرض فواتير الاستبدال فقط، مفلترة بيوم الاستبدال نفسه"
               >
@@ -563,12 +563,12 @@ export default function Invoices() {
                 value={selectedDay}
                 onChange={e => setSelectedDay(e.target.value)}
                 style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-                className="bg-white border border-slate-200 rounded-xl py-2.5 pr-10 pl-10 text-sm focus:ring-2 outline-none min-w-[155px]"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-xl py-2.5 pr-10 pl-10 text-sm focus:ring-2 outline-none min-w-[155px]"
               />
               {selectedDay && (
                 <button
                   onClick={() => setSelectedDay('')}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                   title="كل الأيام"
                 >
                   <X size={14} />
@@ -579,7 +579,7 @@ export default function Invoices() {
               value={selectedMonth} 
               onChange={e => setSelectedMonth(e.target.value)} 
               style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-              className="bg-white border border-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 outline-none"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 outline-none"
             >
               <option value="all">كل الشهور</option>
               {Array.from({ length: 12 }, (_, i) => (
@@ -591,7 +591,7 @@ export default function Invoices() {
               value={selectedYear} 
               onChange={e => setSelectedYear(e.target.value)} 
               style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-              className="bg-white border border-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 outline-none"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 outline-none"
             >
               <option value="all">كل السنوات</option>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
@@ -601,7 +601,7 @@ export default function Invoices() {
               value={selectedCashier} 
               onChange={e => setSelectedCashier(e.target.value)} 
               style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-              className="bg-white border border-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 outline-none"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 outline-none"
             >
               <option value="all">كل المحاسبين</option>
               {uniqueCashiers.map(c => <option key={c} value={c}>{c}</option>)}
@@ -611,7 +611,7 @@ export default function Invoices() {
               value={selectedSalesperson}
               onChange={e => setSelectedSalesperson(e.target.value)}
               style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-              className="bg-white border border-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 outline-none"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 outline-none"
             >
               <option value="all">كل مسؤولي المبيعات</option>
               {uniqueSalespeople.map(s => <option key={s} value={s}>{s}</option>)}
@@ -619,7 +619,7 @@ export default function Invoices() {
           </div>
         </div>
 
-        <div className="p-5 border-b border-slate-100 bg-white">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">
             <div className="mb-4 flex flex-wrap gap-2">
               <button
                 type="button"
