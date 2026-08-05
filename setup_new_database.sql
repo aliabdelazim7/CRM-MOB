@@ -1,18 +1,18 @@
 -- ============================================================
--- إعداد قاعدة بيانات الكاشير من الصفر (نسخة محل قطع غيار سيارات)
+-- السكريبت الموحد والشامل لإعداد قاعدة بيانات ADRIA (POS / Enterprise ERP)
 -- شغّل هذا الملف بالكامل مرة واحدة في:
 -- Supabase Dashboard > SQL Editor > New query > Run
 -- ============================================================
 
--- ---------- الإضافات (Extensions) ----------
+-- ---------- 1) الإضافات (Extensions) ----------
 create extension if not exists pgcrypto;
 create extension if not exists "uuid-ossp";
 
 -- ============================================================
--- 1) الجداول
+-- 2) الجداول الأساسية وجداول HANCES PRO ERP
 -- ============================================================
 
--- إعدادات المتجر
+-- 1. إعدادات المتجر
 create table if not exists store_settings (
   id uuid default gen_random_uuid() primary key,
   name text not null default 'محل قطع غيار السيارات',
@@ -28,14 +28,14 @@ create table if not exists store_settings (
   location_url text default ''
 );
 
--- الفئات
+-- 2. التصنيفات
 create table if not exists categories (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   created_at timestamptz default now()
 );
 
--- المنتجات
+-- 3. المنتجات
 create table if not exists products (
   id uuid default gen_random_uuid() primary key,
   name text not null,
@@ -49,7 +49,7 @@ create table if not exists products (
   created_at timestamptz default now()
 );
 
--- العملاء
+-- 4. العملاء
 create table if not exists customers (
   id uuid default gen_random_uuid() primary key,
   custom_id text unique,
@@ -59,16 +59,19 @@ create table if not exists customers (
   created_at timestamptz default now()
 );
 
--- الموردين
+-- 5. الموردين
 create table if not exists suppliers (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   phone text,
+  email text,
   address text,
+  current_balance numeric default 0,
+  credit_limit numeric default 0,
   created_at timestamptz default now()
 );
 
--- اشتراكات / سيارات الصيانة (تُنشأ قبل orders و expenses لوجود مفاتيح خارجية إليها)
+-- 6. سيارات الصيانة والاشتراكات
 create table if not exists car_subscriptions (
   id uuid primary key default gen_random_uuid(),
   car_number text not null,
@@ -93,12 +96,21 @@ create table if not exists maintenance_appointments (
   created_at timestamptz default now()
 );
 
--- فواتير المشتريات
+-- 7. فواتير المشتريات التكليفية والمتقدمة
 create table if not exists purchase_invoices (
   id uuid default gen_random_uuid() primary key,
   invoice_number text not null,
   supplier_id uuid references suppliers(id) on delete set null,
+  warehouse_id uuid,
+  invoice_date date default current_date,
+  due_date date,
+  status text default 'approved',
+  subtotal numeric default 0,
+  discount numeric default 0,
+  tax_amount numeric default 0,
+  freight_cost numeric default 0,
   total numeric not null default 0,
+  total_amount numeric default 0,
   paid_amount numeric default 0,
   paid_cash numeric default 0,
   paid_visa numeric default 0,
@@ -114,10 +126,13 @@ create table if not exists purchase_items (
   invoice_id uuid references purchase_invoices(id) on delete cascade,
   product_id uuid references products(id) on delete set null,
   quantity integer not null default 1,
-  purchase_price numeric not null default 0
+  purchase_price numeric not null default 0,
+  landed_unit_cost numeric default 0,
+  tax_rate numeric default 0,
+  total_cost numeric default 0
 );
 
--- الفواتير (المبيعات)
+-- 8. الفواتير والمبيعات (Orders)
 create table if not exists orders (
   id text primary key,
   total numeric not null default 0,
@@ -165,7 +180,7 @@ create table if not exists order_items (
   purchase_price numeric default 0
 );
 
--- المصروفات
+-- 9. المصروفات
 create table if not exists expenses (
   id uuid default gen_random_uuid() primary key,
   category text not null,
@@ -180,7 +195,7 @@ create table if not exists expenses (
   created_at timestamptz default now()
 );
 
--- التمويل (السلف والجمعيات)
+-- 10. التمويل (السلف والجمعيات)
 create table if not exists financing_accounts (
   id uuid default gen_random_uuid() primary key,
   type text not null default 'loan',
@@ -224,7 +239,7 @@ create table if not exists financing_transactions (
   created_at timestamptz default now()
 );
 
--- الكاشيرين
+-- 11. الكاشيرين والموظفين
 create table if not exists cashiers (
   id uuid default gen_random_uuid() primary key,
   name text not null,
@@ -234,7 +249,6 @@ create table if not exists cashiers (
   created_at timestamptz default now()
 );
 
--- الموظفين والرواتب
 create table if not exists employees (
   id uuid default gen_random_uuid() primary key,
   name text not null,
@@ -277,11 +291,8 @@ create table if not exists employee_leaves (
   note text,
   created_at timestamptz default now()
 );
-create index if not exists idx_employee_leaves_employee_id on employee_leaves(employee_id);
-create index if not exists idx_employee_leaves_month on employee_leaves(month);
-create index if not exists idx_employee_leaves_start_date on employee_leaves(start_date);
 
--- اقتراحات المنتجات وملاحظات الكاشير
+-- 12. اقتراحات المنتجات وملاحظات الكاشير والكوبونات
 create table if not exists product_suggestions (
   id uuid default gen_random_uuid() primary key,
   name text not null,
@@ -298,7 +309,6 @@ create table if not exists cashier_notes (
   created_at timestamptz default now()
 );
 
--- كوبونات الخصم
 create table if not exists coupons (
   id uuid default gen_random_uuid() primary key,
   code text not null unique,
@@ -314,7 +324,101 @@ create table if not exists coupons (
 );
 
 -- ============================================================
--- 2) تفعيل RLS + سياسات مفتوحة (عدّلها لاحقاً عند إضافة Auth)
+-- 13. جداول موديولات HANCES PRO ERP
+-- ============================================================
+
+-- 1) شركات الشحن
+create table if not exists shipping_carriers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  phone text,
+  email text,
+  address text,
+  tracking_url_template text,
+  status text default 'active',
+  created_at timestamptz default now()
+);
+
+-- 2) شحنات اللوجستيات
+create table if not exists logistics_orders (
+  id uuid primary key default gen_random_uuid(),
+  order_id text,
+  carrier_id uuid references shipping_carriers(id) on delete set null,
+  tracking_number text,
+  shipping_cost numeric default 0,
+  status text default 'pending',
+  estimated_delivery date,
+  shipped_at timestamptz,
+  created_at timestamptz default now()
+);
+
+-- 3) المخازن والتحويلات
+create table if not exists warehouses (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  location text,
+  manager_id text,
+  status text default 'active',
+  created_at timestamptz default now()
+);
+
+create table if not exists stock_transfers (
+  id uuid primary key default gen_random_uuid(),
+  transfer_number text unique not null,
+  source_warehouse_id uuid references warehouses(id) on delete restrict,
+  target_warehouse_id uuid references warehouses(id) on delete restrict,
+  status text default 'pending',
+  notes text,
+  created_by text,
+  created_at timestamptz default now()
+);
+
+create table if not exists stock_transfer_items (
+  id uuid primary key default gen_random_uuid(),
+  transfer_id uuid references stock_transfers(id) on delete cascade,
+  product_id uuid references products(id) on delete cascade,
+  quantity numeric not null check (quantity > 0)
+);
+
+create table if not exists stock_movement_logs (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid references products(id) on delete cascade,
+  warehouse_id uuid references warehouses(id) on delete set null,
+  type text not null, -- in, out, transfer, adjustment
+  quantity numeric not null,
+  reference_type text,
+  reference_id text,
+  notes text,
+  created_at timestamptz default now()
+);
+
+-- 4) سجل معاملات الموردين
+create table if not exists supplier_transactions (
+  id uuid primary key default gen_random_uuid(),
+  supplier_id uuid references suppliers(id) on delete cascade,
+  type text not null, -- PURCHASE, PAYMENT, RETURN
+  amount numeric not null,
+  balance_after numeric not null,
+  payment_method text,
+  reference_no text,
+  created_at timestamptz default now()
+);
+
+create table if not exists supplier_ledger (
+  id uuid primary key default gen_random_uuid(),
+  supplier_id uuid references suppliers(id) on delete cascade,
+  transaction_type text not null,
+  reference_number text,
+  debit numeric default 0,
+  credit numeric default 0,
+  balance numeric default 0,
+  payment_account_id text,
+  note text,
+  created_at timestamptz default now()
+);
+
+-- ============================================================
+-- 3) تفعيل RLS + السياسات الأمنية
 -- ============================================================
 do $$
 declare t text;
@@ -325,7 +429,9 @@ begin
     'orders','invoice_counter','order_items','expenses',
     'financing_accounts','financing_payments','financing_transactions',
     'cashiers','employees','employee_transactions','employee_leaves',
-    'product_suggestions','cashier_notes','coupons'
+    'product_suggestions','cashier_notes','coupons',
+    'shipping_carriers','logistics_orders','warehouses','stock_transfers',
+    'stock_transfer_items','stock_movement_logs','supplier_transactions','supplier_ledger'
   ]
   loop
     execute format('alter table %I enable row level security;', t);
@@ -337,23 +443,42 @@ begin
   end loop;
 end $$;
 
--- تفعيل Realtime لجداول الصيانة (بأمان لو الجدول مضاف مسبقاً)
-do $$
-begin
-  begin execute 'alter publication supabase_realtime add table car_subscriptions'; exception when others then null; end;
-  begin execute 'alter publication supabase_realtime add table maintenance_appointments'; exception when others then null; end;
-end $$;
-
 -- ============================================================
--- 3) بيانات أولية
+-- 4) البيانات الأولية البذرية (Initial Seed Data)
 -- ============================================================
 
--- إعدادات المتجر
+-- 1. إعدادات المتجر
 insert into store_settings (name, currency, tax_rate, theme_color, initial_balance)
 select 'محل قطع غيار السيارات', 'ج.م', 0, '#4f46e5', 0
 where not exists (select 1 from store_settings);
 
--- الفئات (8 تصنيفات)
+-- 2. شركات الشحن الافتراضية
+insert into shipping_carriers (name, phone, email, tracking_url_template, status)
+select 'SMSA Express', '920009999', 'support@smsaexpress.com', 'https://www.smsaexpress.com/track/{TN}', 'active'
+where not exists (select 1 from shipping_carriers where name = 'SMSA Express');
+
+insert into shipping_carriers (name, phone, email, tracking_url_template, status)
+select 'FedEx', '18004633339', 'support@fedex.com', 'https://www.fedex.com/fedextrack/?trknbr={TN}', 'active'
+where not exists (select 1 from shipping_carriers where name = 'FedEx');
+
+insert into shipping_carriers (name, phone, email, tracking_url_template, status)
+select 'Aramex', '920027447', 'support@aramex.com', 'https://www.aramex.com/track/results?mode=0&ShipmentNumber={TN}', 'active'
+where not exists (select 1 from shipping_carriers where name = 'Aramex');
+
+insert into shipping_carriers (name, phone, email, tracking_url_template, status)
+select 'DHL', '18002255345', 'support@dhl.com', 'https://www.dhl.com/en/express/tracking.html?AWB={TN}', 'active'
+where not exists (select 1 from shipping_carriers where name = 'DHL');
+
+-- 3. المخازن الافتراضية
+insert into warehouses (name, location, status)
+select 'المخزن الرئيسي', 'المقر الرئيسي', 'active'
+where not exists (select 1 from warehouses where name = 'المخزن الرئيسي');
+
+insert into warehouses (name, location, status)
+select 'مخزن الفرع الثاني', 'الفرع الثاني', 'active'
+where not exists (select 1 from warehouses where name = 'مخزن الفرع الثاني');
+
+-- 4. التصنيفات (8 تصنيفات)
 insert into categories (name) values
   ('فلاتر وزيوت'),
   ('فرامل'),
@@ -365,7 +490,7 @@ insert into categories (name) values
   ('إكسسوارات وكماليات')
 on conflict do nothing;
 
--- المنتجات (9 منتجات لكل تصنيف = 72 منتج)
+-- 5. المنتجات (72 منتج متكامل)
 insert into products (name, barcode, purchase_price, average_purchase_price, sale_price, stock_quantity, category_id) values
 -- 1) فلاتر وزيوت
 ('فلتر زيت تويوتا أصلي',            '1001', 90,  90,  150,  60, (select id from categories where name='فلاتر وزيوت')),
@@ -450,5 +575,5 @@ insert into products (name, barcode, purchase_price, average_purchase_price, sal
 on conflict (barcode) do nothing;
 
 -- ============================================================
--- تم. الداتا بيز جاهزة + 8 تصنيفات و 72 منتج.
+-- تم الإعداد بنجاح! قاعدة البيانات وجداول النظام وموديولات HANCES PRO جاهزة.
 -- ============================================================
