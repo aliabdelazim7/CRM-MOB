@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStore } from '../../store/useStore';
+import { useStore, SETTING_LABEL_AR } from '../../store/useStore';
 import { listPrinters, getQzConfig, saveQzConfig } from '../../utils/qzPrint';
 
 export default function Settings() {
@@ -33,27 +33,60 @@ export default function Settings() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await updateSettings(formData);
-      alert('تم حفظ الإعدادات بنجاح!');
+      const { skipped } = await updateSettings(formData);
+      if (skipped.length > 0) {
+        // نجاح جزئي: الباقي اتحفظ، بس فيه أعمدة مش موجودة في قاعدة البيانات.
+        // بنقول بالظبط إيه اللي مااتحفظش بدل «تم الحفظ بنجاح» الكاذبة.
+        const names = skipped.map((c) => SETTING_LABEL_AR[c] || c).join('، ');
+        alert(
+          `اتحفظ الباقي ✅\n\nبس الإعدادات دي مش اتحفظت لأن أعمدتها مش موجودة في قاعدة البيانات:\n${names}\n\n` +
+          `الحل: شغّل ملف db/28_ensure_settings_columns.sql في Supabase → SQL Editor، وبعدها احفظ تاني.`,
+        );
+      } else {
+        alert('تم حفظ الإعدادات بنجاح!');
+      }
     } catch (error) {
       console.error(error);
       alert((error as Error)?.message || 'حدث خطأ أثناء حفظ الإعدادات. تأكد من اتصال الإنترنت أو صلاحيات قاعدة البيانات.');
     }
   };
 
+  /**
+   * رفع اللوجو — بنصغّره قبل الحفظ زي ما بنعمل مع صورة الـQR بالظبط.
+   *
+   * قبل كده كانت الصورة بتتخزّن base64 خام لحد ٢ ميجا. الـbase64 بيكبّر الحجم
+   * ~٣٣%، وصف الإعدادات ده بيتحمّل مع **كل** فتح للتطبيق وعلى كل جهاز كاشير —
+   * يعني ٢.٧ ميجا بتتنقل كل مرة عشان صورة بتتعرض في ٤٠px.
+   * اللوجو بيتعرض في أكبر مقاس عنده حوالي ١٢٠px، فـ٣٨٤ كفاية وزيادة.
+   */
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert('حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 2 ميجابايت.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, logo: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 5 ميجابايت.');
+      return;
     }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 384;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        // لو الكانفاس مش متاح لأي سبب، بنحفظ الأصلية بدل ما نفشل الرفع.
+        if (!ctx) { setFormData({ ...formData, logo: reader.result as string }); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        // PNG بيحافظ على الشفافية — أغلب اللوجوهات خلفيتها شفافة.
+        setFormData({ ...formData, logo: canvas.toDataURL('image/png') });
+      };
+      img.onerror = () => alert('تعذّر قراءة الصورة.');
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   // رفع صورة QR الصفحات. بنصغّرها ونسطّحها على خلفية بيضا قبل الحفظ لسببين:

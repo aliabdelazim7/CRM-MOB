@@ -5,6 +5,67 @@ import { priceForType } from '../utils/pricing';
 
 /** لوجو ADRIA الافتراضي — يظهر قبل تحميل إعدادات المحل، وبدله كان <img> بمصدر فاضي (صورة مكسورة). */
 export const DEFAULT_LOGO = '/logo.svg';
+
+/**
+ * ربط مفاتيح الإعدادات بأعمدة جدول store_settings — مصدر واحد للحقيقة.
+ *
+ * ⚠️ أي عمود بيتضاف هنا لازم يتضاف في db/28_ensure_settings_columns.sql كمان،
+ * وإلا الحفظ هيتخطّاه على أي قاعدة بيانات مااتحدّثتش.
+ */
+export const COLUMN_OF_SETTING: Record<string, string> = {
+  name: 'name',
+  currency: 'currency',
+  logo: 'logo',
+  taxRate: 'tax_rate',
+  themeColor: 'theme_color',
+  address: 'address',
+  phone: 'phone',
+  phone2: 'phone2',
+  whatsappCountryCode: 'whatsapp_country_code',
+  initial_balance: 'initial_balance',
+  locationUrl: 'location_url',
+  cashierPermissions: 'cashier_permissions',
+  paymentLabels: 'payment_labels',
+  paymentMethodsEnabled: 'payment_methods_enabled',
+  paymentOpeningBalances: 'payment_opening_balances',
+  savingsOpeningBalances: 'savings_opening_balances',
+  showInvoiceProfit: 'show_invoice_profit',
+  allowCashierEmployeeAdvance: 'allow_cashier_employee_advance',
+  dayStartHour: 'day_start_hour',
+  expenseCategories: 'expense_categories',
+  incomeCategories: 'income_categories',
+  pagesQrUrl: 'pages_qr_url',
+  pagesQrLabel: 'pages_qr_label',
+  pagesQrImage: 'pages_qr_image',
+};
+
+/** أسماء عربية للأعمدة — بتظهر للمستخدم لما إعداد مايتحفظش. */
+export const SETTING_LABEL_AR: Record<string, string> = {
+  name: 'اسم المحل',
+  currency: 'العملة',
+  logo: 'اللوجو',
+  tax_rate: 'الضريبة',
+  theme_color: 'لون النظام',
+  address: 'العنوان',
+  phone: 'التليفون',
+  phone2: 'تليفون ٢',
+  whatsapp_country_code: 'كود واتساب',
+  initial_balance: 'الرصيد الافتتاحي',
+  location_url: 'رابط الموقع',
+  cashier_permissions: 'صلاحيات الكاشير',
+  payment_labels: 'تسميات وسائل الدفع',
+  payment_methods_enabled: 'تفعيل وسائل الدفع',
+  payment_opening_balances: 'أرصدة الوسائل الافتتاحية',
+  savings_opening_balances: 'أرصدة الخزنة الافتتاحية',
+  show_invoice_profit: 'إظهار ربح الفاتورة',
+  allow_cashier_employee_advance: 'سماح الكاشير بصرف سلف',
+  day_start_hour: 'ساعة بداية اليوم',
+  expense_categories: 'تصنيفات المصروفات',
+  income_categories: 'تصنيفات الإيرادات',
+  pages_qr_url: 'رابط QR الصفحات',
+  pages_qr_label: 'اسم QR الصفحات',
+  pages_qr_image: 'صورة QR الصفحات',
+};
 import { payLabelOf, ALL_PAYMENT_KEYS } from '../utils/paymentMethods';
 // الربط بين صف الموظف وصف المصروف — دوال نقية في utils عشان تتغطّى بالتستات.
 import { findLinkedSalaryExpense, findLinkedEmployeeTx } from '../utils/salaryLink';
@@ -943,7 +1004,8 @@ interface CashierStore {
 
   // Admin
   loadAnalyticsData: (startDate?: string, endDate?: string) => Promise<Order[]>;
-  updateSettings: (settings: Partial<StoreSettings>) => Promise<void>;
+  /** بيرجّع أسماء الأعمدة اللي اتخطّاها لأنها مش موجودة في قاعدة البيانات (فاضية = كله اتحفظ). */
+  updateSettings: (settings: Partial<StoreSettings>) => Promise<{ skipped: string[] }>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<Product | undefined>;
   /**
    * opts.skipIntakeLog: يمنع تقييد الزيادة كـ«مخزون بدون شراء» (للحالات اللي مش دخول
@@ -4420,46 +4482,75 @@ export const useStore = create<CashierStore>((set, get) => ({
 
   updateSettings: async (newSettings) => {
     const mapped: Record<string, unknown> = {};
-    if (newSettings.name !== undefined) mapped.name = newSettings.name;
-    if (newSettings.currency !== undefined) mapped.currency = newSettings.currency;
-    if (newSettings.logo !== undefined) mapped.logo = newSettings.logo;
-    if (newSettings.taxRate !== undefined) mapped.tax_rate = newSettings.taxRate;
-    if (newSettings.themeColor !== undefined) mapped.theme_color = newSettings.themeColor;
-    if (newSettings.address !== undefined) mapped.address = newSettings.address;
-    if (newSettings.phone !== undefined) mapped.phone = newSettings.phone;
-    if (newSettings.phone2 !== undefined) mapped.phone2 = newSettings.phone2;
-    if (newSettings.whatsappCountryCode !== undefined) mapped.whatsapp_country_code = newSettings.whatsappCountryCode;
-    if (newSettings.initial_balance !== undefined) mapped.initial_balance = newSettings.initial_balance;
-    if (newSettings.locationUrl !== undefined) mapped.location_url = newSettings.locationUrl;
-    if (newSettings.cashierPermissions !== undefined) mapped.cashier_permissions = newSettings.cashierPermissions;
-    if (newSettings.paymentLabels !== undefined) mapped.payment_labels = newSettings.paymentLabels;
-    if (newSettings.paymentMethodsEnabled !== undefined) mapped.payment_methods_enabled = newSettings.paymentMethodsEnabled;
-    if (newSettings.paymentOpeningBalances !== undefined) mapped.payment_opening_balances = newSettings.paymentOpeningBalances;
-    if (newSettings.savingsOpeningBalances !== undefined) mapped.savings_opening_balances = newSettings.savingsOpeningBalances;
-    if (newSettings.showInvoiceProfit !== undefined) mapped.show_invoice_profit = newSettings.showInvoiceProfit;
-    if (newSettings.allowCashierEmployeeAdvance !== undefined) mapped.allow_cashier_employee_advance = newSettings.allowCashierEmployeeAdvance;
-    if (newSettings.dayStartHour !== undefined) mapped.day_start_hour = newSettings.dayStartHour;
-    if (newSettings.expenseCategories !== undefined) mapped.expense_categories = newSettings.expenseCategories;
-    if (newSettings.incomeCategories !== undefined) mapped.income_categories = newSettings.incomeCategories;
-    if (newSettings.pagesQrUrl !== undefined) mapped.pages_qr_url = newSettings.pagesQrUrl;
-    if (newSettings.pagesQrLabel !== undefined) mapped.pages_qr_label = newSettings.pagesQrLabel;
-    if (newSettings.pagesQrImage !== undefined) mapped.pages_qr_image = newSettings.pagesQrImage;
+    for (const [settingKey, column] of Object.entries(COLUMN_OF_SETTING)) {
+      const value = (newSettings as Record<string, unknown>)[settingKey];
+      if (value !== undefined) mapped[column] = value;
+    }
 
     const { data: existing } = await supabase.from('store_settings').select('id').limit(1).maybeSingle();
 
-    const { error } = existing?.id
-      ? await supabase.from('store_settings').update(mapped).eq('id', existing.id)
-      : await supabase.from('store_settings').insert(mapped);
+    /**
+     * الحفظ بيبعت كل الأعمدة في UPDATE واحد، فعمود واحد ناقص في قاعدة البيانات
+     * كان بيفشّل الحفظ **كله** — يعني اللي عايز يغيّر اللوجو بس مايقدرش، عشان
+     * عمود ملهوش علاقة (allow_cashier_employee_advance مثلاً) مش موجود.
+     *
+     * دلوقتي بنشيل العمود المفقود ونعيد المحاولة، فاللي ينفع يتحفظ بيتحفظ،
+     * وبنرجّع أسماء اللي اتخطّى عشان الواجهة تقول للمستخدم يشغّل الهجرة.
+     */
+    const missingColumn = (err: { code?: string; message?: string }): string | null => {
+      const m = err?.message || '';
+      // PostgREST: schema cache مش عارف العمود
+      const cache = m.match(/Could not find the '([^']+)' column/);
+      if (cache) return cache[1];
+      // Postgres 42703: العمود مش موجود فعلاً
+      const pg = m.match(/column "([^"]+)" of relation/);
+      if (pg) return pg[1];
+      return null;
+    };
 
-    // مهم: نرمي الخطأ بدل ما نبلعه — عمود ناقص في store_settings بيفشّل الحفظ كله
-    // (زي تسميات المحافظ). كده الواجهة تعرض فشل حقيقي بدل نجاح كاذب.
-    if (error) {
-      console.error('updateSettings error:', error);
-      throw new Error(`فشل حفظ الإعدادات: ${error.message}. شغّل db/28_ensure_settings_columns.sql على قاعدة البيانات.`);
+    const payload = { ...mapped };
+    const skipped: string[] = [];
+
+    // الحد الأقصى = عدد الأعمدة، فمفيش احتمال لوب لا نهائية.
+    for (let attempt = 0; attempt <= Object.keys(mapped).length; attempt++) {
+      if (Object.keys(payload).length === 0) break;
+
+      const { error } = existing?.id
+        ? await supabase.from('store_settings').update(payload).eq('id', existing.id)
+        : await supabase.from('store_settings').insert(payload);
+
+      if (!error) {
+        // بنحدّث الحالة المحلية بس بالحقول اللي اتحفظت فعلاً، عشان الشاشة
+        // ماتوريش قيمة كأنها اتخزنت وهي مش متخزنة.
+        const savedKeys = new Set(Object.keys(payload));
+        const applied: Record<string, unknown> = {};
+        for (const [settingKey, column] of Object.entries(COLUMN_OF_SETTING)) {
+          if (savedKeys.has(column) && (newSettings as Record<string, unknown>)[settingKey] !== undefined) {
+            applied[settingKey] = (newSettings as Record<string, unknown>)[settingKey];
+          }
+        }
+        set((state) => ({ storeSettings: { ...state.storeSettings, ...applied } }));
+        new BroadcastChannel('cashier-sync').postMessage('sync_settings');
+        return { skipped };
+      }
+
+      const col = missingColumn(error);
+      if (!col || !(col in payload)) {
+        console.error('updateSettings error:', error);
+        throw new Error(
+          `فشل حفظ الإعدادات: ${error.message}. شغّل db/28_ensure_settings_columns.sql على قاعدة البيانات.`,
+        );
+      }
+      delete payload[col];
+      skipped.push(col);
+      console.warn(`العمود "${col}" مش موجود في store_settings — بنتخطّاه ونكمّل حفظ الباقي.`);
     }
 
-    set((state) => ({ storeSettings: { ...state.storeSettings, ...newSettings } }));
-    new BroadcastChannel('cashier-sync').postMessage('sync_settings');
+    // كل الأعمدة اتخطّت — يعني الجدول ناقص خالص.
+    throw new Error(
+      `فشل حفظ الإعدادات: الأعمدة دي مش موجودة في قاعدة البيانات (${skipped.join('، ')}). ` +
+      `شغّل db/28_ensure_settings_columns.sql على قاعدة البيانات.`,
+    );
   },
 
   // ─── Car Maintenance Methods ─────────────────────────────────
