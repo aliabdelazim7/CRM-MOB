@@ -42,6 +42,7 @@ create table if not exists products (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   barcode text unique,
+  image_url text,
   purchase_price numeric default 0,
   average_purchase_price numeric default 0,
   sale_price numeric default 0,
@@ -50,6 +51,7 @@ create table if not exists products (
   is_hidden boolean default false,
   created_at timestamptz default now()
 );
+alter table products add column if not exists image_url text;
 
 -- 4. العملاء
 create table if not exists customers (

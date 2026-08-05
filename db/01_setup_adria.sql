@@ -36,6 +36,7 @@ create table if not exists products (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   barcode text unique,
+  image_url text,
   purchase_price numeric default 0,
   average_purchase_price numeric default 0,
   sale_price numeric default 0,

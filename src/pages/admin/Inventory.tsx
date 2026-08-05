@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
-import { useStore, type Product } from '../../store/useStore';
+import { useStore, PRODUCT_LABEL_AR, PRODUCT_COLUMNS_FIX_SQL, type Product } from '../../store/useStore';
 import { Plus, Edit2, EyeOff, Eye, Search, X, Tag, FileText, Table as TableIcon, Box, AlertTriangle, TrendingUp, ScanLine, CheckCircle2, Printer, Upload, Download, ArrowLeftRight, Layers, Trash2, Image as ImageIcon } from 'lucide-react';
 import { normalizeArabic, formatImageUrl } from '../../utils/textUtils';
 import { splitStockValueBySource, totalIntakeValue, intakeSourceLabel } from '../../utils/stockIntake';
@@ -49,7 +49,15 @@ export default function Inventory() {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          // الصورة بتتخزّن data URL جوه صف المنتج، وصفوف المنتجات بتتحمّل كلها
+          // مع كل فتح للكاشير — فبننزّل الجودة لحد ما الصورة تبقى تحت ~٣٠٠ كيلو
+          // عشان مية منتج ما يبقوش عشرات الميجات على الشاشة.
+          const MAX_CHARS = 300 * 1024;
+          let compressed = canvas.toDataURL('image/jpeg', 0.85);
+          for (const q of [0.7, 0.55, 0.4]) {
+            if (compressed.length <= MAX_CHARS) break;
+            compressed = canvas.toDataURL('image/jpeg', q);
+          }
           setFormData(prev => ({ ...prev, image_url: compressed }));
         } else {
           setFormData(prev => ({ ...prev, image_url: rawUrl }));
@@ -495,6 +503,17 @@ export default function Inventory() {
       console.error("Product submission failed:", err);
       alert(`حدث خطأ أثناء حفظ المنتج: ${err?.message || 'خطأ غير معروف'}`);
       return;
+    }
+
+    // نجاح جزئي: فيه حقول (زي صورة المنتج) أعمدتها مش موجودة في قاعدة البيانات
+    // فاتخطّت. لازم نقول للمستخدم بدل ما يفتكر إنها اتحفظت وتختفي بعد التحديث.
+    const skipped = useStore.getState().lastSkippedProductColumns;
+    if (skipped.length > 0) {
+      const names = skipped.map(c => PRODUCT_LABEL_AR[c] || c).join('، ');
+      alert(
+        `اتحفظ الباقي ✅\n\nبس الحقول دي مش اتحفظت لأن أعمدتها مش موجودة في قاعدة البيانات:\n${names}\n\n` +
+        `الحل: شغّل ملف ${PRODUCT_COLUMNS_FIX_SQL} في Supabase → SQL Editor، وبعدها احفظ تاني.`,
+      );
     }
 
     setShowAddModal(false);

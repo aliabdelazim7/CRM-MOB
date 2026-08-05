@@ -66,6 +66,45 @@ export const SETTING_LABEL_AR: Record<string, string> = {
   pages_qr_label: 'اسم QR الصفحات',
   pages_qr_image: 'صورة QR الصفحات',
 };
+/**
+ * أسماء عربية لأعمدة جدول products — بتظهر للمستخدم لما حقل مايتحفظش لأن
+ * عموده مش موجود في قاعدة البيانات (شوف lastSkippedProductColumns).
+ */
+export const PRODUCT_LABEL_AR: Record<string, string> = {
+  image_url: 'صورة المنتج',
+  supplier_name: 'اسم المورد',
+  season: 'الموسم',
+  wholesale_price: 'سعر الجملة',
+  half_wholesale_price: 'سعر نص الجملة',
+  discount_price: 'سعر الخصم',
+  display_quantity: 'كمية المعروض',
+  colors: 'الألوان',
+  alert_limit: 'حد التنبيه',
+  custom_stores: 'متاجر مخصّصة',
+};
+
+/** الميجريشن اللي بيصلّح أي عمود ناقص في products — بيتقال للمستخدم في الرسالة. */
+export const PRODUCT_COLUMNS_FIX_SQL = 'db/74_product_image.sql';
+
+/**
+ * حقول الفورم اللي بتتحسب في الواجهة بس ومالهاش عمود في الجدول.
+ * بنشيلها قبل الحفظ عشان ماتضيّعش رحلة كاملة للسيرفر في كل مرة (كل محاولة
+ * فاشلة بترجّع عمود ناقص واحد بس، فالحفظ كان بياخد رحلة زيادة على الفاضي).
+ */
+const PRODUCT_UI_ONLY_FIELDS = ['discount_percent'];
+
+/** بيرجّع اسم العمود الناقص من رسالة خطأ PostgREST/Postgres، أو null. */
+function missingProductColumn(error: { message?: string } | null): string | null {
+  const msg = error?.message || '';
+  // PostgREST: الـschema cache مش عارف العمود
+  const cache = msg.match(/Could not find the '([^']+)' column/i);
+  if (cache) return cache[1];
+  // Postgres 42703: العمود مش موجود فعلاً
+  const pg = msg.match(/column "([^"]+)" of relation "products" does not exist/i);
+  if (pg) return pg[1];
+  return null;
+}
+
 import { payLabelOf, ALL_PAYMENT_KEYS } from '../utils/paymentMethods';
 // الربط بين صف الموظف وصف المصروف — دوال نقية في utils عشان تتغطّى بالتستات.
 import { findLinkedSalaryExpense, findLinkedEmployeeTx } from '../utils/salaryLink';
@@ -825,6 +864,12 @@ export interface LogisticsOrder {
 interface CashierStore {
   storeSettings: StoreSettings;
   products: Product[];
+  /**
+   * أعمدة آخر حفظ منتج اللي مااتحفظتش لأنها مش موجودة في جدول products.
+   * الشاشة بتقراها بعد addProduct/updateProduct عشان تقول للمستخدم إيه اللي
+   * ضاع بدل رسالة نجاح كاذبة (نفس فكرة skipped في updateSettings).
+   */
+  lastSkippedProductColumns: string[];
   categories: Category[];
   customers: Customer[];
   suppliers: Supplier[];
@@ -1620,6 +1665,7 @@ export const useStore = create<CashierStore>((set, get) => ({
     dayStartHour: 3,
   },
   products: [],
+  lastSkippedProductColumns: [],
   categories: [],
   customers: [],
   suppliers: [],
@@ -5228,8 +5274,11 @@ setupRealtime: () => {
   },
   addProduct: async (product) => {
     let payload: Record<string, any> = { ...product };
+    for (const f of PRODUCT_UI_ONLY_FIELDS) delete payload[f];
     let data: any = null;
     let error: any = null;
+    const skipped: string[] = [];
+    set({ lastSkippedProductColumns: [] });
 
     // Retry loop stripping missing database columns
     while (true) {
@@ -5238,18 +5287,18 @@ setupRealtime: () => {
       error = res.error;
       if (!error) break;
 
-      const msg = error.message || '';
-      const cacheMatch = msg.match(/Could not find the '([^']+)' column/i);
-      const colMatch = msg.match(/column "([^"]+)" of relation "products" does not exist/i);
-      const missingCol = (cacheMatch && cacheMatch[1]) || (colMatch && colMatch[1]);
-
+      const missingCol = missingProductColumn(error);
       if (missingCol && missingCol in payload) {
         delete payload[missingCol];
+        skipped.push(missingCol);
         console.warn(`Column '${missingCol}' missing in products table. Retrying insert...`);
         continue;
       }
       break;
     }
+
+    // الأعمدة اللي اتخطّت مااتحفظتش فعلاً — الشاشة لازم تقول كده بدل «تم الحفظ».
+    if (skipped.length) set({ lastSkippedProductColumns: skipped });
 
     if (error || !data) {
       console.warn("Supabase product insert failed, keeping product in local state:", error?.message);
@@ -5287,21 +5336,36 @@ setupRealtime: () => {
     set((state) => ({ products: state.products.map(p => p.id === id ? { ...p, ...updated } : p) }));
 
     let payload: Record<string, any> = { ...updated };
+    for (const f of PRODUCT_UI_ONLY_FIELDS) delete payload[f];
+    const skipped: string[] = [];
+    set({ lastSkippedProductColumns: [] });
+
     while (true) {
       const { error } = await supabase.from('products').update(payload).eq('id', id);
       if (!error) break;
 
-      const msg = error.message || '';
-      const cacheMatch = msg.match(/Could not find the '([^']+)' column/i);
-      const colMatch = msg.match(/column "([^"]+)" of relation "products" does not exist/i);
-      const missingCol = (cacheMatch && cacheMatch[1]) || (colMatch && colMatch[1]);
-
+      const missingCol = missingProductColumn(error);
       if (missingCol && missingCol in payload) {
         delete payload[missingCol];
+        skipped.push(missingCol);
         console.warn(`Column '${missingCol}' missing in products table. Retrying update...`);
         continue;
       }
       break;
+    }
+
+    if (skipped.length) {
+      // القيمة مااتحفظتش في قاعدة البيانات، فبنرجّع الحالة المحلية لأصلها بدل
+      // ما الشاشة تفضل موريّة صورة/قيمة كأنها متخزّنة وتختفي بعد أول تحديث.
+      set((state) => ({
+        products: state.products.map(p => {
+          if (p.id !== id) return p;
+          const reverted: Record<string, any> = { ...p };
+          for (const col of skipped) reverted[col] = (before as Record<string, any> | undefined)?.[col];
+          return reverted as Product;
+        }),
+        lastSkippedProductColumns: skipped,
+      }));
     }
 
     if (!opts?.skipIntakeLog && before && updated.stock_quantity !== undefined) {
