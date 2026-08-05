@@ -1,6 +1,0 @@
-1433: <button class="btn btn-add" onclick="openProductModal()">
-1475: <button class="btn btn-add" onclick="openProductModal()">
-5742: function openProductModal(productId = null) {
-5743: console.log('openProductModal called with productId:', productId);
-6077: <button onclick="openProductModal(${product.id})" class="btn btn-edit" title="تعديل" style="padding: 5px 8px;"><i class="fas fa-edit"></i></button>
-6313: <button onclick="openProductModal(${product.id})" class="btn btn-edit">

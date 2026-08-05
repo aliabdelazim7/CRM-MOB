@@ -1,0 +1,379 @@
+import { useMemo, useState, useEffect } from 'react';
+import { useStore } from '../../store/useStore';
+import { Landmark, Save, Download, Search, Banknote, CreditCard, Wallet as WalletIcon, Smartphone, Zap, ArrowDownLeft, ArrowUpRight, FileText } from 'lucide-react';
+import { activePaymentKeys, payLabelOf, openingBalanceOf, savingsOpeningBalanceOf, ALL_PAYMENT_KEYS, type PaymentKey } from '../../utils/paymentMethods';
+import { buildPaymentLedger, type LedgerEntry, type LedgerKind } from '../../utils/paymentLedger';
+import { stripTreasuryMarkers } from '../../utils/treasury';
+import { businessDayRange } from '../../utils/businessDay';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas-pro';
+
+const METHOD_ICON: Record<string, any> = { cash: Banknote, visa: CreditCard, wallet: WalletIcon, instapay: Smartphone, method5: Zap, method6: Landmark };
+const KIND_LABEL: Record<string, string> = { sale: 'بيع', payment: 'سداد آجل', return: 'مرتجع', expense: 'مصروف', purchase: 'شراء', purchase_return: 'مرتجع مورد', income: 'إيراد', transfer: 'تحويل' };
+// وصف حركة الخزنة الرئيسية حسب مصدرها في جدول savings_transactions.
+const SAV_SOURCE_LABEL: Record<string, string> = { day_closing: 'تقفيل اليوم', shop_transfer: 'تحويل من المحل', to_shop: 'تحويل للمحل', convert: 'تحويل بين الطرق', main_expense: 'صرف من الخزنة الرئيسية', main_income: 'إيداع بالخزنة الرئيسية', manual: 'حركة يدوية', partner: 'حركة شريك', main_purchase: 'فاتورة مشتريات', main_supplier_payment: 'سداد لمورد', main_supplier_collection: 'تحصيل من مورد', main_supplier_return: 'مرتجع مورد' };
+// نوع الحركة في عمود «النوع» — كان كله بيتحسب 'transfer' ماعدا main_expense.
+// المصادر اللي ليها نوع ثابت بغضّ النظر عن الاتجاه:
+const SAV_SOURCE_KIND: Record<string, LedgerKind> = {
+  main_purchase: 'purchase',
+  main_supplier_payment: 'purchase',
+  main_supplier_collection: 'purchase_return',
+  main_supplier_return: 'purchase_return',
+  day_closing: 'transfer',
+  shop_transfer: 'transfer',
+  to_shop: 'transfer',
+  convert: 'transfer',
+};
+// الباقي (main_expense / main_income / partner / manual) نوعه بيتحدد من اتجاه
+// الحركة: داخل = إيراد، خارج = مصروف. من غير كده الإيراد كان بيظهر «مصروف»
+// ومبلغه في عمود الوارد — تناقض واضح للمستخدم، ونفس الحاجة لإيداع الشريك.
+const savKindOf = (t: any): LedgerKind =>
+  SAV_SOURCE_KIND[t.source] || (t.direction === 'in' ? 'income' : 'expense');
+
+// نطاق الكشف: خزنة المحل، الخزنة الرئيسية، أو الاتنين مع بعض. كل واحدة حساب مستقل
+// برصيد افتتاحي خاص بها؛ في «الكل» التحويلات بينهم بتتقابل (خروج+دخول) فمفيش ازدواج.
+type Scope = 'shop' | 'main' | 'all';
+const SCOPE_LABEL: Record<Scope, string> = { shop: 'خزنة المحل', main: 'الخزنة الرئيسية', all: 'الكل' };
+
+export default function PaymentAccounts() {
+  const { orders, expenses, purchaseInvoices, storeSettings, updateSettings } = useStore();
+  const cur = storeSettings.currency;
+  const methods = activePaymentKeys(storeSettings as any);
+
+  const [scope, setScope] = useState<Scope>('shop');
+  // الرصيد الافتتاحي للوسيلة حسب النطاق: المحل (paymentOpeningBalances)،
+  // الرئيسية (savingsOpeningBalances)، أو مجموعهما في «الكل».
+  const openingOf = (k: string): number => {
+    if (scope === 'main') return savingsOpeningBalanceOf(storeSettings as any, k);
+    if (scope === 'all') return openingBalanceOf(storeSettings as any, k) + savingsOpeningBalanceOf(storeSettings as any, k);
+    return openingBalanceOf(storeSettings as any, k);
+  };
+
+  const [selected, setSelected] = useState<PaymentKey>(methods[0] || 'cash');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [search, setSearch] = useState('');
+
+  // حركات الخزنة الرئيسية (جدول مستقل) — تُحمّل مرة عند فتح الصفحة.
+  const [savRows, setSavRows] = useState<any[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { fetchAllRows } = await import('../../lib/supabase');
+        setSavRows((await fetchAllRows('savings_transactions')) as any[]);
+      } catch (e) { console.error('load savings_transactions:', e); }
+    })();
+  }, []);
+
+  // محرّر الأرصدة الافتتاحية (لخزنة المحل فقط — الرئيسية بتتعدّل من صفحة الخزنة الرئيسية)
+  const [openingDraft, setOpeningDraft] = useState<Record<string, string>>({});
+  const [savingOpen, setSavingOpen] = useState(false);
+  useEffect(() => {
+    const d: Record<string, string> = {};
+    methods.forEach((k) => { d[k] = String(openingBalanceOf(storeSettings as any, k)); });
+    setOpeningDraft(d);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeSettings.paymentOpeningBalances, storeSettings.initial_balance, methods.join(',')]);
+
+  // كشف خزنة المحل (فواتير/مصاريف/مشتريات) — يستبعد المعلّم بـ [MAIN_TREASURY].
+  const shopLedger = useMemo(() => buildPaymentLedger(orders, expenses, purchaseInvoices), [orders, expenses, purchaseInvoices]);
+  // كشف الخزنة الرئيسية (حساب مستقل) من جدول savings_transactions.
+  const mainLedger = useMemo<LedgerEntry[]>(() => (savRows || []).map((t) => {
+    const amt = Number(t.amount) || 0;
+    return {
+      id: `sav:${t.id}`,
+      date: t.created_at,
+      method: t.method as PaymentKey,
+      desc: stripTreasuryMarkers(t.note) || SAV_SOURCE_LABEL[t.source] || 'حركة خزنة رئيسية',
+      inAmount: t.direction === 'in' ? amt : 0,
+      outAmount: t.direction === 'out' ? amt : 0,
+      // كل حركة مش main_expense كانت بتتسمّى «تحويل» — يعني السداد للموردين
+      // والمشتريات والإيرادات وسحب الشركاء كلهم كانوا بيظهروا بنوع غلط.
+      kind: savKindOf(t),
+    };
+  }), [savRows]);
+  // الكشف الفعّال حسب النطاق المختار.
+  const ledger = useMemo<LedgerEntry[]>(() => (
+    scope === 'main' ? mainLedger : scope === 'all' ? [...shopLedger, ...mainLedger] : shopLedger
+  ), [scope, shopLedger, mainLedger]);
+
+  // ملخص كل الوسائل (كل الفترات)
+  // بنبني على ALL_PAYMENT_KEYS مش على المفعّلة بس: لو وسيلة إضافية (method5/6)
+  // اتشغّلت واتسجّل عليها حركات وبعدين اتقفلت، الصفوف بتاعتها كانت بتتسقط هنا
+  // في صمت بينما صفحة الخزنة الرئيسية بتعدّها — فالصفحتين كانوا بيدّوا أرقام
+  // مختلفة من غير أي تنبيه.
+  const summary = useMemo(() => {
+    const map: Record<string, { in: number; out: number; balance: number }> = {};
+    ALL_PAYMENT_KEYS.forEach((k) => { map[k] = { in: 0, out: 0, balance: openingOf(k) }; });
+    for (const e of ledger) {
+      if (!map[e.method]) continue;
+      map[e.method].in += e.inAmount;
+      map[e.method].out += e.outAmount;
+      map[e.method].balance += e.inAmount - e.outAmount;
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledger, scope, methods.join(','), storeSettings.paymentOpeningBalances, storeSettings.initial_balance, storeSettings.savingsOpeningBalances]);
+
+  // وسائل مقفولة لكن عليها حركة فعلية — لازم تظهر، وإلا فلوسها تختفي من الكشف.
+  const hiddenActiveKeys = useMemo(() => {
+    const used = new Set(ledger.map((e) => e.method));
+    return ALL_PAYMENT_KEYS.filter((k) => !methods.includes(k) && (used.has(k) || Math.abs(summary[k]?.balance || 0) > 0.009));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledger, methods.join(','), summary]);
+
+  // الوسائل المعروضة = المفعّلة + أي وسيلة مقفولة عليها رصيد/حركة.
+  const shownMethods = useMemo(() => [...methods, ...hiddenActiveKeys], [methods.join(','), hiddenActiveKeys]);
+
+  // كشف الوسيلة المختارة
+  const statement = useMemo(() => {
+    const all = ledger.filter((e) => e.method === selected).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // حدود الفترة باليوم المحاسبي (dayStartHour) مش بمنتصف الليل — الحركة اللي
+    // بتتسجّل الساعة ١ صباحاً وساعة بداية اليوم ٦ بتخصّ اليوم اللي قبله، وكانت
+    // بتقع هنا في يوم مختلف عن تقفيل اليوم وصفحة الميزانية.
+    const fromT = from ? businessDayRange(from, storeSettings as any).start.getTime() : -Infinity;
+    const toT = to ? businessDayRange(to, storeSettings as any).end.getTime() : Infinity;
+    // رصيد افتتاحي للفترة = الافتتاحي العام + صافي كل ما قبل تاريخ البداية
+    let periodOpening = openingOf(selected);
+    const rows: { e: typeof all[number]; balance: number }[] = [];
+    let running = periodOpening;
+    let totalIn = 0;
+    let totalOut = 0;
+    for (const e of all) {
+      const t = new Date(e.date).getTime();
+      if (t < fromT) { periodOpening += e.inAmount - e.outAmount; running = periodOpening; continue; }
+      if (t >= toT) continue;
+      const q = search.trim();
+      running += e.inAmount - e.outAmount;
+      if (q && !(`${e.desc} ${KIND_LABEL[e.kind]}`.includes(q))) continue;
+      // الإجماليات لازم تتجمع من الصفوف الظاهرة بس، عشان
+      // «افتتاحي + وارد − صادر» يطابق الرصيد الختامي المعروض تحتيها.
+      totalIn += e.inAmount;
+      totalOut += e.outAmount;
+      rows.push({ e, balance: running });
+    }
+    // مع بحث فعّال الرصيد الجاري بيفضل تراكمي على كل الحركات (عشان يبقى صح)،
+    // فالختامي المعروض لازم يكون ختامي الصفوف الظاهرة نفسها.
+    const closing = search.trim() ? periodOpening + totalIn - totalOut : running;
+    return { rows, periodOpening, totalIn, totalOut, closing };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledger, scope, selected, from, to, search, storeSettings.paymentOpeningBalances, storeSettings.initial_balance, storeSettings.savingsOpeningBalances]);
+
+  const saveOpening = async () => {
+    setSavingOpen(true);
+    const obj: Record<string, number> = { ...(storeSettings.paymentOpeningBalances || {}) };
+    methods.forEach((k) => { obj[k] = Number(openingDraft[k]) || 0; });
+    try {
+      // نُبقي الرصيد الافتتاحي القديم للكاش متزامناً مع بقية الحسابات (الخزينة تستخدمه)
+      await updateSettings({ paymentOpeningBalances: obj, initial_balance: Number(openingDraft['cash']) || 0 });
+      alert('تم حفظ الأرصدة الافتتاحية ✅');
+    } catch (err) {
+      alert((err as Error)?.message || 'تعذّر حفظ الأرصدة');
+    }
+    setSavingOpen(false);
+  };
+
+  const exportExcel = () => {
+    const rows = statement.rows.map((r) => ({
+      'التاريخ': new Date(r.e.date).toLocaleString('ar-EG'),
+      'البيان': r.e.desc,
+      'النوع': KIND_LABEL[r.e.kind],
+      'وارد': r.e.inAmount || '',
+      'صادر': r.e.outAmount || '',
+      'الرصيد': r.balance.toFixed(2),
+    }));
+    const ws = XLSX.utils.json_to_sheet([{ 'البيان': 'رصيد افتتاحي', 'الرصيد': statement.periodOpening.toFixed(2) }, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `${payLabelOf(storeSettings as any, selected)} ${SCOPE_LABEL[scope]}`.slice(0, 28));
+    XLSX.writeFile(wb, `كشف_${payLabelOf(storeSettings as any, selected)}_${SCOPE_LABEL[scope]}.xlsx`);
+  };
+
+  const [exporting, setExporting] = useState(false);
+  const exportPDF = async () => {
+    const element = document.getElementById('pa-print');
+    if (!element) return;
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+        onclone: (doc) => {
+          const el = doc.getElementById('pa-print');
+          if (el) { el.style.height = 'auto'; el.style.overflow = 'visible'; }
+          el?.querySelectorAll('.pa-scroll').forEach((d: any) => { d.style.maxHeight = 'none'; d.style.overflow = 'visible'; });
+        },
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+      pdf.save(`كشف_${payLabelOf(storeSettings as any, selected)}_${SCOPE_LABEL[scope]}.pdf`);
+    } catch (e) {
+      console.error(e);
+      alert('تعذّر تصدير PDF');
+    }
+    setExporting(false);
+  };
+
+  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const periodLabel = `${from ? new Date(from).toLocaleDateString('ar-EG') : 'البداية'} — ${to ? new Date(to).toLocaleDateString('ar-EG') : 'الآن'}`;
+
+  return (
+    <div className="p-6 md:p-8 space-y-5 animate-fade-in">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3"><Landmark className="text-indigo-600" size={28} /> كشوف حسابات وسائل الدفع</h1>
+        <p className="text-slate-500 mt-1 text-sm font-medium">كشف حساب بالمعاملات لكل وسيلة (وارد/صادر ورصيد جارٍ)، مع رصيد افتتاحي مستقل لكل وسيلة. الفواتير المقسّمة بتظهر نصيب كل وسيلة على حدة.</p>
+      </div>
+
+      {/* فلتر النطاق: خزنة المحل / الخزنة الرئيسية / الكل — كل خزنة حساب مستقل */}
+      <div className="inline-flex bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 gap-1">
+        {(['all', 'shop', 'main'] as Scope[]).map((s) => (
+          <button key={s} onClick={() => setScope(s)} className={`px-4 py-2 rounded-xl text-sm font-black transition ${scope === s ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-700/60'}`}>{SCOPE_LABEL[s]}</button>
+        ))}
+      </div>
+
+      {/* ملخص أرصدة كل الوسائل */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {methods.map((k) => {
+          const Icon = METHOD_ICON[k] || WalletIcon;
+          const s = summary[k] || { balance: openingOf(k) };
+          const active = selected === k;
+          return (
+            <button key={k} onClick={() => setSelected(k)} className={`text-right rounded-2xl border p-3 transition ${active ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300'}`}>
+              <div className="flex items-center gap-2 mb-1"><Icon size={16} className={active ? 'text-white' : 'text-indigo-500'} /><span className={`text-[11px] font-bold ${active ? 'text-indigo-100' : 'text-slate-500'} truncate`}>{payLabelOf(storeSettings as any, k)}</span></div>
+              <div className={`text-lg font-black ${active ? 'text-white' : (s.balance < 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100')}`}>{fmt(s.balance)}</div>
+              <div className={`text-[10px] ${active ? 'text-indigo-100' : 'text-slate-400'}`}>{cur}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* الأرصدة الافتتاحية (لخزنة المحل فقط) */}
+      {scope === 'shop' && (
+      <details className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+        <summary className="cursor-pointer font-black text-slate-800 dark:text-white flex items-center gap-2"><Banknote size={18} className="text-emerald-600" /> الأرصدة الافتتاحية لكل وسيلة (خزنة المحل)</summary>
+        <p className="text-[11px] text-slate-400 mt-2 mb-3">الرصيد اللي كان موجود في كل وسيلة بخزنة المحل قبل ما تبدأ تسجّل على النظام. بيظهر كأول سطر في الكشف ويُضاف للرصيد. (الرصيد الافتتاحي للخزنة الرئيسية بيتعدّل من صفحة الخزنة الرئيسية.)</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {methods.map((k) => (
+            <div key={k}>
+              <label className="text-xs font-bold text-slate-500 block mb-1 truncate">{payLabelOf(storeSettings as any, k)}</label>
+              <input type="number" value={openingDraft[k] ?? ''} onChange={(e) => setOpeningDraft((d) => ({ ...d, [k]: e.target.value }))} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+          ))}
+        </div>
+        <button onClick={saveOpening} disabled={savingOpen} className="mt-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black px-5 py-2.5 rounded-xl flex items-center gap-2"><Save size={18} /> {savingOpen ? 'جاري الحفظ...' : 'حفظ الأرصدة الافتتاحية'}</button>
+      </details>
+      )}
+
+      {/* أدوات الكشف */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-wrap gap-2">
+          {shownMethods.map((k) => (
+            <button key={k} onClick={() => setSelected(k)} className={`px-3 py-2 rounded-xl text-sm font-black ${selected === k ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
+              {payLabelOf(storeSettings as any, k)}
+              {hiddenActiveKeys.includes(k) && <span className="text-[10px] font-bold mr-1 opacity-70">(مقفولة)</span>}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-end gap-2 mr-auto flex-wrap">
+          <div><label className="text-[11px] font-bold text-slate-500 block mb-1">من</label><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold outline-none" /></div>
+          <div><label className="text-[11px] font-bold text-slate-500 block mb-1">إلى</label><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold outline-none" /></div>
+          <button onClick={exportExcel} className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold px-4 py-2 rounded-xl flex items-center gap-2 text-sm"><Download size={16} /> Excel</button>
+          <button onClick={exportPDF} disabled={exporting} className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-2 text-sm"><FileText size={16} /> {exporting ? 'جاري...' : 'PDF'}</button>
+        </div>
+      </div>
+      <div className="relative max-w-md">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث في البيان..." className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pr-9 pl-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+
+      {/* المنطقة القابلة للتصدير PDF */}
+      <div id="pa-print" className="space-y-5 bg-white dark:bg-slate-900 p-4 rounded-2xl">
+      {/* عنوان الكشف (يظهر في PDF) */}
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
+        <div>
+          <div className="text-lg font-black text-slate-800 dark:text-white">{storeSettings.name}</div>
+          <div className="text-sm font-bold text-indigo-600">كشف حساب: {payLabelOf(storeSettings as any, selected)} · {SCOPE_LABEL[scope]}</div>
+        </div>
+        <div className="text-left text-[11px] text-slate-500 font-semibold">
+          <div>الفترة: {periodLabel}</div>
+        </div>
+      </div>
+
+      {/* ملخص الكشف */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MiniStat label="رصيد افتتاحي" value={`${fmt(statement.periodOpening)} ${cur}`} />
+        <MiniStat label="إجمالي الوارد" value={`${fmt(statement.totalIn)} ${cur}`} tone="in" />
+        <MiniStat label="إجمالي الصادر" value={`${fmt(statement.totalOut)} ${cur}`} tone="out" />
+        <MiniStat label="الرصيد الحالي" value={`${fmt(statement.closing)} ${cur}`} tone={statement.closing < 0 ? 'out' : 'bold'} />
+      </div>
+
+      {/* جدول الكشف */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="overflow-x-auto max-h-[60vh] pa-scroll">
+          <table className="w-full text-right text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 sticky top-0">
+              <tr>
+                <th className="p-3">التاريخ</th><th className="p-3">البيان</th><th className="p-3 text-center">النوع</th>
+                <th className="p-3 text-center">وارد</th><th className="p-3 text-center">صادر</th><th className="p-3 text-center">الرصيد</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="bg-slate-50/60 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-700/50">
+                <td className="p-3 text-slate-400">—</td><td className="p-3 font-black text-slate-600 dark:text-slate-300">رصيد افتتاحي</td><td></td><td></td><td></td>
+                <td className="p-3 text-center font-black">{fmt(statement.periodOpening)}</td>
+              </tr>
+              {statement.rows.length === 0 ? <tr><td colSpan={6} className="text-center text-slate-400 py-8">لا توجد حركات في هذه الفترة</td></tr>
+                : statement.rows.map((r) => (
+                  <tr key={r.e.id} className="border-b border-slate-100 dark:border-slate-700/50">
+                    <td className="p-3 text-slate-500 whitespace-nowrap text-xs">{new Date(r.e.date).toLocaleDateString('ar-EG')}</td>
+                    <td className="p-3 font-semibold text-slate-800 dark:text-slate-100">{r.e.desc}</td>
+                    <td className="p-3 text-center"><span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">{KIND_LABEL[r.e.kind]}</span></td>
+                    <td className="p-3 text-center font-bold text-emerald-600">{r.e.inAmount > 0 ? <span className="inline-flex items-center gap-1"><ArrowDownLeft size={13} />{fmt(r.e.inAmount)}</span> : '—'}</td>
+                    <td className="p-3 text-center font-bold text-red-600">{r.e.outAmount > 0 ? <span className="inline-flex items-center gap-1"><ArrowUpRight size={13} />{fmt(r.e.outAmount)}</span> : '—'}</td>
+                    <td className={`p-3 text-center font-black ${r.balance < 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}`}>{fmt(r.balance)}</td>
+                  </tr>
+                ))}
+            </tbody>
+            {statement.rows.length > 0 && (
+              <tfoot className="sticky bottom-0">
+                <tr className="bg-slate-100 dark:bg-slate-900/60 font-black">
+                  <td className="p-3" colSpan={3}>الإجمالي</td>
+                  <td className="p-3 text-center text-emerald-700">{fmt(statement.totalIn)}</td>
+                  <td className="p-3 text-center text-red-700">{fmt(statement.totalOut)}</td>
+                  <td className="p-3 text-center">{fmt(statement.closing)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+      </div>{/* /pa-print */}
+    </div>
+  );
+}
+
+function MiniStat({ label, value, tone }: { label: string; value: string; tone?: 'in' | 'out' | 'bold' }) {
+  const color = tone === 'in' ? 'text-emerald-600' : tone === 'out' ? 'text-red-600' : 'text-slate-800 dark:text-slate-100';
+  return (
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 text-center">
+      <div className="text-[11px] font-bold text-slate-500">{label}</div>
+      <div className={`text-base md:text-lg font-black mt-1 ${color}`}>{value}</div>
+    </div>
+  );
+}

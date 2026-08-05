@@ -1,0 +1,4851 @@
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useStore, HELD_STATUS_LABEL, type HeldInvoice, type HeldStatus, type Product } from '../store/useStore';
+import { HeldReturnModal } from '../components/HeldReturnModal';
+import { EditInvoiceModal } from '../components/EditInvoiceModal';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Banknote, RefreshCcw, Moon, Sun, ArrowRightLeft, X, Printer, CreditCard, Smartphone, Zap, ScanLine, Camera, Box, Check, ChevronRight, ChevronLeft, FileText, MessageSquare, Send, Wallet, Edit2, Eye, HandCoins, UserMinus, Clock, PauseCircle, Undo2, Truck, Hourglass, Play } from 'lucide-react';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { normalizeArabic } from '../utils/textUtils';
+import { printBarcodeLabelsBatch, generateBarcode } from '../utils/printBarcodeLabels';
+import { ALL_PAYMENT_KEYS, activePaymentKeys, payLabelOf, openingBalanceOf, totalOpeningBalance } from '../utils/paymentMethods';
+import { getUnitConfig, isFractionalUnit, formatQty } from '../utils/units';
+import { escapeHtml } from '../utils/escapeHtml';
+import { printDocument } from '../utils/printWindow';
+import { businessDateStr, businessDayRange, timestampForBusinessDate } from '../utils/businessDay';
+import { categoriesFor, withAddedCategory } from '../utils/financeCategories';
+import { buildPagesQrBlock } from '../utils/pagesQr';
+import { applySplit, isInternalTransfer, routeInternalTransfer, isMainTreasuryExpense, isMainTreasuryOrder, isMainTreasuryPurchase, markMainTreasuryNote, markSavingsGroupNote, newSavingsGroupId, refundRecordOf } from '../utils/treasury';
+import { calculateOrderReturnValue } from '../utils/returns';
+import { paidSplitForDisplay, paidForDisplay, exchangeSettledTotal } from '../utils/invoicePayments';
+import { printShippingLabel } from '../utils/printShippingLabel';
+import { loadParkedCarts, addParkedCart, removeParkedCart, parkedAgeLabel, type ParkedCart } from '../utils/parkedCarts';
+import { saveDayBudgetCache, loadDayBudgetCache } from '../utils/offlineCache';
+
+// فئة قيد تسوية الجرد: يضبط رصيد خزنة المحل ليطابق الكاش الفعلي المعدود.
+// يُحسب ضمن الداخل/الخارج (عشان الرصيد يتصحّح) لكن له خانته المستقلة في التفصيل.
+const RECONCILE_CAT = 'تسوية جرد الخزنة';
+
+/** توحيد شكل الفاتورة: الطابور الأوفلاين بيستخدم date/items، والسيرفر created_at/order_items. */
+const asNetworkOrder = (o: any) => ({
+  ...o,
+  created_at: o.created_at || o.date,
+  order_items: o.order_items || (o.items || []).map((i: any) => ({ refunded_amount: i.refunded_amount || 0 })),
+});
+
+const addByMethod = (a?: Record<string, number>, b?: Record<string, number>): Record<string, number> =>
+  Object.fromEntries(ALL_PAYMENT_KEYS.map((m) => [m, (a?.[m] || 0) + (b?.[m] || 0)]));
+
+/**
+ * مصدر بيانات «تقفيل اليوم»: الشبكة لو شغّالة، وإلا النسخة المحفوظة على الجهاز.
+ *
+ * التقفيل كان بيفشل تماماً أوفلاين لأنه بيقرا من السيرفر مباشرةً. النسخة
+ * المحفوظة بتحل ده: بتشيل صفوف اليوم + ملخّص «قبل اليوم» (رقمين لكل وسيلة دفع)،
+ * فالحساب بيطلع بنفس المنطق من غير ما نحفظ أرشيف الفواتير كله.
+ *
+ * seedBefIn/seedBefOut = نقطة بداية حركة «قبل اليوم». أونلاين بتيجي من الصفوف
+ * نفسها (نبدأ من صفر)، وأوفلاين بتيجي جاهزة من النسخة.
+ */
+async function loadDayBudgetSource(dayStr: string, start: Date, end: Date, localOrders: any[]) {
+  const inDay = (o: any) => { const d = new Date(o.created_at); return d >= start && d < end; };
+  // فواتير اتعملت أوفلاين على الجهاز ده ولسه في الطابور — لازم تدخل التقفيل،
+  // الفلوس بتاعتها فعلاً في الدرج.
+  const offlineOrders = localOrders.filter((o: any) => o.isOffline).map(asNetworkOrder).filter(inDay);
+  // ضم الفواتير الأوفلاين لصفوف السيرفر من غير تكرار: فاتورة ممكن تكون وصلت
+  // السيرفر والنت فصل قبل الرد، فتفضل في الطابور — البصمة (db/63) بتكشفها.
+  const mergeOffline = (serverOrders: any[]) => {
+    const ids = new Set(serverOrders.map((o) => o.id));
+    const refs = new Set(serverOrders.map((o) => o.client_ref).filter(Boolean));
+    return [...serverOrders, ...offlineOrders.filter((o) => !ids.has(o.id) && !(o.client_ref && refs.has(o.client_ref)))];
+  };
+
+  try {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) throw new Error('offline');
+    const { fetchAllRows } = await import('../lib/supabase');
+    // جلب كل الصفوف (تخطّي حد 1000) عشان الرصيد الافتتاحي وحركة «قبل اليوم» تطلع صح.
+    // للطلبات: select('*') عشان نتفادى خطأ عمود refunded_at لو الـmigration لسه ما اتشغّلتش.
+    const [expenses, purchases, salaries, ordData] = await Promise.all([
+      fetchAllRows('expenses'),
+      fetchAllRows('purchase_invoices'),
+      fetchAllRows('employee_transactions'),
+      fetchAllRows('orders', '*, order_items(refunded_amount)'),
+    ]);
+    return {
+      live: true, cachedAt: null as string | null, rolledFrom: null as string | null,
+      expenses, purchases, salaries,
+      orders: mergeOffline((ordData as any[]).map(asNetworkOrder)),
+      seedBefIn: null as Record<string, number> | null,
+      seedBefOut: null as Record<string, number> | null,
+    };
+  } catch (err) {
+    const cache = await loadDayBudgetCache();
+    if (!cache) throw err;
+
+    if (cache.day === dayStr) {
+      return {
+        live: false, cachedAt: cache.savedAt, rolledFrom: null as string | null,
+        expenses: cache.expenses || [], purchases: cache.purchases || [], salaries: cache.salaries || [],
+        orders: mergeOffline((cache.orders || []).map(asNetworkOrder)),
+        seedBefIn: cache.befIn, seedBefOut: cache.befOut,
+      };
+    }
+
+    if (cache.day < dayStr) {
+      // يوم محاسبي جديد بدأ والنت لسه مقطوع: افتتاح النهاردة = افتتاح اليوم
+      // المحفوظ + حركته. مضبوط لأن مفيش نت = مفيش حركة من جهاز تاني؛ اللي
+      // اتعمل هنا موجود في الطابور الأوفلاين وبيتضاف فوقه.
+      return {
+        live: false, cachedAt: cache.savedAt, rolledFrom: cache.day,
+        expenses: [] as any[], purchases: [] as any[], salaries: [] as any[],
+        orders: offlineOrders,
+        seedBefIn: addByMethod(cache.befIn, cache.dayIn),
+        seedBefOut: addByMethod(cache.befOut, cache.dayOut),
+      };
+    }
+
+    // يوم أقدم من النسخة المحفوظة — مالناش منه نسخة، محتاج نت.
+    throw err;
+  }
+}
+
+export default function POS() {
+  const { products, categories, cart, addToCart, addToCartQty, removeFromCart, updateQuantity, updatePrice, clearCart, checkout, processReturn, storeSettings, orders, activeInvoiceId, customers, activeCashier, logoutPOS, isOnline, isOfflineMode, offlineSnapshotAt, offlineQueue, offlineReturnsQueue, isSyncing, syncOfflineQueue, syncOfflineReturnsQueue, addCashierNote, addExpense, invoiceType, setInvoiceType, employees, salesperson, setSalesperson, deleteOrder, savingsTransfer, savingsConvert, recordMainTreasuryOut, recordMainTreasuryIn, addEmployeeTransaction, employeeDeductions, addEmployeeDeduction, updateProduct, heldInvoices, holdInvoice, confirmHeldInvoice, returnHeldInvoice, setHeldInvoiceStatus, recordHeldDepositConversion, updateSettings, restoreCart } = useStore();
+  // Transfer day-closing balance to savings (with manager OTP)
+  const [showSaveXfer, setShowSaveXfer] = useState(false);
+  const [saveXfer, setSaveXfer] = useState<Record<string, string>>({ cash: '', visa: '', wallet: '', instapay: '' });
+  const [saveXferOtp, setSaveXferOtp] = useState('');
+  const [saveXferSent, setSaveXferSent] = useState(false);
+  const [saveXferBusy, setSaveXferBusy] = useState(false);
+  // جرد/ضبط رصيد الخزنة: إدخال الكاش الفعلي المعدود → قيد تسوية يطابق الرصيد للحقيقة.
+  const [showReconcile, setShowReconcile] = useState(false);
+  const [reconcileCounts, setReconcileCounts] = useState<Record<string, string>>({});
+  const [reconcileBusy, setReconcileBusy] = useState(false);
+  const PAY_KEYS = activePaymentKeys(storeSettings as any).map((k) => [k, payLabelOf(storeSettings as any, k)] as const);
+  const saveXferToken = async () => { const { supabase } = await import('../lib/supabase'); const { data } = await supabase.auth.getSession(); return data.session?.access_token; };
+  const saveXferTotal = PAY_KEYS.reduce((s, [k]) => s + (Number(saveXfer[k]) || 0), 0);
+  const saveXferValidate = () => {
+    if (dayBudget?.isClosed) { alert('اليوم مقفول بالفعل. لا يمكن تقفيله مرة أخرى أو تسجيل تحويلات على يوم مقفول.'); return false; }
+    const avail = dayBudget?.shopAvail || {};
+    if (saveXferTotal <= 0) { alert('حدّد المبلغ المراد تحويله'); return false; }
+    for (const [k, label] of PAY_KEYS) { if ((Number(saveXfer[k]) || 0) > (avail[k] || 0) + 0.001) { alert(`مبلغ ${label} أكبر من المتاح في خزنة المحل (${(avail[k] || 0).toFixed(2)})`); return false; } }
+    return true;
+  };
+  const saveXferRequest = async () => {
+    if (!saveXferValidate()) return;
+    setSaveXferBusy(true);
+    try {
+      const lines = PAY_KEYS.filter(([k]) => (Number(saveXfer[k]) || 0) > 0).map(([k, l]) => `${l}: ${Number(saveXfer[k]).toFixed(2)}`).join(' | ');
+      const details = `تحويل من خزنة المحل ➜ الخزنة الرئيسية\n${lines}\nالإجمالي: ${saveXferTotal.toFixed(2)} ${storeSettings.currency}`;
+      const t = await saveXferToken();
+      const r = await fetch('/api/wholesale-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ action: 'request', purpose: 'savings', details }) });
+      const j = await r.json();
+      if (j.ok) { setSaveXferSent(true); alert('تم إرسال تفاصيل التحويل ورمز التأكيد للمدير على تليجرام 📲'); }
+      else alert('تعذّر إرسال الرمز: ' + (j.error || ''));
+    } catch { alert('تعذّر إرسال الرمز'); }
+    setSaveXferBusy(false);
+  };
+  // نص تقرير التقفيل — مبني من **نفس أرقام شاشة التقفيل** (bd) عشان يطابقها بالظبط.
+  const buildDayCloseReportText = (dayStr: string, snap: any): string => {
+    const cur = storeSettings.currency;
+    const m = (n: number) => `${(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
+    const [y, mo, da] = dayStr.split('-');
+    const bd = snap?.breakdown || {};
+    const keys = activePaymentKeys(storeSettings as any);
+    const L: string[] = [];
+    L.push(`🧾 تقرير تقفيل يوم ${da}/${mo}/${y} — ${storeSettings.name}`);
+    L.push('');
+    L.push('💰 حركة الخزينة:');
+    L.push(`الرصيد الافتتاحي: ${m(snap?.opening)}`);
+    L.push(`إجمالي الداخل: ${m(snap?.totalIn)}`);
+    L.push(`إجمالي الخارج: ${m(snap?.totalOut)}`);
+    L.push(`رصيد الإغلاق: ${m(snap?.closing)}`);
+    L.push('');
+    L.push('📊 تفاصيل اليوم:');
+    L.push(`مبيعات: ${bd.salesCount || 0} فاتورة بإجمالي ${m(bd.salesTotal)}`);
+    L.push(`المحصّل: ${m(bd.collected)}`);
+    if ((bd.refundsTotal || 0) > 0) L.push(`مرتجعات عملاء: ${m(bd.refundsTotal)}`);
+    if ((bd.otherIncome || 0) > 0) L.push(`إيرادات أخرى: ${m(bd.otherIncome)}`);
+    if ((bd.reservationsNet || 0) !== 0) L.push(`صافي الحجوزات: ${m(bd.reservationsNet)}`);
+    if ((bd.expensesTotal || 0) > 0) L.push(`مصروفات: ${m(bd.expensesTotal)}`);
+    if ((bd.purchasesTotal || 0) > 0) L.push(`مشتريات وسداد موردين: ${m(bd.purchasesTotal)}`);
+    if ((bd.salariesTotal || 0) > 0) L.push(`رواتب/سلف موظفين: ${m(bd.salariesTotal)}`);
+    if ((bd.exchangeNet || 0) !== 0) L.push(`صافي فرق الاستبدال: ${m(bd.exchangeNet)}`);
+    if ((bd.reconcileIn || 0) > 0) L.push(`تسوية جرد (زيادة): ${m(bd.reconcileIn)}`);
+    if ((bd.reconcileOut || 0) > 0) L.push(`تسوية جرد (عجز): ${m(bd.reconcileOut)}`);
+    L.push('');
+    L.push('💳 الداخل / الخارج حسب الوسيلة:');
+    keys.forEach((k) => {
+      const inV = snap?.dayIn?.[k] || 0, outV = snap?.dayOut?.[k] || 0;
+      if (inV || outV) L.push(`${payLabelOf(storeSettings as any, k)}: +${m(inV)} / -${m(outV)}`);
+    });
+    L.push('');
+    L.push('🏦 المتاح بالدرج حسب الوسيلة:');
+    keys.forEach((k) => { L.push(`${payLabelOf(storeSettings as any, k)}: ${m(snap?.shopAvail?.[k])}`); });
+    return L.join('\n');
+  };
+
+  // بعد تقفيل اليوم: يبعت تقرير التقفيل (بنفس أرقام الشاشة) لجروب التقارير على تيليجرام
+  // (بدل التقرير التلقائي القديم على الكرون). fire-and-forget — أي فشل مبيوقفش التقفيل.
+  const sendDailyReportAfterClose = async (dayStr: string, snap: any) => {
+    try {
+      const t = await saveXferToken();
+      const text = snap ? buildDayCloseReportText(dayStr, snap) : undefined;
+      fetch('/api/daily-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+        body: JSON.stringify(text ? { text } : { date: dayStr }),
+      }).catch(() => {});
+    } catch { /* تجاهل */ }
+  };
+
+  const saveXferConfirm = async () => {
+    if (!saveXferValidate()) return;
+    if (!saveXferOtp.trim()) { alert('أدخل رمز التأكيد'); return; }
+    setSaveXferBusy(true);
+    try {
+      const t = await saveXferToken();
+      const r = await fetch('/api/wholesale-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ action: 'verify', purpose: 'savings', code: saveXferOtp.trim() }) });
+      const j = await r.json();
+      if (!j.ok) { alert(j.error || 'رمز غير صحيح'); setSaveXferBusy(false); return; }
+      const split: { cash: number; visa: number; wallet: number; instapay: number; method5?: number; method6?: number } = {
+        cash: 0,
+        visa: 0,
+        wallet: 0,
+        instapay: 0,
+      };
+      activePaymentKeys(storeSettings as any).forEach((k) => { split[k] = Number(saveXfer[k]) || 0; });
+      // لو بنقفل يوم سابق (مش اليوم المحاسبي الحالي) نثبّت تاريخ التحويل على ذلك اليوم (12 ظهراً)
+      // عشان التقفيل يتحسب على يومه الصح مش على يوم التنفيذ الفعلي.
+      const closeStamp = dayBudgetDate === todayStr() ? undefined : new Date(`${dayBudgetDate}T12:00:00`).toISOString();
+      const ok = await savingsTransfer(split, 'in', 'day_closing', undefined, closeStamp);
+      if (ok) { sendDailyReportAfterClose(dayBudgetDate, dayBudget); alert('تم تحويل المبلغ للخزنة الرئيسية ✅'); setSaveXfer({ cash: '', visa: '', wallet: '', instapay: '' }); setSaveXferOtp(''); setSaveXferSent(false); setShowSaveXfer(false); computeDayBudget(dayBudgetDate); }
+    } catch { alert('تعذّر تنفيذ التحويل'); }
+    setSaveXferBusy(false);
+  };
+  // كاشير بصلاحية كاملة: تحويل مباشر للخزنة الرئيسية بدون OTP.
+  const saveXferDirect = async () => {
+    if (!saveXferValidate()) return;
+    setSaveXferBusy(true);
+    try {
+      const split: { cash: number; visa: number; wallet: number; instapay: number; method5?: number; method6?: number } = { cash: 0, visa: 0, wallet: 0, instapay: 0 };
+      activePaymentKeys(storeSettings as any).forEach((k) => { split[k] = Number(saveXfer[k]) || 0; });
+      // لو بنقفل يوم سابق (مش اليوم المحاسبي الحالي) نثبّت تاريخ التحويل على ذلك اليوم (12 ظهراً)
+      // عشان التقفيل يتحسب على يومه الصح مش على يوم التنفيذ الفعلي.
+      const closeStamp = dayBudgetDate === todayStr() ? undefined : new Date(`${dayBudgetDate}T12:00:00`).toISOString();
+      const ok = await savingsTransfer(split, 'in', 'day_closing', undefined, closeStamp);
+      if (ok) { sendDailyReportAfterClose(dayBudgetDate, dayBudget); alert('تم تحويل المبلغ للخزنة الرئيسية ✅'); setSaveXfer({ cash: '', visa: '', wallet: '', instapay: '' }); setSaveXferOtp(''); setSaveXferSent(false); setShowSaveXfer(false); computeDayBudget(dayBudgetDate); }
+    } catch { alert('تعذّر تنفيذ التحويل'); }
+    setSaveXferBusy(false);
+  };
+  // فتح لوحة الجرد: تعبئة الحقول بالرصيد المحسوب الحالي لكل طريقة.
+  const openReconcile = () => {
+    if (dayBudget?.isClosed) { alert('اليوم مقفول بالفعل. لا يمكن تعديل حساباته أو ضبط الجرد بعد التقفيل.'); return; }
+    const a = dayBudget?.shopAvail || {};
+    const next: Record<string, string> = {};
+    activePaymentKeys(storeSettings as any).forEach((k) => { next[k] = (Number(a[k]) || 0).toFixed(2); });
+    setReconcileCounts(next);
+    setShowReconcile(true);
+  };
+  // تنفيذ التسوية: يقارن المعدود بالمحسوب ويسجّل قيد إيراد/مصروف تسوية لكل فرق.
+  const handleReconcile = async () => {
+    const a = dayBudget?.shopAvail || {};
+    const keys = activePaymentKeys(storeSettings as any);
+    const incSplit: Record<string, number> = {};
+    const expSplit: Record<string, number> = {};
+    let incTotal = 0, expTotal = 0;
+    keys.forEach((k) => {
+      const counted = parseFloat(reconcileCounts[k] || '') || 0;
+      const current = Number(a[k]) || 0;
+      const diff = Math.round((counted - current) * 100) / 100;
+      if (diff > 0.009) { incSplit[k] = diff; incTotal += diff; }
+      else if (diff < -0.009) { expSplit[k] = -diff; expTotal += -diff; }
+    });
+    if (incTotal < 0.01 && expTotal < 0.01) { alert('لا يوجد فرق — الرصيد مطابق للمعدود ✅'); return; }
+    if (!window.confirm(`سيتم تسجيل قيد تسوية جرد لضبط رصيد الخزنة على الكاش الفعلي:\n${incTotal > 0.009 ? `زيادة: +${incTotal.toFixed(2)} ${storeSettings.currency}\n` : ''}${expTotal > 0.009 ? `عجز: -${expTotal.toFixed(2)} ${storeSettings.currency}\n` : ''}متأكد؟`)) return;
+    setReconcileBusy(true);
+    try {
+      const actorName = activeCashier?.name || 'كاشير';
+      const createdAt = timestampForBusinessDate(dayBudgetDate, storeSettings);
+      // زيادة (المعدود أكبر من المحسوب) → قيد إيراد تسوية (اصطلاح الإيراد: القيم بالسالب).
+      if (incTotal > 0.009) {
+        await addExpense({
+          category: RECONCILE_CAT, amount: -incTotal,
+          paid_cash: -(incSplit.cash || 0), paid_visa: -(incSplit.visa || 0), paid_wallet: -(incSplit.wallet || 0),
+          paid_instapay: -(incSplit.instapay || 0), paid_method5: -(incSplit.method5 || 0), paid_method6: -(incSplit.method6 || 0),
+          note: `تسوية جرد (زيادة) - بواسطة ${actorName}`, payment_method: 'cash', created_at: createdAt,
+        } as any);
+      }
+      // عجز (المعدود أقل من المحسوب) → قيد مصروف تسوية.
+      if (expTotal > 0.009) {
+        await addExpense({
+          category: RECONCILE_CAT, amount: expTotal,
+          paid_cash: expSplit.cash || 0, paid_visa: expSplit.visa || 0, paid_wallet: expSplit.wallet || 0,
+          paid_instapay: expSplit.instapay || 0, paid_method5: expSplit.method5 || 0, paid_method6: expSplit.method6 || 0,
+          note: `تسوية جرد (عجز) - بواسطة ${actorName}`, payment_method: 'cash', created_at: createdAt,
+        } as any);
+      }
+      // تنبيه تليجرام للشفافية (التسوية حركة حسّاسة).
+      fetch('/api/telegram-alert', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'reconcile', actor: actorName, date: new Date().toISOString(), amount: incTotal - expTotal, description: `تسوية جرد الخزنة: ${incTotal > 0.009 ? `+${incTotal.toFixed(2)} ` : ''}${expTotal > 0.009 ? `-${expTotal.toFixed(2)}` : ''}`, noteText: '' }),
+      }).catch(() => {});
+      alert('تم ضبط رصيد الخزنة على الكاش الفعلي ✅');
+      setShowReconcile(false);
+      computeDayBudget(dayBudgetDate);
+    } catch (e) { console.error(e); alert('تعذّر تنفيذ التسوية'); }
+    setReconcileBusy(false);
+  };
+  const [posSeason, setPosSeason] = useState<'all' | 'summer' | 'winter' | 'annual'>('all');
+  const [historyToday, setHistoryToday] = useState(true);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [viewExchange, setViewExchange] = useState<any>(null);
+  // فاتورة كل أصنافها اترجعت مافيش فيها حاجة تتستبدل.
+  const canExchangeAgain = (o: any) => {
+    const items = (o?.items || []) as any[];
+    const fullyReturned = items.length > 0 && items.every((it: any) => (it.returned_quantity || 0) >= (it.quantity || 0));
+    return { blocked: fullyReturned, reason: fullyReturned ? 'مرتجعة بالكامل' : '' };
+  };
+  // فتح شاشة الاستبدال. فاتورة اتستبدلت قبل كده بتتفتح عادي (استبدال تاني):
+  // بعد الاستبدال الأول الفاتورة بقت شايلة القطع الجديدة، فالجولة الجاية بتشتغل
+  // عليها زي أي فاتورة. (قبل كده كان الزرار بيودّي على شاشة «التفاصيل» بس.)
+  const openEditOrder = (o: any) => {
+    setViewExchange(null);
+    setEditingOrder(o); setShowHistory(false);
+  };
+
+  // تنقّل بالكيبورد (Enter) بين الحقول وقت الزحمة من غير ماوس
+  const focusById = (id: string) => { setTimeout(() => { const el = document.getElementById(id) as HTMLElement | null; el?.focus(); }, 0); };
+  const keyNext = (e: React.KeyboardEvent, nextId: string) => { if (e.key === 'Enter') { e.preventDefault(); focusById(nextId); } };
+
+  // ── سداد آجل للعملاء من الكاشير ──────────────────────────────
+  const [showDebtModal, setShowDebtModal] = useState(false);
+  const [debtSearch, setDebtSearch] = useState('');
+  const [debtCustId, setDebtCustId] = useState('');
+  const [debtAmount, setDebtAmount] = useState('');
+  const [debtMethod, setDebtMethod] = useState('cash');
+  const [debtSaving, setDebtSaving] = useState(false);
+  const [debtPayDate, setDebtPayDate] = useState(() => businessDateStr(storeSettings));
+  const customerDebtOf = (custId: string) => {
+    return orders.filter(o => o.customer?.id === custId && !o.is_deleted).reduce((sum, o) => {
+      // نطرح قيمة البضاعة المرتجعة من إجمالي الفاتورة عشان المرتجع (كاش أو خصم من الدين)
+      // ما يسيبش «دين وهمي» على العميل بعد ما رجّع البضاعة واتردّله فلوسه.
+      const grossTotal = (o.type === 'payment' ? 0 : (o.total || 0)) - (o.type === 'payment' ? 0 : calculateOrderReturnValue(o));
+      const debt = grossTotal - (o.paid_amount || 0);
+      if (debt > 0.009 && o.type !== 'payment') return sum + debt;
+      if (o.type === 'payment' && !(o.notes && o.notes.includes('سداد أجل للفاتورة رقم'))) return sum + debt;
+      return sum;
+    }, 0);
+  };
+  const debtCustomers = customers.map(c => ({ ...c, debt: customerDebtOf(c.id) })).filter(c => c.debt > 0.5);
+  const debtFiltered = debtCustomers.filter(c => {
+    const q = debtSearch.trim().toLowerCase();
+    return !q || c.name.toLowerCase().includes(q) || (c.phone || '').includes(q);
+  });
+  const selectedDebtCustomer = debtCustomers.find(c => c.id === debtCustId);
+
+  const printDebtReceipt = (custName: string, paid: number, remaining: number, methodLabel: string, invId: string) => {
+    const s = storeSettings;
+    const date = new Date().toLocaleString('ar-EG', { calendar: 'gregory', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"/><title>إيصال سداد #${invId}</title><style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap');
+      *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif;color:#000;}
+      .c{width:72mm;margin:0 auto;padding:2mm 1.5mm;}
+      .nm{font-size:18px;font-weight:900;text-align:center;}
+      .ttl{font-size:14px;font-weight:900;text-align:center;border:1.5px solid #000;border-radius:5px;padding:3px;margin:5px 0;}
+      .r{display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:2px 0;}
+      .big{font-size:17px;font-weight:900;border-top:1.5px solid #000;border-bottom:1.5px solid #000;padding:5px 0;margin-top:4px;}
+      .rem{font-size:15px;font-weight:900;text-align:center;border:1.5px solid #000;border-radius:5px;padding:4px;margin-top:5px;}
+      .ft{text-align:center;font-size:10px;font-weight:700;margin-top:6px;border-top:1px dashed #000;padding-top:4px;}
+      @media print{@page{size:72mm auto;margin:0;}.c{width:72mm;}}
+    </style></head><body><div class="c">
+      <div class="nm">${escapeHtml(s.name)}</div>
+      <div class="ttl">إيصال سداد آجل</div>
+      <div class="r"><span>رقم الإيصال:</span><span>#${invId}</span></div>
+      <div class="r"><span>التاريخ:</span><span>${date}</span></div>
+      <div class="r"><span>المحاسب:</span><span>${escapeHtml(activeCashier?.name || 'مدير النظام')}</span></div>
+      <div class="r"><span>العميل:</span><span>${escapeHtml(custName)}</span></div>
+      <div class="r"><span>طريقة الدفع:</span><span>${methodLabel}</span></div>
+      <div class="r big"><span>المبلغ المدفوع:</span><span>${paid.toFixed(2)} ${s.currency}</span></div>
+      <div class="rem">المتبقي عليه: ${remaining.toFixed(2)} ${s.currency}</div>
+      <div class="ft">شكراً لتعاملكم معنا</div>
+    </div><script>window.onload=()=>{setTimeout(()=>{window.print();},400);}</script></body></html>`;
+    void printDocument('invoice', html);
+  };
+
+  const submitDebtPayment = async () => {
+    const c = selectedDebtCustomer;
+    if (!c) { alert('اختر العميل'); return; }
+    const amount = Number(debtAmount) || 0;
+    if (amount <= 0) { alert('أدخل المبلغ المدفوع'); return; }
+    if (amount > c.debt + 0.01) { alert(`المبلغ أكبر من المديونية (${c.debt.toFixed(2)})`); return; }
+    setDebtSaving(true);
+    try {
+      const split = { cash: debtMethod === 'cash' ? amount : 0, visa: debtMethod === 'visa' ? amount : 0, wallet: debtMethod === 'wallet' ? amount : 0, instapay: debtMethod === 'instapay' ? amount : 0 };
+      const dateISO = timestampForBusinessDate(debtPayDate, storeSettings);
+      const invId = await checkout(0, { name: c.name, phone: c.phone, custom_id: c.custom_id }, amount, 'payment', debtMethod as any, split, undefined, undefined, undefined, undefined, undefined, dateISO);
+      const methodLabel = debtMethod === 'cash' ? 'كاش' : debtMethod === 'visa' ? 'فيزا' : debtMethod === 'wallet' ? 'محفظة' : 'انستا باي';
+      printDebtReceipt(c.name, amount, Math.max(0, c.debt - amount), methodLabel, String(invId || ''));
+      setShowDebtModal(false); setDebtCustId(''); setDebtAmount(''); setDebtSearch('');
+    } catch (e: any) { alert('خطأ في تسجيل السداد: ' + (e?.message || e)); }
+    setDebtSaving(false);
+  };
+
+  const deleteOrderWithOtp = async (o: any) => {
+    const reason = prompt('سبب حذف الفاتورة؟', 'حذف من الكاشير');
+    if (reason === null) return;
+    // كاشير بصلاحية كاملة: حذف مباشر بدون OTP.
+    if (cashierFullAccess) {
+      const ok = await deleteOrder(o.id, reason || 'حذف من الكاشير');
+      if (ok) alert('تم حذف الفاتورة وإرجاع الكمية للمخزون ✅');
+      return;
+    }
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data } = await supabase.auth.getSession();
+      const tk = data.session?.access_token;
+      const headers = { 'Content-Type': 'application/json', ...(tk ? { Authorization: `Bearer ${tk}` } : {}) };
+      const details = `حذف فاتورة #${o.id}\nالعميل: ${o.customer?.name || 'نقدي'}\nالإجمالي: ${(o.total || 0).toFixed(2)} ${storeSettings.currency}\nالسبب: ${reason || '-'}`;
+      const r1 = await fetch('/api/wholesale-otp', { method: 'POST', headers, body: JSON.stringify({ action: 'request', purpose: 'invoice', details }) });
+      const j1 = await r1.json();
+      if (!j1.ok) { alert('تعذّر إرسال رمز التأكيد: ' + (j1.error || '')); return; }
+      const code = prompt('تم إرسال رمز التأكيد للمدير على تليجرام.\nأدخل الرمز لإتمام الحذف:');
+      if (!code) return;
+      const r2 = await fetch('/api/wholesale-otp', { method: 'POST', headers, body: JSON.stringify({ action: 'verify', purpose: 'invoice', code: code.trim() }) });
+      const j2 = await r2.json();
+      if (!j2.ok) { alert(j2.error || 'رمز غير صحيح'); return; }
+      const ok = await deleteOrder(o.id, reason || 'حذف من الكاشير');
+      if (ok) alert('تم حذف الفاتورة وإرجاع الكمية للمخزون ✅');
+    } catch { alert('تعذّر تنفيذ الحذف'); }
+  };
+  // OTP gate for wholesale / half-wholesale: prices hidden + checkout blocked until verified.
+  const [wholesaleUnlocked, setWholesaleUnlocked] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  // صلاحيات الكاشير (المدير يرى الكل؛ غيره حسب الإعدادات)
+  const isMaster = activeCashier?.id === 'master';
+  // صلاحية كاملة: كاشير يتجاوز الـ OTP في العمليات الحسّاسة (صرف/تحويل الخزنة الرئيسية، حذف فاتورة، أسعار الجملة).
+  const cashierFullAccess = isMaster || !!(activeCashier as any)?.full_access;
+  const canExchangeWithoutOtp = cashierFullAccess || !!(storeSettings as any).cashierPermissions?.exchangeNoOtp;
+  const pricesHidden = invoiceType !== 'retail' && !wholesaleUnlocked && !cashierFullAccess;
+  const perm = (k: string) => isMaster || ((storeSettings as any).cashierPermissions?.[k] !== false);
+  // تسميات وسائل الدفع
+  const payLabel = (m: string) => payLabelOf(storeSettings as any, m);
+  // طرق الدفع المفعّلة (الأساسية + أي إضافية مفعّلة من الإعدادات)
+  const activePayKeys = activePaymentKeys(storeSettings as any);
+  useEffect(() => { setWholesaleUnlocked(false); setOtpInput(''); setOtpSent(false); }, [invoiceType]);
+
+  const requestOtp = async () => {
+    setOtpBusy(true);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const r = await fetch('/api/wholesale-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ action: 'request' }) });
+      const j = await r.json();
+      if (j.ok) { setOtpSent(true); alert('تم إرسال رمز التأكيد على تليجرام 📲'); }
+      else alert('تعذّر إرسال الرمز: ' + (j.error || ''));
+    } catch (e) { alert('تعذّر إرسال الرمز'); }
+    setOtpBusy(false);
+  };
+
+  const verifyOtp = async () => {
+    if (!otpInput.trim()) { alert('أدخل الرمز'); return; }
+    setOtpBusy(true);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const r = await fetch('/api/wholesale-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ action: 'verify', code: otpInput.trim() }) });
+      const j = await r.json();
+      if (j.ok) { setWholesaleUnlocked(true); setOtpInput(''); }
+      else alert(j.error || 'رمز غير صحيح');
+    } catch (e) { alert('تعذّر التحقق من الرمز'); }
+    setOtpBusy(false);
+  };
+  const navigate = useNavigate();
+
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const categoriesRef = useRef<HTMLDivElement>(null);
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoriesRef.current) {
+      const scrollAmount = 200;
+      categoriesRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [scanStatus, setScanStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // Mobile Responsiveness & Camera Scanner States
+  const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<any>(null);
+  const [scanQty, setScanQty] = useState(1);
+  const [html5QrCode, setHtml5QrCode] = useState<Html5Qrcode | null>(null);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+
+  const playSuccessSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+      console.log('Audio not supported', e);
+    }
+  };
+
+  const playErrorSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+      console.log('Audio not supported', e);
+    }
+  };
+
+  // ── إدخال الوزن للمنتجات التي تُباع بالوزن (كيلو/جرام/لتر...) ──
+  const [weightProduct, setWeightProduct] = useState<Product | null>(null);
+  const [weightUnitInput, setWeightUnitInput] = useState(''); // الكمية بالوحدة الأساسية
+  const [weightSubInput, setWeightSubInput] = useState('');   // الكمية بالوحدة الفرعية (جرام...)
+
+  // فتح نافذة الوزن أو الإضافة المباشرة حسب نوع وحدة المنتج
+  const handleAddProduct = (product: Product) => {
+    if (isFractionalUnit(product.unit)) {
+      setWeightProduct(product);
+      setWeightUnitInput('');
+      setWeightSubInput('');
+    } else {
+      addToCart(product);
+    }
+  };
+
+  // الكمية النهائية (بالوحدة الأساسية) المحسوبة من مدخلات نافذة الوزن
+  const computeWeightQty = (): number => {
+    if (!weightProduct) return 0;
+    const cfg = getUnitConfig(weightProduct.unit);
+    if (weightSubInput && cfg.subPerUnit) {
+      return (parseFloat(weightSubInput) || 0) / cfg.subPerUnit;
+    }
+    return parseFloat(weightUnitInput) || 0;
+  };
+
+  const confirmWeight = () => {
+    if (!weightProduct) return;
+    const qty = computeWeightQty();
+    if (qty <= 0) return;
+    addToCartQty(weightProduct, qty);
+    setWeightProduct(null);
+    setWeightUnitInput('');
+    setWeightSubInput('');
+  };
+
+  const handleBarcodeScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = barcodeInput.trim();
+      if (!code) return;
+
+      const product = products.find(p => p.barcode === code);
+      if (product) {
+        playSuccessSound();
+        handleAddProduct(product);
+        setBarcodeInput('');
+        setScanStatus('success');
+        setTimeout(() => setScanStatus('idle'), 1000);
+      } else {
+        playErrorSound();
+        setScanStatus('error');
+        setTimeout(() => setScanStatus('idle'), 1000);
+      }
+    }
+  };
+
+  // Customer details for checkout
+  const [customerId, setCustomerId] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [deferredNote, setDeferredNote] = useState('');
+  // مبالغ الدفع لكل طريقة (مفتاح الطريقة → نص المبلغ) — يدعم الطرق الستة
+  const [payInput, setPayInput] = useState<Record<string, string>>({});
+  const setPay = (k: string, v: string) => setPayInput((s) => ({ ...s, [k]: v }));
+  const paidVal = (k: string) => parseFloat(payInput[k] || '') || 0;
+  const paidTotal = activePayKeys.reduce((s, k) => s + paidVal(k), 0);
+  const [discountStr, setDiscountStr] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [customerDebt, setCustomerDebt] = useState<number>(0);
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showReturnsModal, setShowReturnsModal] = useState(false);
+  const [returnSearchQuery, setReturnSearchQuery] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+
+  // Reprint a past order on the thermal receipt by reconstructing its details.
+  const reprintOrder = (order: any) => {
+    const items = order.items || [];
+    // الفاتورة المستبدلة: فرق الاستبدال متسجّل بره الفاتورة (بتاريخه)، فلازم
+    // نضمّه هنا وإلا «طرق الدفع» متطلعش الإجمالي وتبان الفاتورة متناقضة.
+    const paidSplit = paidSplitForDisplay(order, ALL_PAYMENT_KEYS as any);
+    const details = {
+      cart: items,
+      subtotal: items.reduce((s: number, i: any) => s + (i.sale_price * i.quantity), 0),
+      discount: order.discount_amount || 0,
+      tax: 0,
+      total: order.total,
+      paidAmount: paidForDisplay(order, ALL_PAYMENT_KEYS as any),
+      splitPayments: paidSplit,
+      customerName: order.customer?.name || '',
+      customerPhone: order.customer?.phone || '',
+      customId: order.customer?.custom_id || order.customer?.card_number || '',
+      customerId: order.customer?.id || '',
+      paymentMethod: order.payment_method,
+      totalDebt: Math.max(0, (order.total || 0) - calculateOrderReturnValue(order) - paidForDisplay(order, ALL_PAYMENT_KEYS as any)),
+      couponCode: order.coupon_code,
+      couponDiscountAmount: order.discount_amount || 0,
+      salesperson: order.salesperson_name || '',
+      exchangeSettled: exchangeSettledTotal(order),
+    };
+    printInvoice(order.id, details);
+  };
+
+  // Send a past invoice to the customer on WhatsApp (public link + summary).
+  const sendOrderWhatsApp = (order: any) => {
+    const invoiceLink = `${window.location.origin}/view-invoice/${order.id}`;
+    const itemsText = (order.items || []).map((i: any) => `• ${i.name} (${formatQty(i.quantity, i.unit)}) - ${(i.sale_price * i.quantity).toFixed(2)} ${storeSettings.currency}`).join('\n');
+    const spLine = order.salesperson_name ? `*مسؤول المبيعات:* ${order.salesperson_name}\n` : '';
+    const message = `*فاتورة من ${storeSettings.name}*\n\n*رقم الفاتورة:* #${order.id}\n${spLine}*الإجمالي:* ${(order.total || 0).toFixed(2)} ${storeSettings.currency}\n\n*عرض الفاتورة بالتفاصيل:*\n${invoiceLink}\n\n*تفاصيل الطلب:*\n${itemsText}\n\n*شكراً لتعاملكم معنا!*`;
+    let phone = (order.customer?.phone || '').replace(/\D/g, '');
+    const code = storeSettings.whatsappCountryCode || '2';
+    if (phone.startsWith('0')) phone = code + phone.substring(1);
+    else if (phone && !phone.startsWith(code)) phone = code + phone;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+  // ── Daily treasury (تقفيل اليوم) — view only ──────────────
+  // التاريخ المحاسبي الحالي (يراعي ساعة بداية اليوم — قبلها يُحسب على أمس)
+  const todayStr = () => businessDateStr(storeSettings);
+  const [showDayBudget, setShowDayBudget] = useState(false);
+  const [dayBudgetDate, setDayBudgetDate] = useState(() => businessDateStr(storeSettings));
+  const [dayBudget, setDayBudget] = useState<any>(null);
+  const [dayBudgetLoading, setDayBudgetLoading] = useState(false);
+  // مصدر أرقام التقفيل المعروضة: مباشر من السيرفر ولا من نسخة الجهاز (أوفلاين).
+  const [dayBudgetSource, setDayBudgetSource] = useState<{ live: boolean; cachedAt: string | null; rolledFrom: string | null } | null>(null);
+
+  const computeDayBudget = async (dayStr: string) => {
+    setDayBudgetLoading(true);
+    try {
+      // اليوم المحاسبي يبدأ عند ساعة بداية اليوم (مثلاً 3 ص) وينتهي بعدها بـ 24 ساعة
+      const { start, end } = businessDayRange(dayStr, storeSettings);
+      const src = await loadDayBudgetSource(dayStr, start, end, orders);
+      setDayBudgetSource({ live: src.live, cachedAt: src.cachedAt, rolledFrom: src.rolledFrom });
+      const expRes = { data: src.expenses }, purRes = { data: src.purchases }, salRes = { data: src.salaries };
+      const allOrders = src.orders.map((o) => ({ ...o, date: o.created_at, items: o.order_items || [] }));
+      const methods = [...ALL_PAYMENT_KEYS] as string[];
+      const zero = (): Record<string, number> => Object.fromEntries(methods.map((m) => [m, 0]));
+      // أوفلاين: حركة «قبل اليوم» بتيجي ملخّصة من النسخة المحفوظة بدل ما تتحسب
+      // من الأرشيف (اللي مش موجود على الجهاز).
+      const dayIn = zero(), dayOut = zero();
+      const befIn = { ...zero(), ...(src.seedBefIn || {}) }, befOut = { ...zero(), ...(src.seedBefOut || {}) };
+      // تفصيل حركة اليوم (للتقفيل): مبيعات/تحصيل/مرتجعات/استبدال/مصروفات/مشتريات/رواتب.
+      const bd = { salesCount: 0, salesTotal: 0, collected: 0, refundsTotal: 0, refundsCount: 0, exchangeCount: 0, exchangeValue: 0, exchangeNet: 0, expensesTotal: 0, otherIncome: 0, purchasesTotal: 0, salariesTotal: 0, reservationsNet: 0, savingsOut: 0, savingsIn: 0, reconcileIn: 0, reconcileOut: 0 };
+      // توزيع مبلغ على وسائل الدفع (منطق مشترك في src/utils/treasury.ts).
+      const addM = (t: Record<string, number>, rec: any, field: string, mOverride?: string) =>
+        applySplit(t, rec, field, { methodOverride: mOverride });
+      allOrders.filter((o: any) => !o.is_deleted).forEach((o: any) => {
+        const d = new Date(o.date);
+        const inDay = d >= start && d < end;
+        const before = d < start;
+        if (!inDay && !before) return;
+        // التحصيل المعلَّم [MAIN_TREASURY] راح للخزنة الرئيسية — يتستبعد من درج الكاشير وتقفيله.
+        if (isMainTreasuryOrder(o)) return;
+        if ((o.type === 'sale' || o.type === 'payment')) addM(inDay ? dayIn : befIn, o, 'paid_amount');
+        // المرتجع بيقلّل paid_amount (مش تقسيمة paid_cash)، فبنرجّعه للتحصيل عشان
+        // «التحصيل» يعرض المحصّل الإجمالي يوم البيع، والمرتجع يبان في بنده لوحده
+        // (التحصيل − المرتجعات = الصافي) بدل ما يتخصم مرتين في العرض.
+        const refunded = (o.items || []).reduce((s: number, it: any) => s + (+it.refunded_amount || 0), 0);
+        // «المحصّل» لازم يطابق حركة الخزنة (dayIn) اللي بتقرا تقسيمة الدفع paid_* (عبر addM):
+        // في الاستبدال، paid_amount بيتظبط على الإجمالي الجديد بينما التقسيمة تفضل على المدفوع
+        // الأصلي (المسجّل في يومه)، وفرق الاستبدال بيتسجّل كإيراد/مصروف مستقل بيوم الاستبدال.
+        // فلو اعتمدنا paid_amount هنا كان «المحصّل» يتضخّم بفرق الاستبدال ويختلف عن الدرج (عدّ مزدوج).
+        // splitSum = إجمالي التقسيمة (قيمة قبل المرتجع)؛ في البيانات القديمة بدون تقسيمة
+        // نرجع لـ paid_amount + المرتجع (نفس منطق الـ gross-up السابق).
+        const splitSum = methods.reduce((s, m) => s + (Number((o as any)['paid_' + m]) || 0), 0);
+        const collectedRow = splitSum !== 0 ? splitSum : (Number(o.paid_amount) || 0) + refunded;
+        if (inDay) {
+          // في الاستبدال نعرض إجمالي البيع الأصلي (oldTotal) على يوم البيع، والفرق يبان بيومه —
+          // عشان يوم مقفول ما تتغيّرش «مبيعاته» بأثر رجعي عند استبدال فاتورة قديمة.
+          const saleTotal = o.exchange_data ? (Number(o.exchange_data.originalTotal) || Number(o.exchange_data.oldTotal) || Number(o.total) || 0) : (Number(o.total) || 0);
+          if (o.type === 'sale') { bd.salesCount += 1; bd.salesTotal += saleTotal; bd.collected += collectedRow; }
+          if (o.type === 'payment') { bd.collected += collectedRow; }
+        }
+        // الاستبدال يُحسب على يوم الاستبدال (exchange_data.date) لا يوم البيع، عشان
+        // استبدال فاتورة قديمة يظهر في تقفيل اليوم اللي اتعمل فيه فعلاً.
+        // فاتورة ممكن تتستبدل أكتر من مرة — كل استبدال بيتعدّ على يومه هو.
+        if (o.exchange_data) {
+          const past = Array.isArray(o.exchange_data.history) ? o.exchange_data.history : [];
+          [...past, o.exchange_data].forEach((x: any) => {
+            const xd = new Date(x?.date || o.date);
+            if (xd >= start && xd < end) bd.exchangeCount += 1;
+          });
+        }
+        // المرتجع يُحسب خارج من الخزنة على يوم الاسترجاع (refunded_at)، ولو مفيش
+        // (بيانات قديمة قبل db/36) نرجع لتاريخ الفاتورة. شغّلي db/36 عشان يتحسب على يومه الصح.
+        if (refunded > 0) {
+          const rd = new Date(o.refunded_at || o.date);
+          const rInDay = rd >= start && rd < end;
+          if (rInDay || rd < start) {
+            addM(rInDay ? dayOut : befOut, refundRecordOf(o, refunded), 'paid_amount');
+            if (rInDay) { bd.refundsTotal += refunded; bd.refundsCount += 1; }
+          }
+        }
+      });
+      const addOut = (arr: any[], field: string) => (arr || []).forEach((r: any) => {
+        const d = new Date(r.created_at);
+        if (d >= start && d < end) addM(dayOut, r, field);
+        else if (d < start) addM(befOut, r, field);
+      });
+      // المصروفات: لو المبلغ سالب فهو إيراد مسجّل يدوياً (داخل) مش خارج.
+      // نستبعد فئة «رواتب» لأن كل راتب/سلفة بيتسجّل تلقائياً كمصروف + كمعاملة موظف،
+      // والرواتب/السلف تُحسب من جدول employee_transactions (salRes) فقط لتفادي العدّ مرتين.
+      const expensesArr = (expRes.data as any[]) || [];
+      // التحويل الداخلي بين وسائل الدفع (كاش↔فيزا…): معالجة اتجاهية مشتركة.
+      const realExpenses = expensesArr.filter((e) => (Number(e.amount) || 0) >= 0 && e.category !== 'رواتب' && !isInternalTransfer(e.category));
+      const shopExpenses = realExpenses.filter((e) => !isMainTreasuryExpense(e));
+      expensesArr.filter((e) => isInternalTransfer(e.category)).forEach((r) => {
+        const d = new Date(r.created_at);
+        if (d >= start && d < end) routeInternalTransfer(dayIn, dayOut, r);
+        else if (d < start) routeInternalTransfer(befIn, befOut, r);
+      });
+      const manualIncomes = expensesArr.filter((e) => (Number(e.amount) || 0) < 0 && !isMainTreasuryExpense(e)).map((e) => {
+        const abs: any = { ...e, amount: Math.abs(+e.amount || 0) };
+        methods.forEach((m) => { abs[`paid_${m}`] = Math.abs(+e[`paid_${m}`] || 0); });
+        return abs;
+      });
+      // فئات الحجز: 'حجز' = تحصيل/رد عربون، 'تحويل حجز' = تحويل العربون لفاتورة عند الإتمام.
+      const isResv = (c: any) => c === 'حجز' || c === 'تحويل حجز';
+      // تحويلات الخزنة الرئيسية: نقل فلوس بين خزنة المحل والخزنة الرئيسية — مش مصروف/إيراد،
+      // بيفضل ضمن الداخل/الخارج (لأن الفلوس فعلاً بتتحرّك من الدرج) لكن ليه خانته المستقلة.
+      const isSavingsXfer = (c: any) => c === 'تحويل للخزنة الرئيسية' || c === 'تحويل من الخزنة الرئيسية';
+      const isReconcile = (c: any) => c === RECONCILE_CAT;
+      const isExchangeAdjustment = (c: any) => c === 'فرق استبدال مبيعات';
+      manualIncomes.forEach((r: any) => {
+        const d = new Date(r.created_at);
+        // العربون داخل ضمن totalIn لكنه يُعرض في خانة الحجوزات مش «إيرادات أخرى».
+        // تسوية الجرد (زيادة) داخلة ضمن totalIn لكن لها خانتها المستقلة.
+        if (d >= start && d < end) {
+          addM(dayIn, r, 'amount');
+          if (isExchangeAdjustment(r.category)) { bd.exchangeValue += Math.abs(+r.amount || 0); bd.exchangeNet += Math.abs(+r.amount || 0); }
+          else if (isSavingsXfer(r.category)) bd.savingsIn += Math.abs(+r.amount || 0);
+          else if (isReconcile(r.category)) bd.reconcileIn += Math.abs(+r.amount || 0);
+          else if (!isResv(r.category)) bd.otherIncome += Math.abs(+r.amount || 0);
+        }
+        else if (d < start) addM(befIn, r, 'amount');
+      });
+      addOut(shopExpenses, 'amount');
+      addOut(((purRes.data as any[]) || []).filter((p) => !isMainTreasuryPurchase(p)), 'paid_amount');
+      // سلف/رواتب الخزنة الرئيسية (المعلّمة) تُستبعد من خصم درج المحل — لها مسارها في savings.
+      addOut(((salRes.data as any[]) || []).filter((t) => !isMainTreasuryExpense(t)), 'amount');
+      // تفصيل الخارج لليوم حسب النوع (باستثناء حركات الحجز — لها خانتها).
+      const inDayRec = (r: any) => { const d = new Date(r.created_at); return d >= start && d < end; };
+      // المصروفات الحقيقية = بدون الحجز وبدون تحويلات الخزنة الرئيسية (كلٌّ في خانته).
+      bd.expensesTotal = shopExpenses.filter(inDayRec).filter((e) => !isResv(e.category) && !isSavingsXfer(e.category) && !isReconcile(e.category) && !isExchangeAdjustment(e.category)).reduce((s, e) => s + Math.abs(+e.amount || 0), 0);
+      shopExpenses.filter(inDayRec).filter((e) => isExchangeAdjustment(e.category)).forEach((e) => { bd.exchangeValue += Math.abs(+e.amount || 0); bd.exchangeNet -= Math.abs(+e.amount || 0); });
+      // محوّل للخزنة الرئيسية اليوم (فلوس طالعة من درج المحل للخزنة — مش مصروف).
+      bd.savingsOut = shopExpenses.filter(inDayRec).filter((e) => e.category === 'تحويل للخزنة الرئيسية').reduce((s, e) => s + Math.abs(+e.amount || 0), 0);
+      // تفصيل المحوّل للخزنة الرئيسية اليوم لكل وسيلة (لملخّص التقفيل: «سحبت كام لكل طريقة»).
+      const savingsOutBy = zero();
+      shopExpenses.filter(inDayRec).filter((e) => e.category === 'تحويل للخزنة الرئيسية').forEach((e) => addM(savingsOutBy, e, 'amount'));
+      // تسوية جرد (نقص): فرق سالب بين المعدود والمحسوب — له خانته المستقلة.
+      bd.reconcileOut = shopExpenses.filter(inDayRec).filter((e) => isReconcile(e.category)).reduce((s, e) => s + Math.abs(+e.amount || 0), 0);
+      // صافي المحصّل من الحجوزات اليوم = عرابين محصّلة − عرابين مرتجعة (category='حجز').
+      bd.reservationsNet = expensesArr.filter(inDayRec).filter((e) => e.category === 'حجز').reduce((s, e) => s - (Number(e.amount) || 0), 0);
+      bd.purchasesTotal = ((purRes.data as any[]) || []).filter((p) => !isMainTreasuryPurchase(p)).filter(inDayRec).reduce((s, p) => s + Math.abs(+p.paid_amount || 0), 0);
+      bd.salariesTotal = ((salRes.data as any[]) || []).filter((t) => !isMainTreasuryExpense(t)).filter(inDayRec).reduce((s, t) => s + Math.abs(+t.amount || 0), 0);
+      const sum = (o: Record<string, number>) => methods.reduce((s, m) => s + (o[m] || 0), 0);
+      // الرصيد الافتتاحي = مجموع الأرصدة الافتتاحية لكل وسائل الدفع (كاش + فيزا + محافظ...) وليس الكاش فقط.
+      const opening = totalOpeningBalance(storeSettings as any) + sum(befIn) - sum(befOut);
+      const totalIn = sum(dayIn), totalOut = sum(dayOut);
+      // الرصيد الحالي في خزنة المحل لكل وسيلة (كل الفترات) = الرصيد الافتتاحي للوسيلة + صافي حركتها — للتحويل للخزنة الرئيسية.
+      const shopAvail: Record<string, number> = zero();
+      methods.forEach((m) => { shopAvail[m] = openingBalanceOf(storeSettings as any, m) + (befIn[m] + dayIn[m]) - (befOut[m] + dayOut[m]); });
+      // «اليوم مقفول» = اتحوّل منه مبلغ للخزنة الرئيسية فعلاً؛ عندها نعرض ملخّص بدل إعادة التقفيل.
+      setDayBudget({ opening, closing: opening + totalIn - totalOut, totalIn, totalOut, dayIn, dayOut, shopAvail, savingsOutBy, isClosed: bd.savingsOut > 0.009, breakdown: bd });
+
+      // نحفظ نسخة التقفيل لليوم الحالي بس — لو حفظنا يوم قديم، الترحيل للأيام
+      // اللي بعده أوفلاين هيتخطّى الأيام اللي بينهم ويطلّع افتتاح غلط.
+      if (src.live && dayStr === businessDateStr(storeSettings)) {
+        const inRange = (r: any) => { const d = new Date(r.created_at); return d >= start && d < end; };
+        void saveDayBudgetCache({
+          day: dayStr, befIn, befOut, dayIn, dayOut,
+          // فاتورة قديمة اترجّعت النهاردة بتأثّر على درج النهاردة، فلازم تتحفظ كمان.
+          orders: allOrders.filter((o: any) => inRange(o) || (o.refunded_at && new Date(o.refunded_at) >= start && new Date(o.refunded_at) < end)),
+          expenses: (expRes.data as any[]).filter(inRange),
+          purchases: (purRes.data as any[]).filter(inRange),
+          salaries: (salRes.data as any[]).filter(inRange),
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      setDayBudgetSource(null);
+      alert(isOfflineMode || !isOnline
+        ? 'تعذّر تحميل تقفيل اليوم أوفلاين — الجهاز ده لسه ما فتحش الشاشة دي والنت شغّال، فمفيش نسخة محفوظة.'
+        : 'تعذّر تحميل ميزانية اليوم');
+    }
+    setDayBudgetLoading(false);
+  };
+
+  useEffect(() => { if (showDayBudget) computeDayBudget(dayBudgetDate); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [showDayBudget, dayBudgetDate]);
+
+  const [activeReturnOrder, setActiveReturnOrder] = useState<any>(null);
+  const [pendingReturns, setPendingReturns] = useState<Record<string, { returnQty: number, refundAmount: number, returnType?: 'debt' | 'cash' }>>({});
+  // Amount of the return value applied to the customer's debt. null = automatic
+  // (settle as much debt as possible first); a number = cashier override (0 = don't deduct).
+  const [returnDebtDeduction, setReturnDebtDeduction] = useState<number | null>(null);
+  // Method used to refund cash to the customer on a return.
+  const [refundMethod, setRefundMethod] = useState<'cash' | 'visa' | 'wallet' | 'instapay'>('cash');
+  // رد المرتجع على أكتر من وسيلة (db/67): الوضع الافتراضي وسيلة واحدة زي الأول،
+  // و«تقسيم» بيفتح خانة مبلغ لكل وسيلة — العميل ممكن يكون دفع بأكتر من وسيلة،
+  // أو الدرج مافيهوش كاش كفاية فيترد جزء كاش وجزء انستا.
+  const [refundSplitMode, setRefundSplitMode] = useState(false);
+  const [refundSplitInput, setRefundSplitInput] = useState<Record<string, string>>({});
+  const refundSplitTotal = activePayKeys.reduce((s, k) => s + (parseFloat(refundSplitInput[k] || '') || 0), 0);
+  /** تقسيمة الاسترداد المرسلة للـ store: من الخانات لو تقسيم، وإلا المبلغ كله على الوسيلة المختارة. */
+  const buildRefundSplit = (amount: number): Record<string, number> => {
+    if (!refundSplitMode) return { [refundMethod]: amount };
+    const out: Record<string, number> = {};
+    activePayKeys.forEach((k) => {
+      const v = parseFloat(refundSplitInput[k] || '') || 0;
+      if (v > 0) out[k] = v;
+    });
+    return out;
+  };
+  // أكبر وسيلة في التقسيمة — بتتخزّن في refund_method القديم عشان الشاشات اللي
+  // لسه بتقراه (وقواعد البيانات من غير db/67) تفضل شغّالة.
+  const primaryRefundMethod = (split: Record<string, number>): string =>
+    Object.entries(split).sort((a, b) => b[1] - a[1])[0]?.[0] || refundMethod;
+  // تاريخ تسجيل المرتجع — الافتراضي اليوم المحاسبي الحالي. بيتغيّر لما المرتجع
+  // يكون حصل امبارح ويتسجّل النهاردة، عشان يقع في تقفيل يومه الصح.
+  const [refundDate, setRefundDate] = useState(() => businessDateStr(storeSettings));
+  // خصم من اللي راجع للعميل (رسوم/تلف) — بيفضل في الدرج ويتسجّل إيراد مستقل.
+  const [refundFeeStr, setRefundFeeStr] = useState('');
+  // تصفير خانات التقسيم مع كل فاتورة مرتجع جديدة.
+  useEffect(() => {
+    setRefundSplitMode(false); setRefundSplitInput({});
+    setRefundFeeStr(''); setRefundDate(businessDateStr(storeSettings));
+  }, [activeReturnOrder?.id]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastInvoiceId, setLastInvoiceId] = useState('');
+  const [lastCustomerInfo, setLastCustomerInfo] = useState<any>(null);
+  const [lastOrderDetails, setLastOrderDetails] = useState<any>(null);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  // تاريخ عمل مخصّص (لإدخال فواتير قديمة) — YYYY-MM-DD، فاضي = اليوم الحالي. للمستخدم الرئيسي فقط.
+  // كل الفواتير الجديدة تتسجّل في اليوم ده لحد ما يترجّع لليوم.
+  const [workDateOverride, setWorkDateOverride] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showHeldModal, setShowHeldModal] = useState(false);
+  // الطلب اللي بيتطبع دلوقتي — يمنع الضغط المتكرر (الطباعة الصامتة مالهاش مؤشّر).
+  const [printingHeldId, setPrintingHeldId] = useState<string | null>(null);
+  // فلتر شاشة المعلقة بالحالة + الطلب اللي بيتعمله مرتجع.
+  const [heldFilter, setHeldFilter] = useState<'all' | 'shop' | HeldStatus>('all');
+  const [returningHeld, setReturningHeld] = useState<HeldInvoice | null>(null);
+  const [holdBusy, setHoldBusy] = useState(false);
+  // نموذج حفظ فاتورة معلّقة مع عربون
+  const [showHoldForm, setShowHoldForm] = useState(false);
+  const [holdDepositPay, setHoldDepositPay] = useState<Record<string, string>>({});
+  // نوع الحجز: حجز محل (العميل هييجي ياخده) أو طلب أونلاين (بيمرّ بشحن وتسليم).
+  const [holdKind, setHoldKind] = useState<'shop' | 'online'>('shop');
+  const [holdAddress, setHoldAddress] = useState('');
+  const [holdShipNote, setHoldShipNote] = useState('');
+  const holdDepositTotal = activePayKeys.reduce((s, k) => s + (parseFloat(holdDepositPay[k] || '') || 0), 0);
+  // عربون محصّل لفاتورة معلّقة يجري إتمامها الآن (يُضاف للمدفوع ويُسجّل تحويله بعد الإتمام)
+  const [activeDeposit, setActiveDeposit] = useState<{ amount: number; split: Record<string, number> } | null>(null);
+  useEffect(() => { if (cart.length === 0) setActiveDeposit(null); }, [cart.length]);
+  // فواتير الانتظار — محفوظة على الجهاز نفسه (مش في الداتابيز)، شوف utils/parkedCarts.
+  const [parkedCarts, setParkedCarts] = useState<ParkedCart[]>(() => loadParkedCarts());
+  const [showParkedModal, setShowParkedModal] = useState(false);
+  const [shouldPrint, setShouldPrint] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [isSendingNote, setIsSendingNote] = useState(false);
+  const [showFinanceModal, setShowFinanceModal] = useState(false);
+  const [financeType, setFinanceType] = useState<'expense' | 'income' | 'transfer'>('expense');
+  const [financeCategory, setFinanceCategory] = useState('عام');
+
+  // نفس فكرة الزرار في Finance.tsx — النوع بيتخزّن في إعدادات المحل فيظهر في
+  // خزنة الكاشير والخزنة الرئيسية مع بعض.
+  const handleAddFinanceCategory = async () => {
+    const type = financeType as 'expense' | 'income';
+    const name = window.prompt(type === 'expense' ? 'اسم نوع المصروف الجديد:' : 'اسم نوع الإيراد الجديد:');
+    if (name === null) return;
+    const next = withAddedCategory(storeSettings as any, type, name);
+    if (!next) {
+      if (name.trim()) alert('النوع ده موجود بالفعل.');
+      return;
+    }
+    try {
+      await updateSettings(type === 'expense' ? { expenseCategories: next } : { incomeCategories: next });
+      setFinanceCategory(next[next.length - 1]);
+    } catch (e) {
+      // أشيع سبب: أعمدة db/43 لسه ماتعملتش على الداتابيز.
+      alert('فشل حفظ النوع الجديد: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+  // مبالغ المعاملة المالية لكل طريقة دفع مفعّلة
+  const [financePay, setFinancePay] = useState<Record<string, string>>({});
+  const financeVal = (k: string) => parseFloat(financePay[k] || '') || 0;
+  const financeTotal = activePayKeys.reduce((s, k) => s + financeVal(k), 0);
+  const [financeNote, setFinanceNote] = useState('');
+  const [financeTransferFrom, setFinanceTransferFrom] = useState('instapay');
+  const [financeTransferTo, setFinanceTransferTo] = useState('cash');
+  const [financeTransferAmount, setFinanceTransferAmount] = useState('');
+  const [financeTreasury, setFinanceTreasury] = useState<'shop' | 'main'>('shop');
+  const [financeDate, setFinanceDate] = useState(() => businessDateStr(storeSettings));
+  const [isSubmittingFinance, setIsSubmittingFinance] = useState(false);
+
+  // ── سلفة موظف (صرف سلفة تُخصم من راتب الشهر) ──
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [advanceEmpId, setAdvanceEmpId] = useState('');
+  const [advancePay, setAdvancePay] = useState<Record<string, string>>({});
+  const setAdvance = (k: string, v: string) => setAdvancePay((s) => ({ ...s, [k]: v }));
+  const advanceVal = (k: string) => parseFloat(advancePay[k] || '') || 0;
+  const [advanceNote, setAdvanceNote] = useState('');
+  const [advanceTreasury, setAdvanceTreasury] = useState<'shop' | 'main'>('shop');
+  const [advanceDate, setAdvanceDate] = useState(() => businessDateStr(storeSettings));
+  const [isSubmittingAdvance, setIsSubmittingAdvance] = useState(false);
+  const canEmployeeAdvance = isMaster || !!(storeSettings as any).allowCashierEmployeeAdvance;
+  const advanceTotal = activePayKeys.reduce((s, k) => s + advanceVal(k), 0);
+
+  const resetAdvanceForm = () => {
+    setAdvanceEmpId(''); setAdvancePay({}); setAdvanceNote(''); setAdvanceTreasury('shop'); setAdvanceDate(businessDateStr(storeSettings));
+  };
+
+  // ── طباعة باركود منتج من الكاشير ──
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [barcodeSearch, setBarcodeSearch] = useState('');
+  // قايمة الطباعة: أكتر من منتج، كل واحد بعدد ملصقاته.
+  const [barcodeRows, setBarcodeRows] = useState<{ id: string; count: string }[]>([]);
+  const canBarcodePrint = perm('barcodePrint');
+  const barcodeMatches = (() => {
+    const q = normalizeArabic(barcodeSearch.trim());
+    const chosen = new Set(barcodeRows.map((r) => r.id));
+    const list = q === ''
+      ? products
+      : products.filter((p) => normalizeArabic(p.name).includes(q) || (p.barcode && p.barcode.includes(barcodeSearch.trim())));
+    return list.filter((p) => !chosen.has(p.id)).slice(0, 30);
+  })();
+  const barcodeTotal = barcodeRows.reduce((s, r) => s + (parseInt(r.count) || 0), 0);
+
+  const closeBarcodeModal = () => { setShowBarcodeModal(false); setBarcodeSearch(''); setBarcodeRows([]); };
+
+  const handlePrintBarcode = () => {
+    if (barcodeRows.length === 0) { alert('يرجى اختيار منتج واحد على الأقل'); return; }
+    // المنتجات اللي مالهاش باركود بيتولّدلها كود ويتحفظ — نفس سلوك الطباعة الفردية.
+    const used = new Set(products.map((p) => p.barcode).filter(Boolean) as string[]);
+    const labels = barcodeRows.map((row) => {
+      const p = products.find((x) => x.id === row.id);
+      const count = Math.max(1, parseInt(row.count) || 1);
+      if (!p) return null;
+      let code = p.barcode || '';
+      if (!code) {
+        code = generateBarcode(used);
+        used.add(code);
+        updateProduct(p.id, { barcode: code });
+      }
+      return { name: p.name, code, price: p.sale_price, discountPrice: (p as any).discount_price, count };
+    }).filter(Boolean) as { name: string; code: string; price: number; discountPrice?: number; count: number }[];
+
+    printBarcodeLabelsBatch(labels, { currency: storeSettings.currency, storeName: storeSettings.name });
+    closeBarcodeModal();
+  };
+
+  const handleAdvanceSubmit = async () => {
+    if (!advanceEmpId) { alert('يرجى اختيار الموظف'); return; }
+    const total = advanceTotal;
+    if (total <= 0) { alert('يرجى إدخال مبلغ السلفة أولاً'); return; }
+
+    const emp = employees.find((x: any) => x.id === advanceEmpId);
+    const paymentMethod = activePayKeys
+      .map((k) => ({ name: k, amount: advanceVal(k) }))
+      .sort((a, b) => b.amount - a.amount)[0].name as any;
+    const actorName = activeCashier?.name || 'كاشير';
+    const createdAt = timestampForBusinessDate(advanceDate, storeSettings);
+    const toMain = advanceTreasury === 'main';
+    const split = { cash: advanceVal('cash'), visa: advanceVal('visa'), wallet: advanceVal('wallet'), instapay: advanceVal('instapay'), method5: advanceVal('method5'), method6: advanceVal('method6') };
+
+    setIsSubmittingAdvance(true);
+    try {
+      // صرف من الخزنة الرئيسية يتطلب OTP للمدير
+      if (toMain) {
+        const details = `صرف سلفة موظف من الخزنة الرئيسية (كاشير: ${actorName})\nالموظف: ${emp?.name || ''}\nالمبلغ: ${total.toFixed(2)} ${storeSettings.currency}\nملاحظة: ${advanceNote || '-'}`;
+        const ok = await confirmMainSpendOtp(total, details);
+        if (!ok) { setIsSubmittingAdvance(false); return; }
+      }
+
+      const baseNote = (advanceNote ? `${advanceNote} - ` : '') + `سلفة بواسطة ${actorName}`;
+      // نفس الربط: addEmployeeTransaction بيضمّن الملاحظة دي جوه ملاحظة صف
+      // المصروف، فالوسم والـ group_id بيوصلوا للاتنين.
+      const mainGroupId = toMain ? newSavingsGroupId() : null;
+      // يسجّل السلفة (تُخصم تلقائياً من راتب الشهر) + يخصم المبلغ من الخزنة كمصروف رواتب.
+      // لو الخزنة الرئيسية: نعلّم الملاحظة بـ [MAIN_TREASURY] فتُستبعد من درج المحل، وتُسجّل في savings.
+      await addEmployeeTransaction({
+        employee_id: advanceEmpId,
+        amount: total,
+        type: 'advance',
+        payment_method: paymentMethod,
+        paid_cash: advanceVal('cash'),
+        paid_visa: advanceVal('visa'),
+        paid_wallet: advanceVal('wallet'),
+        paid_instapay: advanceVal('instapay'),
+        paid_method5: advanceVal('method5'),
+        paid_method6: advanceVal('method6'),
+        month: advanceDate.slice(0, 7),
+        deductions: 0,
+        note: toMain ? markSavingsGroupNote(markMainTreasuryNote(baseNote), mainGroupId) : baseNote,
+        created_at: createdAt,
+      } as any);
+
+      if (toMain) {
+        await recordMainTreasuryOut(split as any, 'main_expense', `سلفة موظف: ${emp?.name || ''}${advanceNote ? ` - ${advanceNote}` : ''}`, createdAt, mainGroupId as any);
+      }
+
+      // تنبيه المدير على تليجرام
+      fetch('/api/telegram-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'cashier_expense',
+          actor: actorName,
+          date: new Date().toISOString(),
+          amount: total,
+          description: `سلفة موظف: ${emp?.name || ''}`,
+          noteText: advanceNote || '',
+          paymentMethod: payLabel(paymentMethod)
+        })
+      }).catch(() => {});
+
+      alert('تم صرف السلفة بنجاح ✅ (سيتم خصمها من راتب الشهر)');
+      setShowAdvanceModal(false);
+      resetAdvanceForm();
+      if (showDayBudget) computeDayBudget(dayBudgetDate);
+    } catch (e) {
+      console.error(e);
+      alert('حدث خطأ أثناء صرف السلفة');
+    } finally {
+      setIsSubmittingAdvance(false);
+    }
+  };
+
+  // ── خصم موظف من الكاشير (تسجيل بس — مفيش فلوس بتخرج من الخزنة) ──
+  // بيتكتب في employee_deductions (db/42) بالشهر المأخوذ من تاريخ الخصم، فبيظهر
+  // على طول في بروفايل الموظف تحت خصومات الشهر ده وبيتخصم من المتبقي وقت الراتب.
+  // مقصود إنه ما يعدّيش على أي حساب خزنة — عشان كده مش بيكتب مصروف ولا معاملة موظف.
+  const [showDeductionModal, setShowDeductionModal] = useState(false);
+  const [dedEmpId, setDedEmpId] = useState('');
+  const [dedDays, setDedDays] = useState('');
+  const [dedAmount, setDedAmount] = useState('');
+  const [dedReason, setDedReason] = useState('');
+  const [dedDate, setDedDate] = useState(() => businessDateStr(storeSettings));
+  const [isSubmittingDeduction, setIsSubmittingDeduction] = useState(false);
+  const canEmployeeDeduction = perm('employeeDeduction');
+  const dedEmp = employees.find((e: any) => e.id === dedEmpId) || null;
+  // نفس حسبة شاشة الموظفين: سعر اليوم = الراتب / 30، والأيام بتقبل نص يوم.
+  const dedDailyRate = dedEmp ? (Number((dedEmp as any).monthly_salary) || 0) / 30 : 0;
+  const dedTotal = Math.round(((parseFloat(dedDays) || 0) * dedDailyRate + (parseFloat(dedAmount) || 0)) * 100) / 100;
+  const dedMonth = dedDate.slice(0, 7);
+  // خصومات يدوية متسجّلة على نفس الموظف في نفس الشهر (للعرض قبل التأكيد).
+  const dedMonthSoFar = (employeeDeductions || [])
+    .filter((d: any) => d.employee_id === dedEmpId && d.month === dedMonth)
+    .reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
+
+  const resetDeductionForm = () => {
+    setDedEmpId(''); setDedDays(''); setDedAmount(''); setDedReason(''); setDedDate(businessDateStr(storeSettings));
+  };
+
+  const handleDeductionSubmit = async () => {
+    if (!dedEmpId) { alert('يرجى اختيار الموظف'); return; }
+    if (dedTotal <= 0) { alert('حدّد عدد الأيام أو المبلغ'); return; }
+    const days = parseFloat(dedDays) || 0;
+    const actorName = activeCashier?.name || 'كاشير';
+    const daysText = days > 0 ? `${days} يوم × ${dedDailyRate.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n` : '';
+    const ok = window.confirm(
+      `خصم ${dedTotal.toLocaleString()} ${storeSettings.currency} على ${(dedEmp as any)?.name || ''} عن شهر ${dedMonth}.\n` +
+      daysText +
+      `خصومات الشهر قبل ده: ${dedMonthSoFar.toLocaleString()} → بعده: ${(dedMonthSoFar + dedTotal).toLocaleString()}\n\n` +
+      `الخصم مش بيطلّع فلوس من الخزنة — بس بيقلّل المستحق للموظف وقت صرف الراتب.\n\nتأكيد؟`
+    );
+    if (!ok) return;
+
+    setIsSubmittingDeduction(true);
+    try {
+      await addEmployeeDeduction({
+        employee_id: dedEmpId,
+        amount: dedTotal,
+        days,
+        // اسم الكاشير جوه السبب عشان يبان في سجل حركات الموظف مين سجّل الخصم.
+        reason: (dedReason.trim() ? `${dedReason.trim()} - ` : '') + `بواسطة ${actorName}`,
+        month: dedMonth,
+        date: dedDate,
+      } as any);
+
+      fetch('/api/telegram-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'employee_deduction',
+          actor: actorName,
+          date: new Date().toISOString(),
+          amount: dedTotal,
+          description: `خصم على ${(dedEmp as any)?.name || ''} — شهر ${dedMonth}${days > 0 ? ` (${days} يوم)` : ''}`,
+          noteText: dedReason.trim(),
+        })
+      }).catch(() => {});
+
+      alert('تم تسجيل الخصم ✅ (هيظهر في خصومات شهر ' + dedMonth + ' في بروفايل الموظف)');
+      setShowDeductionModal(false);
+      resetDeductionForm();
+    } catch (e) {
+      // أشيع سبب: جدول db/42 لسه ماتعملش على الداتابيز.
+      alert('فشل حفظ الخصم: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setIsSubmittingDeduction(false);
+    }
+  };
+
+  const handleSendNote = async () => {
+    if (!noteText.trim()) return;
+    setIsSendingNote(true);
+    try {
+      const actorName = activeCashier?.name || 'كاشير';
+      // 1. Send Telegram Alert
+      await fetch('/api/telegram-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'custom_note',
+          actor: actorName,
+          date: new Date().toISOString(),
+          noteText: noteText.trim()
+        })
+      });
+
+      // 2. Save note to database
+      await addCashierNote(actorName, noteText.trim());
+
+      alert('تم إرسال الرسالة بنجاح');
+      setShowNoteModal(false);
+      setNoteText('');
+    } catch (e) {
+      alert('حدث خطأ أثناء الإرسال');
+    } finally {
+      setIsSendingNote(false);
+    }
+  };
+
+  // تأكيد الصرف من الخزنة الرئيسية بـ OTP للمدير (نفس مسار تحويل الخزنة).
+  const confirmMainSpendOtp = async (amount: number, details: string): Promise<boolean> => {
+    // كاشير بصلاحية كاملة: تأكيد بسيط بدون OTP.
+    if (cashierFullAccess) {
+      return window.confirm(`سيتم الصرف من الخزنة الرئيسية بمبلغ ${amount.toFixed(2)} ${storeSettings.currency}. متأكد؟`);
+    }
+    const confirmed = window.confirm(`سيتم الصرف من الخزنة الرئيسية بمبلغ ${amount.toFixed(2)} ${storeSettings.currency}.\nسيتم إرسال رمز تأكيد للمدير.`);
+    if (!confirmed) return false;
+    try {
+      const t = await saveXferToken();
+      const headers = { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+      const r1 = await fetch('/api/wholesale-otp', { method: 'POST', headers, body: JSON.stringify({ action: 'request', purpose: 'savings', details }) });
+      const j1 = await r1.json();
+      if (!j1.ok) { alert('تعذّر إرسال رمز التأكيد: ' + (j1.error || '')); return false; }
+      const code = window.prompt('تم إرسال رمز التأكيد للمدير على تليجرام.\nأدخل الرمز لتأكيد الصرف من الخزنة الرئيسية:');
+      if (!code) return false;
+      const r2 = await fetch('/api/wholesale-otp', { method: 'POST', headers, body: JSON.stringify({ action: 'verify', purpose: 'savings', code: code.trim() }) });
+      const j2 = await r2.json();
+      if (!j2.ok) { alert(j2.error || 'رمز غير صحيح'); return false; }
+      return true;
+    } catch { alert('تعذّر التحقق من رمز الخزنة الرئيسية'); return false; }
+  };
+
+  const handleFinanceSubmit = async () => {
+    const actorName = activeCashier?.name || 'كاشير';
+    const createdAt = timestampForBusinessDate(financeDate, storeSettings);
+    const toMain = financeTreasury === 'main';
+    setIsSubmittingFinance(true);
+    try {
+      if (financeType === 'transfer') {
+        const amt = parseFloat(financeTransferAmount) || 0;
+        if (amt <= 0) { alert('يرجى إدخال مبلغ صحيح'); return; }
+        if (financeTransferFrom === financeTransferTo) { alert('لا يمكن التحويل لنفس وسيلة الدفع'); return; }
+
+        if (toMain) {
+          // تحويل بين طرق الدفع داخل الخزنة الرئيسية (لا يمسّ خزنة المحل)
+          const ok = await savingsConvert(financeTransferFrom, financeTransferTo, amt, `${financeNote || ''} - بواسطة ${actorName}`.trim(), createdAt);
+          if (!ok) { alert('تعذّر تنفيذ التحويل داخل الخزنة الرئيسية'); return; }
+        } else {
+          const splits: Record<string, number> = {};
+          activePayKeys.forEach((k) => { splits[k] = 0; });
+          splits[financeTransferFrom] = -amt;
+          splits[financeTransferTo] = amt;
+          await addExpense({
+            category: 'تحويل داخلي',
+            amount: 0,
+            paid_cash: splits.cash || 0,
+            paid_visa: splits.visa || 0,
+            paid_wallet: splits.wallet || 0,
+            paid_instapay: splits.instapay || 0,
+            paid_method5: splits.method5 || 0,
+            paid_method6: splits.method6 || 0,
+            note: financeNote || `تحويل ${amt} من ${payLabel(financeTransferFrom)} إلى ${payLabel(financeTransferTo)} - بواسطة ${actorName}`,
+            payment_method: 'cash',
+            created_at: createdAt
+          } as any);
+          // Send telegram
+          fetch('/api/telegram-alert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'transfer',
+              actor: actorName,
+              date: new Date().toISOString(),
+              description: `تحويل ${amt} من ${payLabel(financeTransferFrom)} إلى ${payLabel(financeTransferTo)}`,
+              amount: amt,
+              noteText: financeNote || ''
+            })
+          }).catch(() => {});
+        }
+      } else {
+        const total = financeTotal;
+        if (total <= 0) { alert('يرجى إدخال مبالغ الدفع أولاً'); return; }
+        const multiplier = financeType === 'income' ? -1 : 1;
+        const primaryM = activePayKeys.map((k) => ({ name: k, amount: financeVal(k) })).sort((a, b) => b.amount - a.amount)[0].name;
+        const split: Record<string, number> = {};
+        activePayKeys.forEach((k) => { split[k] = financeVal(k); });
+
+        // صرف من الخزنة الرئيسية يتطلب OTP للمدير
+        if (toMain && financeType === 'expense') {
+          const details = `صرف من الخزنة الرئيسية (كاشير: ${actorName})\nالفئة: ${financeCategory}\nالمبلغ: ${total.toFixed(2)} ${storeSettings.currency}\nملاحظة: ${financeNote || '-'}`;
+          const ok = await confirmMainSpendOtp(total, details);
+          if (!ok) return;
+        }
+
+        const baseNote = `${financeNote || (financeType === 'income' ? 'إيراد' : 'مصروف')} - بواسطة ${actorName}`;
+        // لازم صف المصروف وصف دفتر الرئيسية يتربطوا بنفس group_id، وإلا حذف
+        // المعاملة من صفحة الخزنة الرئيسية بيسيب صف المصروف معلّق في الميزانية
+        // (مستبعَد من خزينة الكاشير بالوسم، ومالوش مقابل في الرئيسية).
+        const mainGroupId = toMain ? newSavingsGroupId() : null;
+        await addExpense({
+          category: financeCategory,
+          amount: total * multiplier,
+          paid_cash: financeVal('cash') * multiplier,
+          paid_visa: financeVal('visa') * multiplier,
+          paid_wallet: financeVal('wallet') * multiplier,
+          paid_instapay: financeVal('instapay') * multiplier,
+          paid_method5: financeVal('method5') * multiplier,
+          paid_method6: financeVal('method6') * multiplier,
+          note: toMain ? markSavingsGroupNote(markMainTreasuryNote(baseNote), mainGroupId) : baseNote,
+          payment_method: primaryM,
+          created_at: createdAt
+        } as any);
+
+        if (toMain && financeType === 'expense') {
+          await recordMainTreasuryOut(split as any, 'main_expense', `${financeCategory}${financeNote ? ` - ${financeNote}` : ''} - ${actorName}`, createdAt, mainGroupId as any);
+        } else if (toMain && financeType === 'income') {
+          await recordMainTreasuryIn(split as any, 'main_income', `${financeCategory}${financeNote ? ` - ${financeNote}` : ''} - ${actorName}`, createdAt, mainGroupId as any);
+        }
+
+        // Send telegram
+        fetch('/api/telegram-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: financeType === 'income' ? 'cashier_income' : 'cashier_expense',
+            actor: actorName,
+            date: new Date().toISOString(),
+            amount: total,
+            description: `${financeType === 'income' ? 'إيراد' : 'مصروف'}${toMain ? ' (الخزنة الرئيسية)' : ''}: ${financeCategory}`,
+            noteText: financeNote || '',
+            paymentMethod: payLabel(primaryM)
+          })
+        }).catch(() => {});
+      }
+      alert('تم تسجيل المعاملة بنجاح');
+      setShowFinanceModal(false);
+      setFinancePay({});
+      setFinanceNote(''); setFinanceTransferAmount(''); setFinanceCategory('عام');
+      setFinanceType('expense');
+      setFinanceTreasury('shop');
+      setFinanceDate(businessDateStr(storeSettings));
+      if (showDayBudget) computeDayBudget(dayBudgetDate);
+    } catch (e) {
+      console.error(e);
+      alert('حدث خطأ أثناء حفظ المعاملة');
+    } finally {
+      setIsSubmittingFinance(false);
+    }
+  };
+
+  // Camera Scanner Logic
+  useEffect(() => {
+    let scanner: Html5Qrcode | null = null;
+    
+    if (showCameraScanner && !html5QrCode) {
+      // المكتبة بتجرّب كل الـ 17 فورمات في كل فريم لو مش محددين — منهم فورمات
+      // تقيلة (PDF417 / Aztec / DataMatrix / MaxiCode) عمرها ما هتتحط على منتج.
+      // بنحصرها في باركود المنتجات + QR بس، فكل فريم بيخلص أسرع بكتير.
+      scanner = new Html5Qrcode("reader", {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.QR_CODE,
+        ],
+        useBarCodeDetectorIfSupported: true,
+        verbose: false,
+      });
+      setHtml5QrCode(scanner);
+      scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 15,
+          // مقاس qrbox هو نفسه مقاس الكانفس اللي الديكودر بيشوفه (المكتبة
+          // بتصغّر عليه في drawImage)، يعني العرض هنا = عدد البكسلات اللي
+          // بتقع على خطوط الباركود. الشباك المربع 250×250 القديم كان بيضيّع
+          // العرض ويحجز طول مش محتاجينه (الباركود مستطيل عريض). العريض بيدي
+          // بكسلات أفقية أكتر على الخطوط، ومساحة أقل تتفك في كل فريم.
+          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => ({
+            width: Math.floor(viewfinderWidth * 0.9),
+            height: Math.floor(Math.min(viewfinderHeight * 0.45, Math.max(viewfinderHeight * 0.3, 140))),
+          }),
+          // الباركود مش بيتقرا معكوس، فتجربة الصورة المقلوبة شغل ضايع.
+          disableFlip: true,
+          // مهم: لما videoConstraints تتحدد، المكتبة بتتجاهل الـ facingMode
+          // اللي فوق خالص وتستخدم دي بدالها — فلازم تشيل facingMode بنفسها.
+          videoConstraints: {
+            facingMode: "environment",
+            // المكتبة بتصغّر المنطقة المقصوصة لحد مقاس qrbox قبل ما تفكّها
+            // (drawImage في foreverScan)، فالدقة الأعلى من 720p بتترمي تقريباً
+            // وبتتعب الموبايلات الرخيصة على الفاضي. 720p بتدي صورة أنضف من
+            // الـ 640×480 الافتراضية من غير التكلفة دي. ideal مش exact عشان
+            // الكاميرا تنزل لأقل دقة متاحة بدل ما تفشل.
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            // التركيز المستمر — من غيره الكاميرا بتفضل سايبة الباركود مش واضح،
+            // ودي غالباً السبب الأكبر في إن المسح بياخد وقت.
+            // focusMode مدعوم في المتصفحات لكنه مش موجود في تعريفات TypeScript،
+            // والمتصفح بيتجاهل اللي مش فاهمه جوه advanced من غير ما يفشل.
+            advanced: [{ focusMode: "continuous" }],
+          } as unknown as MediaTrackConstraints,
+        },
+        (decodedText: string) => {
+          if (scanner && scanner.getState() === 2) { // 2 = SCANNING
+            scanner.pause();
+          }
+          const product = useStore.getState().products.find(p => p.barcode === decodedText);
+          if (product) {
+            playSuccessSound();
+            setScannedProduct(product);
+            setScanQty(1);
+          } else {
+            playErrorSound();
+            alert('لم يتم العثور على المنتج');
+            if (scanner && scanner.getState() === 3) { // 3 = PAUSED
+              scanner.resume();
+            }
+          }
+        },
+        (_error: any) => {
+          // ignore continuous scan errors
+        }
+      ).then(() => {
+        // الكشّاف مش موجود على كل الأجهزة (ولا على أي كاميرا أمامية) —
+        // بنسأل بعد ما الكاميرا تشتغل وبنظهر الزرار لو متاح بس.
+        try {
+          setTorchSupported(scanner?.getRunningTrackCameraCapabilities().torchFeature().isSupported() ?? false);
+        } catch {
+          setTorchSupported(false);
+        }
+      }).catch((err: any) => {
+        console.error(err);
+        alert('حدث خطأ في تشغيل الكاميرا، تأكد من إعطاء الصلاحيات.');
+        setShowCameraScanner(false);
+      });
+    }
+
+    return () => {
+      // Cleanup is handled manually in handleCloseCamera to avoid unmount race conditions
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCameraScanner]);
+
+  const handleToggleTorch = async () => {
+    if (!html5QrCode) return;
+    try {
+      const torch = html5QrCode.getRunningTrackCameraCapabilities().torchFeature();
+      if (!torch.isSupported()) return;
+      await torch.apply(!torchOn);
+      setTorchOn(!torchOn);
+    } catch (err) {
+      console.error('Torch toggle failed:', err);
+      setTorchSupported(false);
+    }
+  };
+
+  const handleConfirmScanAdd = () => {
+    if (scannedProduct) {
+      if (isFractionalUnit(scannedProduct.unit)) {
+        // منتج بالوزن: افتح نافذة إدخال الوزن بدل تكرار الإضافة
+        setWeightProduct(scannedProduct as Product);
+        setWeightUnitInput('');
+        setWeightSubInput('');
+      } else {
+        for (let i = 0; i < scanQty; i++) {
+          addToCart(scannedProduct);
+        }
+      }
+      setScannedProduct(null);
+      if (html5QrCode && html5QrCode.getState() === 3) {
+        html5QrCode.resume();
+      }
+    }
+  };
+
+  const handleCloseCamera = () => {
+    // الكشّاف بيتقفل مع الكاميرا، فلازم الحالة ترجع صفر عشان لما يفتح تاني
+    // الزرار ما يبقاش مولّع وهو مطفي.
+    setTorchOn(false);
+    setTorchSupported(false);
+    if (html5QrCode) {
+      if (html5QrCode.getState() === 2 || html5QrCode.getState() === 3) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          setHtml5QrCode(null);
+          setShowCameraScanner(false);
+          setScannedProduct(null);
+        }).catch(console.error);
+      } else {
+        html5QrCode.clear();
+        setHtml5QrCode(null);
+        setShowCameraScanner(false);
+        setScannedProduct(null);
+      }
+    } else {
+      setShowCameraScanner(false);
+      setScannedProduct(null);
+    }
+  };
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+  // Online/Offline sync listener
+  useEffect(() => {
+    const handleOnline = () => {
+      useStore.setState({ isOnline: true });
+      syncOfflineQueue();
+      syncOfflineReturnsQueue();
+    };
+    const handleOffline = () => {
+      useStore.setState({ isOnline: false });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check
+    useStore.setState({ isOnline: navigator.onLine });
+    if (navigator.onLine) {
+      syncOfflineQueue();
+      syncOfflineReturnsQueue();
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSearchOrder = () => {
+    const order = orders.find(o => o.id.toLowerCase() === returnSearchQuery.toLowerCase());
+    if (order) {
+      setActiveReturnOrder(order);
+      setPendingReturns({}); setReturnDebtDeduction(null); setRefundMethod('cash');
+    } else {
+      alert("لم يتم العثور على فاتورة بهذا الرقم");
+      setActiveReturnOrder(null);
+      setPendingReturns({}); setReturnDebtDeduction(null); setRefundMethod('cash');
+    }
+  };
+
+  const handleConfirmReturns = async () => {
+    if (!activeReturnOrder) return;
+    
+    const itemsSum = activeReturnOrder.items.reduce((sum: number, item: any) => sum + (item.quantity * item.sale_price), 0);
+    const dr = itemsSum > 0 ? activeReturnOrder.total / itemsSum : 1;
+
+    // Value of the goods selected for return (after invoice discount).
+    const selected = Object.keys(pendingReturns).map(productId => {
+       const pr = pendingReturns[productId];
+       const item = activeReturnOrder.items.find((i: any) => i.id === productId);
+       const effectivePrice = item ? item.sale_price * dr : 0;
+       return { productId, returnQty: pr.returnQty || 0, itemValue: (pr.returnQty || 0) * effectivePrice };
+    }).filter(r => r.returnQty > 0);
+
+    if (selected.length === 0) {
+       alert("الرجاء تحديد كميات للإرجاع");
+       return;
+    }
+
+    // Settle the customer's outstanding debt on this invoice first, then refund
+    // only the remainder as cash. The cash is distributed across items.
+    const totalReturnValue = selected.reduce((sum, r) => sum + r.itemValue, 0);
+    const outstandingDebt = Math.max(0, activeReturnOrder.total - calculateOrderReturnValue(activeReturnOrder) - activeReturnOrder.paid_amount);
+    const maxDebtDeduction = Math.min(totalReturnValue, outstandingDebt);
+    const debtSettled = returnDebtDeduction === null
+      ? maxDebtDeduction
+      : Math.max(0, Math.min(returnDebtDeduction, maxDebtDeduction));
+    const cashToRefund = Math.max(0, totalReturnValue - debtSettled);
+    const cashRatio = totalReturnValue > 0 ? cashToRefund / totalReturnValue : 0;
+
+    const returnsArray = selected.map(r => ({
+      productId: r.productId,
+      returnQty: r.returnQty,
+      refundAmount: r.itemValue * cashRatio,
+    }));
+
+    // الخصم بيقلّل اللي بيخرج للعميل بس؛ قيمة المرتجع على الفاتورة بتفضل كاملة.
+    const fee = Math.min(Math.max(0, parseFloat(refundFeeStr) || 0), cashToRefund);
+    const netToCustomer = Math.max(0, cashToRefund - fee);
+    // التقسيمة لازم تساوي المبلغ المردود بالظبط، وإلا الخزنة هتختلف عن الفاتورة.
+    if (netToCustomer > 0 && refundSplitMode && Math.abs(refundSplitTotal - netToCustomer) >= 0.01) {
+      alert(`مجموع التقسيمة (${refundSplitTotal.toFixed(2)}) مش مساوي المبلغ المردود (${netToCustomer.toFixed(2)}). ظبّط الأرقام الأول.`);
+      return;
+    }
+    // تقسيمة اللي العميل بياخده فعلاً (للعرض والتحقق).
+    const netSplit = buildRefundSplit(netToCustomer);
+    const primary = netToCustomer > 0 ? primaryRefundMethod(netSplit) : refundMethod;
+    // التقسيمة المتخزّنة لازم تغطّي **قيمة المرتجع كاملة** (الفاتورة بتتعكس بالكامل)،
+    // والخصم بيترجع للدرج كإيراد. لو خزّنّا الصافي بس، الخصم يتحسب مرتين.
+    const refundSplit: Record<string, number> = { ...netSplit };
+    if (fee > 0) refundSplit[primary] = (refundSplit[primary] || 0) + fee;
+    const splitLines = netToCustomer > 0
+      ? Object.entries(netSplit).filter(([, v]) => v > 0).map(([k, v]) => `  • ${payLabel(k)}: ${v.toFixed(2)}`).join('\n')
+      : '';
+
+    if (!confirm(
+      `تأكيد المرتجعات المحددة؟\n` +
+      `تاريخ المرتجع: ${refundDate}\n` +
+      `قيمة المرتجع: ${totalReturnValue.toFixed(2)} ${storeSettings.currency}\n` +
+      `يُخصم من المديونية: ${debtSettled.toFixed(2)} ${storeSettings.currency}\n` +
+      (fee > 0 ? `خصم من المرتجع (يفضل في الدرج): ${fee.toFixed(2)} ${storeSettings.currency}\n` : '') +
+      `يُرد للعميل: ${netToCustomer.toFixed(2)} ${storeSettings.currency}` +
+      (splitLines ? `\n${splitLines}` : '')
+    )) return;
+
+    const success = await processReturn(
+      activeReturnOrder.id, returnsArray, primary, refundSplit,
+      { refundDate, deduction: fee },
+    );
+    if (success) {
+      alert('تم إرجاع المنتجات المحددة بنجاح!');
+      const updatedOrder = useStore.getState().orders.find(o => o.id === activeReturnOrder.id);
+      setActiveReturnOrder(updatedOrder);
+      setPendingReturns({}); setReturnDebtDeduction(null); setRefundMethod('cash');
+    } else {
+      alert("حدث خطأ أثناء الإرجاع. قد تكون الكمية غير متاحة.");
+    }
+  };
+
+  const printInvoice = (invId: string, orderDetails: any) => {
+    const currentSettings = { ...storeSettings };
+    const printDate = new Date().toLocaleString('ar-EG', { calendar: 'gregory', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const itemsHtml = orderDetails.cart.map((item: any, index: number) => {
+      const prod = products.find(p => p.id === item.id);
+      const hasDisc = prod && (prod.discount_price || 0) > 0 && Math.abs(item.sale_price - (prod.discount_price || 0)) < 0.01 && prod.sale_price > (prod.discount_price || 0);
+      const priceCell = hasDisc
+        ? `<span style="display:block;text-decoration:line-through;color:#000;font-size:10px;font-weight:600;">${prod!.sale_price.toFixed(2)}</span><span style="font-weight:900;">${item.sale_price.toFixed(2)}</span>`
+        : item.sale_price.toFixed(2);
+      return `<tr>
+        <td style="text-align:center;">${index + 1}</td>
+        <td style="text-align:right;font-weight:bold;">${escapeHtml(item.name)}</td>
+        <td style="text-align:center;">${formatQty(item.quantity, item.unit)}</td>
+        <td style="text-align:center;">${priceCell}</td>
+        <td style="text-align:left;font-weight:bold;">${(item.sale_price * item.quantity).toFixed(2)}</td>
+      </tr>`;
+    }).join('');
+
+    const invoiceUrl = `${window.location.origin}/view-invoice/${invId}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(invoiceUrl)}`;
+    const pagesQrBlock = buildPagesQrBlock(storeSettings);
+
+    const debtLine = (orderDetails.totalDebt || 0) > 0.5
+      ? `<div class="info-item" style="border-top:1px dashed #000;padding-top:3px;margin-top:2px;"><strong>إجمالي المديونية الحالية:</strong> <span style="color:#000;font-weight:900;font-size:14px;">${(orderDetails.totalDebt || 0).toFixed(2)} ${currentSettings.currency}</span></div>`
+      : '';
+    const customerBlock = (orderDetails.customerName || orderDetails.customerPhone || orderDetails.customId)
+      ? `<div class="customer-info-grid">
+            <div class="info-item"><strong>اسم العميل:</strong> <span>${escapeHtml(orderDetails.customerName || '—')}</span></div>
+            <div class="info-item"><strong>رقم الهاتف:</strong> <span dir="ltr">${escapeHtml(orderDetails.customerPhone || '—')}</span></div>
+            <div class="info-item"><strong>رقم الفاتورة:</strong> <span>#${invId}</span></div>
+            <div class="info-item"><strong>التاريخ:</strong> <span>${printDate}</span></div>
+            ${debtLine}
+         </div>`
+      : `<div class="customer-info-grid">
+            <div class="info-item"><strong>اسم العميل:</strong> <span>عميل نقدي</span></div>
+            <div class="info-item"><strong>رقم الفاتورة:</strong> <span>#${invId}</span></div>
+            <div class="info-item"><strong>التاريخ:</strong> <span>${printDate}</span></div>
+         </div>`;
+
+    const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8"/>
+<title>فاتورة بيع #${invId}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo', sans-serif;}
+  body{background:#fff;color:#000;margin:0;}
+  .invoice-container{width:72mm;margin:0 auto;padding:0 1.5mm 2mm;display:flex;flex-direction:column;}
+
+  .header-main{text-align:center;border-bottom:1px dashed #000;padding-bottom:3px;margin-bottom:3px;}
+  .logo{max-height:42px;max-width:48mm;width:auto;object-fit:contain;display:block;margin:0 auto 1px;}
+  .store-name{font-size:18px;font-weight:900;color:#000;line-height:1.1;}
+  .store-details{font-size:10px;color:#000;margin-top:1px;line-height:1.3;font-weight:bold;}
+
+  .customer-info-grid{display:flex;flex-direction:column;gap:1px;margin-bottom:4px;font-size:11px;}
+  .info-item{display:flex;justify-content:space-between;gap:6px;padding:1px 0;}
+  .info-item strong{color:#000;white-space:nowrap;}
+  .info-item span{color:#000;font-weight:700;}
+
+  table{width:100%;border-collapse:collapse;margin-bottom:3px;}
+  thead th{font-size:11px;padding:3px 1px;border-bottom:1.5px solid #000;font-weight:900;white-space:nowrap;}
+  thead th:nth-child(2){text-align:right;}
+  thead th:last-child{text-align:left;}
+  tbody td{font-size:12px;padding:3px 1px;border-bottom:1px dotted #999;vertical-align:middle;font-weight:700;}
+  tbody td:nth-child(1),tbody td:nth-child(3),tbody td:nth-child(4),tbody td:nth-child(5){white-space:nowrap;}
+
+  .summary-section{width:100%;margin-top:3px;}
+  .summary-row{display:flex;justify-content:space-between;padding:2px 0;font-size:12px;font-weight:700;}
+  .summary-row.total{border-top:1.5px solid #000;border-bottom:1.5px solid #000;margin-top:2px;padding:4px 0;font-size:18px;font-weight:900;color:#000;}
+
+  .payment-status{margin-top:5px;padding:5px;border:1.5px solid #000;border-radius:4px;text-align:center;font-weight:900;font-size:13px;color:#000;}
+  .status-paid{background:#fff;color:#000;}
+  .status-debt{background:#fff;color:#000;}
+
+  .qr-row{display:flex;justify-content:center;align-items:flex-start;gap:10px;}
+  .qr-code-container{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:4px;}
+  .qr-code-img{width:68px;height:68px;}
+  .qr-label{font-size:9px;font-weight:900;color:#000;text-align:center;}
+
+  .footer{text-align:center;margin-top:4px;padding-top:3px;border-top:1px dashed #000;font-size:9px;color:#000;font-weight:bold;}
+
+  @media print{
+    @page{size:72mm auto;margin:0;}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .invoice-container{width:72mm;padding:2mm 1.5mm;}
+  }
+</style>
+</head>
+<body>
+<div class="invoice-container">
+  <div class="header-main">
+    ${currentSettings.logo ? `<img class="logo" src="${escapeHtml(currentSettings.logo)}" onerror="this.style.display='none'" />` : `<div class="store-name">${escapeHtml(currentSettings.name)}</div>`}
+    <div class="store-details">
+      ${currentSettings.address ? `${escapeHtml(currentSettings.address)}<br/>` : ''}
+      ${currentSettings.phone ? `${escapeHtml(currentSettings.phone)}` : ''}
+      ${currentSettings.phone2 ? ` | ${escapeHtml(currentSettings.phone2)}` : ''}
+    </div>
+  </div>
+
+  ${customerBlock}
+  ${orderDetails.salesperson ? `<div class="customer-info-grid"><div class="info-item"><strong>مسؤول المبيعات:</strong> <span>${escapeHtml(orderDetails.salesperson)}</span></div></div>` : ''}
+
+  <table>
+    <thead><tr>
+      <th style="width:8%">#</th>
+      <th style="text-align:right">الصنف</th>
+      <th style="width:14%">كمية</th>
+      <th style="width:20%">سعر</th>
+      <th style="width:22%;text-align:left">إجمالي</th>
+    </tr></thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+
+  <div class="summary-section">
+    <div class="summary-row"><span>المجموع الفرعي:</span><span>${orderDetails.subtotal.toFixed(2)} ${currentSettings.currency}</span></div>
+    ${orderDetails.couponCode ? `<div class="summary-row" style="color:#000;font-weight:900;"><span>كوبون (${escapeHtml(orderDetails.couponCode)}):</span><span>- ${(orderDetails.couponDiscountAmount || 0).toFixed(2)} ${currentSettings.currency}</span></div>` : ''}
+    ${(orderDetails.discount - (orderDetails.couponDiscountAmount || 0)) > 0.5 ? `<div class="summary-row" style="color:#000;font-weight:900;"><span>خصم الفاتورة:</span><span>- ${(orderDetails.discount - (orderDetails.couponDiscountAmount || 0)).toFixed(2)} ${currentSettings.currency}</span></div>` : ''}
+    ${(Number(currentSettings.taxRate) > 0) ? `<div class="summary-row"><span>الضريبة (${currentSettings.taxRate}%):</span><span>${orderDetails.tax.toFixed(2)} ${currentSettings.currency}</span></div>` : ''}
+    <div class="summary-row total"><span>الإجمالي النهائي:</span><span>${orderDetails.total.toFixed(2)} ${currentSettings.currency}</span></div>
+  
+    ${(orderDetails.paidAmount !== undefined && orderDetails.paidAmount < orderDetails.total) ? `
+      <div class="payment-status status-debt">
+        <div>متبقي للتحصيل (آجل): ${(orderDetails.total - (orderDetails.paidAmount || 0)).toFixed(2)} ${currentSettings.currency}</div>
+        <div style="font-size:12px;font-weight:700;margin-top:2px;">تم سداد: ${(orderDetails.paidAmount || 0).toFixed(2)} ${currentSettings.currency}</div>
+      </div>
+    ` : `
+      <div class="payment-status status-paid">✓ تم سداد الفاتورة بالكامل</div>
+    `}
+
+    ${orderDetails.notes ? `
+      <div style="margin-top:5px; padding:4px 5px; border:1px solid #000; border-radius:4px;">
+        <span style="font-size:10px; font-weight:900;">ملاحظات: </span>
+        <span style="font-size:11px; font-weight:700;">${escapeHtml(orderDetails.notes)}</span>
+      </div>
+    ` : ''}
+    
+    ${(() => {
+      const sp = orderDetails.splitPayments || {};
+      const parts = activePayKeys
+        .filter((k) => (Number(sp[k]) || 0) > 0)
+        .map((k) => `${payLabel(k)}: ${(Number(sp[k]) || 0).toFixed(2)}`);
+      if (parts.length === 0) return '';
+      const cells = parts.map(p => `<div style="width:50%;font-size:11px;font-weight:700;padding:1px 0;">${p}</div>`).join('');
+      // فاتورة اتعملها استبدال: نوضّح إن جزء من المبلغ اتحصّل/اترد وقت الاستبدال،
+      // عشان أرقام «طرق الدفع» تبقى مفهومة مش مجرد مجموع.
+      const xd = Number(orderDetails.exchangeSettled) || 0;
+      const xLine = Math.abs(xd) > 0.009
+        ? `<div style="font-size:10px;font-weight:700;margin-top:2px;border-top:1px dotted #999;padding-top:2px;">منها ${xd > 0 ? 'محصّل' : 'مردود'} وقت الاستبدال: ${Math.abs(xd).toFixed(2)} ${currentSettings.currency}</div>`
+        : '';
+      return `<div style="margin-top:4px;padding:4px 5px;border:1px solid #000;border-radius:4px;"><div style="font-size:10px;font-weight:900;margin-bottom:2px;">طرق الدفع:</div><div style="display:flex;flex-wrap:wrap;">${cells}</div>${xLine}</div>`;
+    })()}
+  </div>
+
+  <div class="qr-row">
+    <div class="qr-code-container">
+      <img class="qr-code-img" src="${qrCodeUrl}" alt="QR Code" />
+      <div class="qr-label">امسح الكود لعرض الفاتورة</div>
+    </div>
+    ${pagesQrBlock}
+  </div>
+
+  <div class="footer">شكراً لتعاملكم معنا</div>
+</div>
+<script>window.onload=()=>{setTimeout(()=>{window.print();window.onafterprint=()=>window.close();},500);}<\/script>
+</body></html>`;
+
+    void printDocument('invoice', html);
+  };
+
+  // Opens payment method modal before checkout
+  const handleCheckoutClick = (shouldPrint: boolean) => {
+    if (cart.length === 0) return;
+    doCheckout(shouldPrint);
+  };
+
+  const doCheckout = async (shouldPrint: boolean) => {
+    const currentCart = [...cart];
+    const currentSubtotal = subtotal;
+    const currentDiscount = totalDiscount;
+    const currentTax = tax;
+    const currentTotal = total;
+    const currentCustomerName = customerName;
+    const currentCustomerPhone = customerPhone;
+    const currentCustomerCard = customerId;
+    const currentCouponCode = validCoupon?.code;
+    const currentCouponDiscount = couponDiscountAmount;
+    const currentSalesperson = salesperson?.name || ''; // قبل ما الـ checkout يصفّره
+    const matchedCustomer = customers.find(c =>
+      (currentCustomerPhone && c.phone === currentCustomerPhone) ||
+      (currentCustomerCard && (c.card_number === currentCustomerCard || c.custom_id === currentCustomerCard))
+    );
+    const currentCustomId = matchedCustomer?.custom_id || currentCustomerCard;
+
+    // مبالغ كل طريقة دفع مفعّلة (+ العربون المحصّل مسبقاً لو الفاتورة كانت معلّقة).
+    const splitPayments: Record<string, number> = {};
+    activePayKeys.forEach((k) => { splitPayments[k] = paidVal(k) + (activeDeposit ? (Number(activeDeposit.split[k]) || 0) : 0); });
+
+    const finalPaidAmount = activePayKeys.reduce((s, k) => s + splitPayments[k], 0);
+
+    // Handle overpayment (Change): اخصم الباقي من كل طريقة بالترتيب
+    const change = Math.max(0, finalPaidAmount - currentTotal);
+    let remainingChange = change;
+    const adjustedSplit: Record<string, number> = { ...splitPayments };
+    for (const k of activePayKeys) {
+      if (remainingChange <= 0) break;
+      const ded = Math.min(adjustedSplit[k], remainingChange);
+      adjustedSplit[k] -= ded;
+      remainingChange -= ded;
+    }
+
+    // مع وجود عربون محصّل الفاتورة مش «كلها آجل» حتى لو ما اتكتبش مبلغ جديد.
+    const isAllEmpty = !activeDeposit && activePayKeys.every((k) => !payInput[k]);
+
+    // لو ما دخلتش أي مبلغ → الفاتورة كلها آجل (0 مدفوع)
+    const effectivePaidAmount = isAllEmpty ? 0 : (finalPaidAmount - change);
+    const zeroSplit: Record<string, number> = {};
+    activePayKeys.forEach((k) => { zeroSplit[k] = 0; });
+    const finalSplit = isAllEmpty ? zeroSplit : adjustedSplit;
+
+    // لو كلها صفر (آجل كامل) → الطريقة الافتراضية cash
+    const primaryMethod = isAllEmpty
+      ? 'cash'
+      : activePayKeys.map((k) => ({ name: k, amount: finalSplit[k] })).sort((a, b) => b.amount - a.amount)[0].name;
+
+    // ── Validate credit (آجل) sales ──────────────────────────────────────────
+    if (effectivePaidAmount < currentTotal) {
+      // لازم يكون عنده اسم + هاتف. العميل الجديد يُسجَّل تلقائياً أثناء إتمام البيع (checkout)
+      // فلا حاجة لأن يكون مسجلاً مسبقاً في قاعدة البيانات.
+      if (!currentCustomerName.trim() || !currentCustomerPhone.trim()) {
+        alert("⚠️ برجاء إدخال بيانات العميل أولاً\n\nلا يمكن إتمام البيع بالآجل بدون اسم العميل ورقم الهاتف.\nاكتب الاسم والرقم في الكاشير وسيتم تسجيل العميل تلقائياً.");
+        return;
+      }
+    }
+
+    // تاريخ مخصّص للفاتورة (فواتير قديمة) من شارة التاريخ — فاضي = تاريخ الآن.
+    // نستخدم منتصف اليوم المحاسبي المختار عشان يقع مضمون داخل نطاق تقفيله.
+    const saleDateISO = workDateOverride ? timestampForBusinessDate(workDateOverride, storeSettings) : undefined;
+    const invoiceId = await checkout(currentTotal, { name: currentCustomerName, phone: currentCustomerPhone, custom_id: currentCustomId }, effectivePaidAmount, 'sale', primaryMethod as any, finalSplit as any, undefined, deferredNote, currentCouponCode, currentCouponDiscount, undefined, saleDateISO);
+
+    // العربون كان دخل الخزنة وقت الحجز؛ الفاتورة سجّلته ضمن المدفوع، فنسجّل تحويله
+    // (صرف بقيمة العربون) عشان ما يتحسبش مرتين.
+    const depositForThis = activeDeposit;
+    if (depositForThis && depositForThis.amount > 0) {
+      await recordHeldDepositConversion(depositForThis.amount, depositForThis.split, String(invoiceId));
+    }
+    setActiveDeposit(null);
+
+    const details: any = {
+      cart: currentCart,
+      subtotal: currentSubtotal,
+      discount: currentDiscount,
+      tax: currentTax,
+      total: currentTotal,
+      paidAmount: effectivePaidAmount,
+      splitPayments: finalSplit,
+      customerName: currentCustomerName,
+      customerPhone: currentCustomerPhone,
+      customId: currentCustomId,
+      paymentMethod: primaryMethod,
+      totalDebt: (customerDebt || 0) + (currentTotal - effectivePaidAmount),
+      couponCode: currentCouponCode,
+      couponDiscountAmount: currentCouponDiscount,
+      salesperson: currentSalesperson
+    };
+
+    const actualCustomer = useStore.getState().customers.find(c =>
+      (currentCustomerPhone && c.phone === currentCustomerPhone) ||
+      (currentCustomerCard && (c.card_number === currentCustomerCard || c.custom_id === currentCustomerCard)) ||
+      (currentCustomId && c.custom_id === currentCustomId)
+    );
+    details.customerId = actualCustomer?.id || '';
+    details.customId = actualCustomer?.card_number || actualCustomer?.custom_id || currentCustomerCard;
+
+    setLastInvoiceId(invoiceId);
+    setLastCustomerInfo({ name: currentCustomerName, phone: currentCustomerPhone });
+    setLastOrderDetails(details);
+    playSuccessSound();
+    setShowSuccessModal(true);
+
+    if (shouldPrint) {
+      printInvoice(invoiceId, details);
+    }
+
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerId('');
+    setPayInput({});
+    setDiscountStr('');
+    setCouponInput('');
+    setCustomerDebt(0);
+    setShowCustomerSuggestions(false);
+  };
+
+  // ── فواتير معلقة (محجوزة) ──────────────────────────────────
+  // حفظ السلة الحالية كفاتورة معلقة (تحجز الكمية من المخزون).
+  // فتح نموذج الحفظ كمعلّقة (لإدخال عربون اختياري).
+  const openHoldForm = () => {
+    if (cart.length === 0 || pricesHidden || holdBusy) return;
+    setHoldDepositPay({});
+    setShowHoldForm(true);
+  };
+
+  const handleHoldInvoice = async () => {
+    if (cart.length === 0 || holdBusy) return;
+    const depositSplit: Record<string, number> = {};
+    activePayKeys.forEach((k) => { depositSplit[k] = parseFloat(holdDepositPay[k] || '') || 0; });
+    const deposit = activePayKeys.reduce((s, k) => s + depositSplit[k], 0);
+    if (deposit > total + 0.01) { alert('العربون أكبر من إجمالي الفاتورة.'); return; }
+    setHoldBusy(true);
+    const ok = await holdInvoice({
+      customerName,
+      customerPhone,
+      customerCustomId: customerId,
+      notes: deferredNote,
+      deposit,
+      depositSplit,
+      kind: holdKind,
+      ...(holdKind === 'online' ? { customerAddress: holdAddress, shippingNote: holdShipNote } : {}),
+    });
+    setHoldBusy(false);
+    if (ok) {
+      setShowHoldForm(false);
+      setHoldDepositPay({});
+      setHoldKind('shop');
+      setHoldAddress('');
+      setHoldShipNote('');
+      setCustomerName('');
+      setCustomerPhone('');
+      setCustomerId('');
+      setPayInput({});
+      setDiscountStr('');
+      setCouponInput('');
+      setCustomerDebt(0);
+      setDeferredNote('');
+      setShowCustomerSuggestions(false);
+      alert(deposit > 0
+        ? `✅ تم حفظ الفاتورة المعلقة وحجز الكمية، وتحصيل عربون ${deposit.toFixed(2)} ${storeSettings.currency} في الخزنة.`
+        : '✅ تم حفظ الفاتورة في الفواتير المعلقة وحجز الكمية من المخزون.');
+    }
+  };
+
+  // الطلبات الظاهرة في شاشة المعلقة حسب الفلتر المختار.
+  const visibleHeld = heldInvoices.filter((h) => {
+    if (heldFilter === 'all') return true;
+    if (heldFilter === 'shop') return h.kind !== 'online';
+    return h.kind === 'online' && (h.status || 'held') === heldFilter;
+  });
+
+  // تأكيد بيع فاتورة معلقة: تُحمَّل في الكاشير ليُكمل الكاشير التحصيل والطباعة.
+  const handleConfirmHeld = async (id: string) => {
+    if (cart.length > 0 && !window.confirm('يوجد أصناف في السلة الحالية وسيتم استبدالها بالفاتورة المعلقة. هل تريد المتابعة؟')) return;
+    const held = await confirmHeldInvoice(id);
+    if (held) {
+      setCustomerName(held.customer_name || '');
+      setCustomerPhone(held.customer_phone || '');
+      setCustomerId(held.customer_custom_id || '');
+      setDeferredNote(held.notes || '');
+      setPayInput({});
+      const dep = Math.max(0, Number(held.deposit) || 0);
+      setActiveDeposit(dep > 0 ? { amount: dep, split: held.deposit_split || { cash: dep } } : null);
+      setShowHeldModal(false);
+      setMobileView('cart');
+      alert(dep > 0
+        ? `✅ تم تحميل الفاتورة المعلقة. العربون المحصّل ${dep.toFixed(2)} ${storeSettings.currency} محسوب ضمن المدفوع — حصّل الباقي أو أضِفه آجل.`
+        : '✅ تم تحميل الفاتورة المعلقة. أكمل التحصيل والطباعة لإتمام البيع.');
+    }
+  };
+
+  const handleReturnHeld = async (id: string) => {
+    const h = heldInvoices.find((x) => x.id === id);
+    const dep = Math.max(0, Number(h?.deposit) || 0);
+    const msg = dep > 0
+      ? `سيتم إرجاع الكمية للمخزون وإلغاء الحجز، ورد العربون (${dep.toFixed(2)} ${storeSettings.currency}) للعميل من الدرج. متابعة؟`
+      : 'سيتم إرجاع كمية هذه الفاتورة للمخزون وإلغاؤها. متابعة؟';
+    if (!window.confirm(msg)) return;
+    await returnHeldInvoice(id);
+  };
+
+  // ── فواتير الانتظار (إيقاف السلة مؤقتاً) ────────────────────
+  // العميل واقف على الكاشير وراح يجيب صنف تاني والطابور مستنّي: بنحفظ السلة
+  // في الجهاز، نفضّي الشاشة، ونحاسب اللي بعده، وبعدين نستدعيها.
+  // مفيش مخزون بيتحجز ولا فلوس بتتحصّل — دي وقفة مش حجز (شوف حفظ كفاتورة معلقة).
+
+  /** بيبني كائن السلة الموقوفة من حالة الكاشير الحالية. */
+  const snapshotCart = (label: string): Omit<ParkedCart, 'id' | 'at'> => ({
+    label,
+    cashier: activeCashier?.name || 'مدير النظام',
+    cart: cart.map((i) => ({ ...i })),
+    total: cart.reduce((s, i) => s + i.sale_price * i.quantity, 0),
+    customerName, customerPhone, customerId,
+    deferredNote, discountStr, invoiceType,
+    salesperson,
+  });
+
+  /** بيفضّي كل الحقول المرتبطة بالسلة (بعد الإيقاف أو قبل الاستدعاء). */
+  const resetCartFields = () => {
+    clearCart();
+    setCustomerName(''); setCustomerPhone(''); setCustomerId('');
+    setDeferredNote(''); setDiscountStr(''); setCouponInput('');
+    setPayInput({}); setActiveDeposit(null); setSalesperson(null);
+  };
+
+  const parkCurrentCart = () => {
+    if (cart.length === 0) return;
+    const suggested = customerName.trim() || cart[0]?.name || 'عميل';
+    const label = window.prompt('علامة تعرف بيها الفاتورة دي (اسم العميل مثلاً):', suggested);
+    if (label === null) return; // اتلغى
+    const next = addParkedCart(snapshotCart(label.trim() || suggested));
+    if (!next) {
+      alert('مساحة التخزين على الجهاز ممتلئة — امسح فاتورة من الانتظار وجرّب تاني.');
+      return;
+    }
+    setParkedCarts(next);
+    resetCartFields();
+  };
+
+  /**
+   * استدعاء سلة من الانتظار. لو في سلة شغّالة دلوقتي بنوقفها هي كمان قبل ما
+   * نحمّل الجديدة — الكاشير بيتنقّل بين عميلين من غير ما يضيع حاجة.
+   *
+   * المخزون مكانش محجوز وقت الإيقاف، فممكن يكون اتباع في فاتورة تانية بين
+   * الوقتين — بنراجع الكميات ونحذّر بدل ما الفاتورة تقع عند التحصيل.
+   */
+  const recallParkedCart = (id: string) => {
+    const p = parkedCarts.find((x) => x.id === id);
+    if (!p) return;
+
+    const short = p.cart
+      .map((it) => {
+        const prod = products.find((pr) => pr.id === it.id);
+        const available = prod ? Number(prod.stock_quantity) || 0 : 0;
+        return available < it.quantity ? `• ${it.name}: مطلوب ${formatQty(it.quantity, prod?.unit)} / متاح ${formatQty(available, prod?.unit)}` : null;
+      })
+      .filter(Boolean);
+    if (short.length > 0 && !window.confirm(
+      `الأصناف دي اتغيّرت كميتها في المخزون وقت الانتظار:\n\n${short.join('\n')}\n\nتحميل الفاتورة برضه؟ (عدّل الكميات قبل التحصيل)`
+    )) return;
+
+    // وقّف السلة الحالية بدل ما تتمسح — التبديل بين عميلين من غير ما يضيع حاجة.
+    if (cart.length > 0 && !addParkedCart(snapshotCart(customerName.trim() || cart[0]?.name || 'عميل'))) {
+      alert('مساحة التخزين ممتلئة — مش هينفع نوقف السلة الحالية. فضّيها أو حصّلها الأول.');
+      return;
+    }
+
+    restoreCart(p.cart, p.invoiceType, p.salesperson);
+    setCustomerName(p.customerName); setCustomerPhone(p.customerPhone); setCustomerId(p.customerId);
+    setDeferredNote(p.deferredNote); setDiscountStr(p.discountStr);
+    setCouponInput(''); setPayInput({}); setActiveDeposit(null);
+
+    setParkedCarts(removeParkedCart(p.id));
+    setShowParkedModal(false);
+  };
+
+  const deleteParkedCart = (id: string) => {
+    const p = parkedCarts.find((x) => x.id === id);
+    if (!window.confirm(`حذف فاتورة الانتظار «${p?.label || ''}»؟ الأصناف مش هتترجع للسلة.`)) return;
+    setParkedCarts(removeParkedCart(id));
+  };
+
+  const filteredCustomers = customerName.trim()
+    ? customers.filter(c => {
+      const normalizedName = normalizeArabic(c.name);
+      const normalizedQuery = normalizeArabic(customerName);
+      const customerIdShort = (c.custom_id || c.id.substring(0, 8)).toLowerCase();
+      const cardNumber = (c.card_number || '').toLowerCase();
+      return (
+        normalizedName.includes(normalizedQuery) ||
+        c.phone.includes(customerName) ||
+        customerIdShort.includes(customerName.toLowerCase()) ||
+        cardNumber.includes(customerName.toLowerCase())
+      );
+    })
+    : [];
+
+
+
+  const handleSelectCustomer = (customer: any) => {
+    setCustomerName(customer.name);
+    setCustomerPhone(customer.phone);
+    setCustomerId(customer.card_number || customer.custom_id || '');
+    setShowCustomerSuggestions(false);
+  };
+
+  const normalizedSearch = normalizeArabic(searchQuery);
+  const searchTerms = normalizedSearch.split(' ').filter(t => t.trim() !== '');
+
+  const filteredProducts = products.filter(
+    (p) => {
+      const normalizedName = normalizeArabic(p.name);
+      const matchesSearch = searchTerms.length === 0 || searchTerms.every(term => normalizedName.includes(term)) || (p.barcode && p.barcode.includes(searchQuery));
+      const matchesSeason = posSeason === 'all' || p.season === posSeason;
+      return !p.is_hidden && (activeCategory === 'all' || p.category_id === activeCategory) && matchesSearch && matchesSeason;
+    }
+  );
+
+  const subtotal = cart.reduce((sum, item) => sum + item.sale_price * item.quantity, 0);
+  const manualDiscount = Math.min(parseFloat(discountStr) || 0, subtotal);
+  
+  // Coupon Validation and Calculation
+  const appliedCoupon = couponInput.trim() ? useStore.getState().coupons.find(c => c.code === couponInput.trim().toUpperCase() && c.is_active) : null;
+  let couponDiscountAmount = 0;
+  let validCoupon: any = null;
+  let couponErrorMsg = '';
+  
+  if (appliedCoupon) {
+    const now = new Date();
+    const isValidDate = (!appliedCoupon.start_date || new Date(appliedCoupon.start_date) <= now) && (!appliedCoupon.end_date || new Date(appliedCoupon.end_date) >= now);
+    const isUnderTotalLimit = !appliedCoupon.max_uses_total || appliedCoupon.used_count < appliedCoupon.max_uses_total;
+    
+    // Calculate customer usages
+    let isUnderCustomerLimit = true;
+    if (appliedCoupon.max_uses_per_customer) {
+      if (!customerPhone && !customerId) {
+        // If coupon requires customer tracking but no customer is selected, it's invalid
+        isUnderCustomerLimit = false;
+        couponErrorMsg = 'يجب اختيار عميل لتطبيق الكوبون';
+      } else {
+        const customerUsages = useStore.getState().orders.filter(o => 
+          (o.customer?.id === customerId || o.customer?.phone === customerPhone) && 
+          o.coupon_code === appliedCoupon.code
+        ).length;
+        isUnderCustomerLimit = customerUsages < appliedCoupon.max_uses_per_customer;
+        if (!isUnderCustomerLimit) {
+            couponErrorMsg = 'تخطى العميل حد الاستخدام المسموح';
+        }
+      }
+    }
+    
+    if (!isValidDate) couponErrorMsg = 'تاريخ الكوبون غير صالح';
+    else if (!isUnderTotalLimit) couponErrorMsg = 'تخطى الكوبون إجمالي مرات الاستخدام';
+    
+    if (isValidDate && isUnderTotalLimit && isUnderCustomerLimit) {
+      validCoupon = appliedCoupon;
+      if (appliedCoupon.discount_type === 'percentage') {
+        couponDiscountAmount = (subtotal - manualDiscount) * (appliedCoupon.discount_value / 100);
+      } else {
+        couponDiscountAmount = appliedCoupon.discount_value;
+      }
+    }
+  }
+
+  const totalDiscount = manualDiscount + couponDiscountAmount;
+  const discountedSubtotal = Math.max(0, subtotal - totalDiscount);
+  const tax = discountedSubtotal * (storeSettings.taxRate / 100);
+  const total = discountedSubtotal + tax;
+
+
+  // Sync customer debt calculation only
+  useEffect(() => {
+    if (!customerPhone && !customerId) {
+      setCustomerDebt(0);
+      return;
+    }
+    const existingCust = customers.find(c =>
+      (customerPhone && c.phone === customerPhone) ||
+      (customerId && (c.card_number === customerId || c.custom_id === customerId))
+    );
+
+    if (existingCust) {
+      const cOrders = orders.filter(o => o.customer?.id === existingCust.id && !o.is_deleted);
+      const cDebt = cOrders.reduce((sum, o) => {
+        // نطرح قيمة المرتجع من الإجمالي عشان ما يظهرش «دين وهمي» بعد المرتجع.
+        const grossTotal = (o.type === 'payment' ? 0 : (o.total || 0)) - (o.type === 'payment' ? 0 : calculateOrderReturnValue(o));
+        const debt = grossTotal - (o.paid_amount || 0);
+
+        if (debt > 0.009 && o.type !== 'payment') {
+          return sum + debt;
+        } else if (o.type === 'payment' && !(o.notes && o.notes.includes('سداد أجل للفاتورة رقم'))) {
+          return sum + debt;
+        }
+        return sum;
+      }, 0);
+      setCustomerDebt(cDebt > 0 ? cDebt : 0);
+    } else {
+      setCustomerDebt(0);
+    }
+  }, [customerPhone, customerId, orders, customers]);
+
+  const handleReturnAll = async () => {
+    if (!activeReturnOrder) return;
+
+    const itemsSum = activeReturnOrder.items.reduce((sum: number, item: any) => sum + (item.quantity * item.sale_price), 0);
+    const discountRatio = itemsSum > 0 ? activeReturnOrder.total / itemsSum : 1;
+
+    // Total value of the goods being returned (after the invoice discount).
+    const totalReturnValue = activeReturnOrder.items.reduce((sum: number, item: any) => {
+      const available = Math.max(0, item.quantity - item.returned_quantity);
+      return sum + (available * item.sale_price * discountRatio);
+    }, 0);
+
+    // For a deferred invoice, settle the outstanding debt first and only refund
+    // the remainder as cash out of the drawer.
+    const outstandingDebt = Math.max(0, activeReturnOrder.total - calculateOrderReturnValue(activeReturnOrder) - activeReturnOrder.paid_amount);
+    const maxDebtDeduction = Math.min(totalReturnValue, outstandingDebt);
+    const debtSettled = returnDebtDeduction === null
+      ? maxDebtDeduction
+      : Math.max(0, Math.min(returnDebtDeduction, maxDebtDeduction));
+    const cashToRefund = Math.max(0, totalReturnValue - debtSettled);
+    const cashRatio = totalReturnValue > 0 ? cashToRefund / totalReturnValue : 0;
+
+    if (!confirm(
+      `استرجاع الفاتورة بالكامل؟\n` +
+      `قيمة المرتجع: ${totalReturnValue.toFixed(2)} ${storeSettings.currency}\n` +
+      `يُخصم من المديونية: ${debtSettled.toFixed(2)} ${storeSettings.currency}\n` +
+      `يُرد كاش للعميل: ${cashToRefund.toFixed(2)} ${storeSettings.currency}`
+    )) return;
+
+    const returnsArray = activeReturnOrder.items.map((item: any) => {
+      const available = item.quantity - item.returned_quantity;
+      const itemValue = available * item.sale_price * discountRatio;
+      return {
+        productId: item.id,
+        returnQty: available,
+        // Distribute the cash refund across items proportionally; the rest of
+        // each item's value is implicitly settled against the customer's debt.
+        refundAmount: itemValue * cashRatio
+      };
+    }).filter((r: any) => r.returnQty > 0);
+
+    if (returnsArray.length > 0) {
+      // الخصم بيقلّل اللي بيخرج للعميل بس؛ قيمة المرتجع على الفاتورة بتفضل كاملة.
+      const fee = Math.min(Math.max(0, parseFloat(refundFeeStr) || 0), cashToRefund);
+      const netToCustomer = Math.max(0, cashToRefund - fee);
+      if (netToCustomer > 0 && refundSplitMode && Math.abs(refundSplitTotal - netToCustomer) >= 0.01) {
+        alert(`مجموع التقسيمة (${refundSplitTotal.toFixed(2)}) مش مساوي المبلغ المردود (${netToCustomer.toFixed(2)}). ظبّط الأرقام الأول.`);
+        return;
+      }
+      const netSplit = buildRefundSplit(netToCustomer);
+      const primary = netToCustomer > 0 ? primaryRefundMethod(netSplit) : refundMethod;
+      // نفس المنطق: المتخزّن يغطّي المرتجع كامل، والخصم يرجع كإيراد.
+      const refundSplit: Record<string, number> = { ...netSplit };
+      if (fee > 0) refundSplit[primary] = (refundSplit[primary] || 0) + fee;
+      await processReturn(
+        activeReturnOrder.id, returnsArray, primary, refundSplit,
+        { refundDate, deduction: fee },
+      );
+      alert('تم استرجاع الفاتورة بالكامل بنجاح');
+      const updatedOrder = useStore.getState().orders.find(o => o.id === activeReturnOrder.id);
+      setActiveReturnOrder(updatedOrder);
+      setPendingReturns({}); setReturnDebtDeduction(null); setRefundMethod('cash');
+      setRefundSplitMode(false); setRefundSplitInput({}); setRefundFeeStr('');
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCustomerPhone(val);
+    if (val) {
+      const match = customers.find(c => c.phone === val);
+      if (match) {
+        setCustomerName(match.name);
+        setCustomerId(match.card_number || match.custom_id || '');
+      }
+    }
+  };
+
+  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCustomerId(val);
+    if (val) {
+      const match = customers.find(c => c.card_number === val || c.custom_id === val);
+      if (match) {
+        setCustomerName(match.name);
+        setCustomerPhone(match.phone);
+      }
+    }
+  };
+
+
+  return (
+    <div className="flex h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-300 overflow-hidden font-sans text-gray-900 dark:text-gray-100">
+
+      {/* SUCCESS MODAL */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-slate-700 animate-in zoom-in-95 duration-200">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <Banknote size={40} />
+              </div>
+              <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">تم الدفع بنجاح!</h2>
+              <p className="text-slate-500 dark:text-slate-400 font-bold mb-6 font-mono text-lg">رقم الفاتورة: #{lastInvoiceId}</p>
+
+              <div className="space-y-3">
+                {lastCustomerInfo?.phone && (
+                  <button
+                    onClick={() => {
+                      const sendWhatsApp = (invId: string, customerPhone: string, orderDetails: any) => {
+                        if (!customerPhone.trim()) return;
+                        let itemsText = orderDetails.cart.map((item: any) => `• ${item.name} (${formatQty(item.quantity, item.unit)}) - ${(item.sale_price * item.quantity).toFixed(2)} ${storeSettings.currency}`).join('\n');
+                        const publicBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                          ? 'https://cashier-branch3.vercel.app'
+                          : window.location.origin;
+                        const invoiceLink = `${publicBaseUrl}/view-invoice/${invId}`;
+                        const branchAddress = storeSettings.address || '';
+                        const branchLocationLink = storeSettings.locationUrl || '';
+                        const message = `*فاتورة جديدة من ${storeSettings.name}*\n\n` +
+                          `*رقم الفاتورة:* #${invId}\n` +
+                          `*التاريخ:* ${new Date().toLocaleString('ar-EG', { calendar: 'gregory' })}\n` +
+                          (orderDetails.salesperson ? `*مسؤول المبيعات:* ${orderDetails.salesperson}\n` : '') +
+                          `*الإجمالي:* ${orderDetails.total.toFixed(2)} ${storeSettings.currency}\n\n` +
+                          `*عرض الفاتورة بالتفاصيل:*\n${invoiceLink}\n\n` +
+                          `*تفاصيل الطلب:*\n${itemsText}\n\n` +
+                          (branchAddress ? `*عنوان الفرع:* ${branchAddress}\n` : '') +
+                          (branchLocationLink ? `*لوكيشن الفرع على Google Maps:*\n${branchLocationLink}\n` : '') +
+                          `${(storeSettings.phone || storeSettings.phone2) ? `*للتواصل أو الشحن:* ${[storeSettings.phone, storeSettings.phone2].filter(Boolean).join(' - ')}\nيمكنكم التواصل هاتفيا أو واتساب، أو زيارة الفرع على العنوان الموضح.\n` : ''}` +
+                          `\n*شكراً لتعاملكم معنا، في انتظاركم مرة أخرى!*\n` +
+                          `*ما رأيك في خدمتنا؟ نسعد بتلقي ملاحظاتك.*`;
+                        let cleanPhone = customerPhone.replace(/\D/g, '');
+                        const code = storeSettings.whatsappCountryCode || '2';
+
+                        // Generic cleaning: if it starts with 0, remove and add code. 
+                        // If it doesn't have the code yet, add it.
+                        if (cleanPhone.startsWith('0')) {
+                          cleanPhone = code + cleanPhone.substring(1);
+                        } else if (!cleanPhone.startsWith(code)) {
+                          cleanPhone = code + cleanPhone;
+                        }
+
+                        const encodedMsg = encodeURIComponent(message);
+                        window.open(`https://wa.me/${cleanPhone}?text=${encodedMsg}`, '_blank');
+                      };
+                      sendWhatsApp(lastInvoiceId, lastCustomerInfo.phone, lastOrderDetails);
+                    }}
+                    className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-lg scale-105"
+                  >
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+                    إرسال للفاتورة لواتساب
+                  </button>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => printInvoice(lastInvoiceId, lastOrderDetails)}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all border border-slate-200"
+                  >
+                    <Printer size={20} /> إعادة طباعة
+                  </button>
+                  <button
+                    autoFocus
+                    onClick={() => {
+                      setShowSuccessModal(false);
+                      clearCart();
+                      focusById('pos-cust-name');
+                    }}
+                    className="flex-1 bg-slate-900 hover:bg-black text-white py-3.5 rounded-2xl font-bold transition-all focus:ring-4 focus:ring-slate-400"
+                  >
+                    إغلاق وفاتورة جديدة
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNoteModal && (
+        <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-gray-200 dark:border-slate-700">
+            <div className="p-6 bg-gradient-to-r from-blue-500 to-indigo-500 text-white flex justify-between items-center">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <MessageSquare size={24} /> إرسال رسالة للمدير
+              </h2>
+              <button onClick={() => setShowNoteModal(false)} className="hover:bg-white/20 p-2 rounded-full transition">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="اكتب رسالتك هنا وسيتم إرسالها فوراً للمدير عبر تليجرام..."
+                className="w-full h-32 bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-bold placeholder-gray-400"
+              />
+              <button
+                onClick={handleSendNote}
+                disabled={!noteText.trim() || isSendingNote}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSendingNote ? 'جاري الإرسال...' : <><Send size={20} /> إرسال الآن</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFinanceModal && (
+        <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-gray-200 dark:border-slate-700 max-h-[90vh]">
+            <div className="p-6 bg-gradient-to-r from-emerald-500 to-teal-500 text-white flex justify-between items-center shrink-0">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Wallet size={24} /> معاملة مالية
+              </h2>
+              <button onClick={() => setShowFinanceModal(false)} className="hover:bg-white/20 p-2 rounded-full transition">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4 overflow-y-auto" dir="rtl">
+              {/* Type Tabs */}
+              <div className="flex gap-1 bg-gray-100 dark:bg-slate-700 p-1 rounded-2xl">
+                <button
+                  onClick={() => setFinanceType('expense')}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${financeType === 'expense' ? 'bg-white dark:bg-slate-600 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                >
+                  مصروف
+                </button>
+                <button
+                  onClick={() => setFinanceType('income')}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${financeType === 'income' ? 'bg-white dark:bg-slate-600 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                >
+                  إيراد
+                </button>
+                <button
+                  onClick={() => setFinanceType('transfer')}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${financeType === 'transfer' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                >
+                  تحويل
+                </button>
+              </div>
+
+              {/* اختيار الخزنة: المحل أو الرئيسية */}
+              <div className="bg-gray-50 dark:bg-slate-700/40 border border-gray-200 dark:border-slate-600 rounded-2xl p-3">
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  {financeType === 'expense' ? 'مصدر الصرف' : financeType === 'income' ? 'وجهة الإيراد' : 'خزنة التحويل'}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFinanceTreasury('shop')}
+                    className={`py-2.5 rounded-xl font-black text-sm transition ${financeTreasury === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'}`}
+                  >
+                    خزنة المحل
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFinanceTreasury('main')}
+                    className={`py-2.5 rounded-xl font-black text-sm transition ${financeTreasury === 'main' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'}`}
+                  >
+                    الخزنة الرئيسية
+                  </button>
+                </div>
+                {financeTreasury === 'main' && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold mt-2">
+                    {financeType === 'expense'
+                      ? 'سيتم طلب رمز تأكيد من المدير، ولن يُخصم من خزنة المحل.'
+                      : financeType === 'income'
+                      ? 'سيُضاف المبلغ للخزنة الرئيسية مباشرة، ولن يدخل خزنة المحل.'
+                      : 'تحويل بين طرق الدفع داخل الخزنة الرئيسية — لا يمسّ خزنة المحل.'}
+                  </p>
+                )}
+              </div>
+
+              {/* تاريخ المعاملة */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">تاريخ المعاملة</label>
+                <input
+                  type="date"
+                  value={financeDate}
+                  max={businessDateStr(storeSettings)}
+                  onChange={e => setFinanceDate(e.target.value)}
+                  className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                />
+              </div>
+
+              {financeType === 'transfer' ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">من وسيلة الدفع</label>
+                    <select
+                      className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                      value={financeTransferFrom}
+                      onChange={e => setFinanceTransferFrom(e.target.value)}
+                    >
+                      {activePayKeys.map((k) => <option key={k} value={k}>{payLabel(k)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">إلى وسيلة الدفع</label>
+                    <select
+                      className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                      value={financeTransferTo}
+                      onChange={e => setFinanceTransferTo(e.target.value)}
+                    >
+                      {activePayKeys.map((k) => <option key={k} value={k}>{payLabel(k)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">المبلغ</label>
+                    <input
+                      type="number" dir="ltr" placeholder="0.00"
+                      className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-right"
+                      value={financeTransferAmount}
+                      onChange={e => setFinanceTransferAmount(e.target.value)}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{financeType === 'expense' ? 'فئة المصروف' : 'فئة الإيراد'}</label>
+                    <div className="flex gap-2">
+                      <select
+                        className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                        value={financeCategory}
+                        onChange={e => setFinanceCategory(e.target.value)}
+                      >
+                        {categoriesFor(storeSettings as any, financeType as 'expense' | 'income').map((c) => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddFinanceCategory}
+                        className="shrink-0 px-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-black hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
+                        title="إضافة نوع جديد"
+                      >
+                        + نوع
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {activePayKeys.map((k) => (
+                      <div key={k}>
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 text-right">{payLabel(k)}</label>
+                        <input type="number" dir="ltr" placeholder="0.00"
+                          className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 font-bold text-right"
+                          value={financePay[k] || ''} onChange={e => setFinancePay((s) => ({ ...s, [k]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-gray-100 dark:bg-slate-700 rounded-xl p-3 flex justify-between items-center">
+                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي المبلغ:</span>
+                    <span className={`text-xl font-black ${financeType === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {financeTotal.toLocaleString()} {storeSettings.currency}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">ملاحظات</label>
+                <textarea
+                  value={financeNote}
+                  onChange={(e) => setFinanceNote(e.target.value)}
+                  placeholder="اكتب ملاحظاتك هنا..."
+                  className="w-full h-20 bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none font-bold placeholder-gray-400"
+                />
+              </div>
+
+              <button
+                onClick={handleFinanceSubmit}
+                disabled={isSubmittingFinance}
+                className={`w-full font-black py-4 rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white ${
+                  financeType === 'transfer' ? 'bg-blue-600 hover:bg-blue-700' : financeType === 'income' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-500 hover:bg-red-600'
+                }`}
+              >
+                {isSubmittingFinance ? 'جاري الحفظ...' : financeType === 'transfer' ? 'تنفيذ التحويل' : 'تسجيل المعاملة'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAdvanceModal && canEmployeeAdvance && (
+        <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-gray-200 dark:border-slate-700 max-h-[90vh]">
+            <div className="p-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white flex justify-between items-center shrink-0">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <HandCoins size={24} /> صرف سلفة لموظف
+              </h2>
+              <button onClick={() => { setShowAdvanceModal(false); resetAdvanceForm(); }} className="hover:bg-white/20 p-2 rounded-full transition">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4 overflow-y-auto" dir="rtl">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">الموظف</label>
+                <select
+                  className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
+                  value={advanceEmpId}
+                  onChange={(e) => setAdvanceEmpId(e.target.value)}
+                >
+                  <option value="">— اختر الموظف —</option>
+                  {employees.filter((emp: any) => emp.is_active !== false).map((emp: any) => (
+                    <option key={emp.id} value={emp.id}>{emp.name}{emp.job_title ? ` (${emp.job_title})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">طريقة صرف السلفة (المبلغ)</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {activePayKeys.map((k) => (
+                    <div key={k}>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 text-right">{payLabel(k)}</label>
+                      <input type="number" dir="ltr" placeholder="0.00"
+                        className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 font-bold text-right"
+                        value={advancePay[k] || ''} onChange={(e) => setAdvance(k, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-gray-100 dark:bg-slate-700 rounded-xl p-3 flex justify-between items-center">
+                <span className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي السلفة:</span>
+                <span className="text-xl font-black text-amber-600">{advanceTotal.toLocaleString()} {storeSettings.currency}</span>
+              </div>
+
+              {/* مصدر صرف السلفة: خزنة المحل أو الرئيسية */}
+              <div className="bg-gray-50 dark:bg-slate-700/40 border border-gray-200 dark:border-slate-600 rounded-2xl p-3">
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">مصدر صرف السلفة</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setAdvanceTreasury('shop')} className={`py-2.5 rounded-xl font-black text-sm transition ${advanceTreasury === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'}`}>خزنة المحل</button>
+                  <button type="button" onClick={() => setAdvanceTreasury('main')} className={`py-2.5 rounded-xl font-black text-sm transition ${advanceTreasury === 'main' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'}`}>الخزنة الرئيسية</button>
+                </div>
+                {advanceTreasury === 'main' && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold mt-2">سيتم طلب رمز تأكيد من المدير، ولن تُخصم السلفة من خزنة المحل.</p>
+                )}
+              </div>
+
+              {/* تاريخ صرف السلفة */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">تاريخ صرف السلفة</label>
+                <input
+                  type="date"
+                  value={advanceDate}
+                  max={businessDateStr(storeSettings)}
+                  onChange={(e) => setAdvanceDate(e.target.value)}
+                  className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">تُخصم من راتب شهر {advanceDate.slice(0, 7)}.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">سبب / ملاحظة السلفة</label>
+                <textarea
+                  value={advanceNote}
+                  onChange={(e) => setAdvanceNote(e.target.value)}
+                  placeholder="مثال: سلفة مقدمة على الراتب..."
+                  className="w-full h-20 bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none font-bold placeholder-gray-400"
+                />
+              </div>
+
+              <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2 text-center">سيتم خصم السلفة تلقائياً من راتب هذا الشهر للموظف.</p>
+
+              <button
+                onClick={handleAdvanceSubmit}
+                disabled={isSubmittingAdvance}
+                className="w-full font-black py-4 rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white bg-amber-600 hover:bg-amber-700"
+              >
+                {isSubmittingAdvance ? 'جاري الصرف...' : <><HandCoins size={20} /> صرف السلفة</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeductionModal && canEmployeeDeduction && (
+        <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-gray-200 dark:border-slate-700 max-h-[90vh]">
+            <div className="p-6 bg-gradient-to-r from-rose-500 to-red-600 text-white flex justify-between items-center shrink-0">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <UserMinus size={24} /> تسجيل خصم لموظف
+              </h2>
+              <button onClick={() => { setShowDeductionModal(false); resetDeductionForm(); }} className="hover:bg-white/20 p-2 rounded-full transition">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4 overflow-y-auto" dir="rtl">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">الموظف</label>
+                <select
+                  className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-500 font-bold"
+                  value={dedEmpId}
+                  onChange={(e) => setDedEmpId(e.target.value)}
+                >
+                  <option value="">— اختر الموظف —</option>
+                  {employees.filter((emp: any) => emp.is_active !== false).map((emp: any) => (
+                    <option key={emp.id} value={emp.id}>{emp.name}{emp.job_title ? ` (${emp.job_title})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">بعدد الأيام</label>
+                  <input type="number" dir="ltr" min="0" step="0.5" placeholder="0"
+                    className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-rose-500 font-bold text-right"
+                    value={dedDays} onChange={(e) => setDedDays(e.target.value)}
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">بيقبل نص يوم (0.5) — سعر اليوم {dedDailyRate.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">بمبلغ محدد</label>
+                  <input type="number" dir="ltr" min="0" step="0.01" placeholder="0.00"
+                    className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-rose-500 font-bold text-right"
+                    value={dedAmount} onChange={(e) => setDedAmount(e.target.value)}
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">تقدر تستخدم الاتنين مع بعض</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-100 dark:bg-slate-700 rounded-xl p-3 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي الخصم:</span>
+                  <span className="text-xl font-black text-rose-600">{dedTotal.toLocaleString()} {storeSettings.currency}</span>
+                </div>
+                {dedEmpId && (
+                  <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    <span>خصومات شهر {dedMonth} المسجّلة:</span>
+                    <span>{dedMonthSoFar.toLocaleString()} → {(dedMonthSoFar + dedTotal).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">تاريخ الخصم</label>
+                <input
+                  type="date"
+                  value={dedDate}
+                  max={businessDateStr(storeSettings)}
+                  onChange={(e) => setDedDate(e.target.value)}
+                  className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-500 font-bold"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">الخصم بيقع على راتب شهر {dedMonth}.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">سبب الخصم</label>
+                <textarea
+                  value={dedReason}
+                  onChange={(e) => setDedReason(e.target.value)}
+                  placeholder="مثال: تأخير / غياب / كسر..."
+                  className="w-full h-20 bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none font-bold placeholder-gray-400"
+                />
+              </div>
+
+              <p className="text-[11px] text-rose-700 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 rounded-xl px-3 py-2 text-center">
+                الخصم مش بيطلّع فلوس من الخزنة — بس بيتسجّل على الموظف وبيتخصم من راتب الشهر.
+              </p>
+
+              <button
+                onClick={handleDeductionSubmit}
+                disabled={isSubmittingDeduction || dedTotal <= 0 || !dedEmpId}
+                className="w-full font-black py-4 rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white bg-rose-600 hover:bg-rose-700"
+              >
+                {isSubmittingDeduction ? 'جاري الحفظ...' : <><UserMinus size={20} /> تسجيل الخصم</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBarcodeModal && canBarcodePrint && (
+        <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-gray-200 dark:border-slate-700 max-h-[90vh]">
+            <div className="p-6 bg-gradient-to-r from-slate-700 to-slate-900 text-white flex justify-between items-center shrink-0">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <ScanLine size={24} /> طباعة باركود
+              </h2>
+              <button onClick={closeBarcodeModal} className="hover:bg-white/20 p-2 rounded-full transition">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4 overflow-y-auto" dir="rtl">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">ابحث وأضف المنتجات (بالاسم أو الباركود)</label>
+                <div className="relative">
+                  <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    autoFocus
+                    value={barcodeSearch}
+                    onChange={(e) => setBarcodeSearch(e.target.value)}
+                    placeholder="اكتب اسم المنتج..."
+                    className="w-full bg-gray-100 dark:bg-slate-700 dark:text-white border-none rounded-xl pr-10 pl-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-500 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="max-h-40 overflow-y-auto rounded-xl border border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
+                {barcodeMatches.length === 0 ? (
+                  <p className="text-center text-slate-400 py-6 text-sm font-bold">لا توجد منتجات مطابقة</p>
+                ) : barcodeMatches.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      // الافتراضي = كمية المخزون (أشهر استخدام: ملصق لكل قطعة)
+                      setBarcodeRows((rows) => [...rows, { id: p.id, count: String(Math.max(1, Math.floor(Number(p.stock_quantity) || 1))) }]);
+                      setBarcodeSearch('');
+                    }}
+                    className="w-full text-right px-4 py-2.5 flex items-center justify-between gap-2 transition hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                  >
+                    <span className="font-bold text-sm truncate">{p.name}</span>
+                    <span className="text-[11px] font-mono shrink-0 text-slate-400">{p.barcode || 'بدون باركود'}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* المنتجات المختارة بكمياتها */}
+              {barcodeRows.length === 0 ? (
+                <p className="text-center text-slate-400 py-6 text-sm font-bold">اختر منتج أو أكتر من القايمة فوق</p>
+              ) : (
+                <div className="space-y-2">
+                  {barcodeRows.map((row, idx) => {
+                    const p = products.find((x) => x.id === row.id);
+                    if (!p) return null;
+                    return (
+                      <div key={row.id} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-2.5 flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{p.name}</p>
+                          <p className="text-[11px] font-mono text-slate-400">{p.barcode || 'هيتولّد كود جديد'} · {p.sale_price.toLocaleString()} {storeSettings.currency}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => setBarcodeRows((rows) => rows.map((r, i) => i === idx ? { ...r, count: String(Math.max(1, (parseInt(r.count) || 1) - 1)) } : r))} className="w-9 h-9 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 font-black text-slate-600 dark:text-slate-200">−</button>
+                          <input
+                            type="number" min="1" dir="ltr"
+                            value={row.count}
+                            onChange={(e) => setBarcodeRows((rows) => rows.map((r, i) => i === idx ? { ...r, count: e.target.value } : r))}
+                            className="w-16 bg-white dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg px-1 py-2 text-center font-black outline-none"
+                          />
+                          <button onClick={() => setBarcodeRows((rows) => rows.map((r, i) => i === idx ? { ...r, count: String((parseInt(r.count) || 0) + 1) } : r))} className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-slate-600 font-black text-slate-700 dark:text-white">+</button>
+                        </div>
+                        <button onClick={() => setBarcodeRows((rows) => rows.filter((_, i) => i !== idx))} className="p-1.5 text-slate-400 hover:text-red-500 shrink-0"><X size={16} /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <button
+                onClick={handlePrintBarcode}
+                disabled={barcodeRows.length === 0}
+                className="w-full font-black py-4 rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white bg-slate-800 hover:bg-slate-900"
+              >
+                <Printer size={20} /> طباعة {barcodeTotal > 0 ? `${barcodeTotal} ملصق` : 'الباركود'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDayBudget && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3" onClick={() => setShowDayBudget(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-emerald-600 text-white px-5 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-black flex items-center gap-2"><Banknote size={22} /> تقفيل اليوم (عرض)</h2>
+              <button onClick={() => setShowDayBudget(false)} className="hover:bg-white/20 p-1.5 rounded-lg"><X size={22} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-sm font-bold text-slate-600 dark:text-slate-300">التاريخ:</label>
+                <input type="date" value={dayBudgetDate} onChange={(e) => setDayBudgetDate(e.target.value)} className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-bold text-sm" />
+                <button onClick={() => setDayBudgetDate(todayStr())} className="text-xs font-bold text-emerald-600 hover:underline">اليوم</button>
+              </div>
+              <p className="text-[11px] text-slate-400 font-bold mb-2">اليوم يبدأ الساعة {(() => { const h = storeSettings.dayStartHour ?? 3; return h === 0 ? '12 ص' : h < 12 ? `${h} ص` : h === 12 ? '12 م' : `${h - 12} م`; })()} — الفواتير قبلها تُحسب على اليوم السابق.</p>
+              {/* أرقام من نسخة الجهاز: الكاشير لازم يعرف إنها مش لحظية قبل ما يبني عليها قرار. */}
+              {dayBudgetSource && !dayBudgetSource.live && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-3 text-amber-700 dark:text-amber-400">
+                  <p className="text-xs font-black flex items-center gap-1.5"><Hourglass size={14} /> أرقام من نسخة الجهاز (من غير نت)</p>
+                  <p className="text-[11px] font-bold mt-1 leading-relaxed">
+                    آخر مزامنة: {dayBudgetSource.cachedAt ? new Date(dayBudgetSource.cachedAt).toLocaleString('ar-EG') : '—'}
+                    {dayBudgetSource.rolledFrom && ` · محسوبة بترحيل رصيد ${dayBudgetSource.rolledFrom}`}
+                    {' '}· فواتير الأوفلاين متحسوبة. لو في جهاز تاني باع النهاردة، حركته مش هتبان لحد ما النت يرجع.
+                  </p>
+                  <p className="text-[11px] font-black mt-1.5">التقفيل الفعلي (التحويل للخزنة الرئيسية) محتاج نت.</p>
+                </div>
+              )}
+              {dayBudgetLoading || !dayBudget ? (
+                <p className="text-center text-slate-400 py-10 font-bold">جاري الحساب...</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-100 dark:bg-slate-900/40 rounded-xl p-4 text-center">
+                      <div className="text-[11px] font-bold text-slate-500">رصيد بداية اليوم</div>
+                      <div className="text-xl font-black text-slate-800 dark:text-slate-100">{dayBudget.opening.toFixed(2)}</div>
+                    </div>
+                    <div className="bg-emerald-600 text-white rounded-xl p-4 text-center">
+                      <div className="text-[11px] font-bold opacity-90">رصيد نهاية اليوم</div>
+                      <div className="text-xl font-black">{dayBudget.closing.toFixed(2)}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center border border-green-100 dark:border-green-800"><div className="text-[11px] font-bold text-green-700 dark:text-green-400">إجمالي الداخل</div><div className="text-lg font-black text-green-700 dark:text-green-400">{dayBudget.totalIn.toFixed(2)}</div></div>
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center border border-red-100 dark:border-red-800"><div className="text-[11px] font-bold text-red-700 dark:text-red-400">إجمالي الخارج</div><div className="text-lg font-black text-red-700 dark:text-red-400">{dayBudget.totalOut.toFixed(2)}</div></div>
+                  </div>
+
+                  {/* تفصيل حركة اليوم */}
+                  {dayBudget.breakdown && (() => {
+                    const b = dayBudget.breakdown;
+                    const cur = storeSettings.currency;
+                    const Row = ({ label, value, count, tone }: { label: string; value: number; count?: number; tone?: 'in' | 'out' }) => (
+                      <div className="flex items-center justify-between py-2 px-3 border-b border-slate-100 dark:border-slate-700/50 last:border-0">
+                        <span className="text-[13px] font-bold text-slate-600 dark:text-slate-300">{label}{count !== undefined ? <span className="text-slate-400 font-medium"> ({count})</span> : ''}</span>
+                        <span className={`text-sm font-black ${tone === 'in' ? 'text-green-600' : tone === 'out' ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}`}>{value.toFixed(2)} {cur}</span>
+                      </div>
+                    );
+                    return (
+                      <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+                        <div className="px-3 py-2 bg-slate-100 dark:bg-slate-900/60 text-[12px] font-black text-slate-600 dark:text-slate-300">تفصيل حركة اليوم</div>
+                        <Row label="المبيعات" value={b.salesTotal} count={b.salesCount} />
+                        <Row label="التحصيل (المدفوع فعلياً)" value={b.collected} tone="in" />
+                        <Row label="المحصّل من الحجوزات (صافي)" value={b.reservationsNet || 0} tone={((b.reservationsNet || 0) < 0) ? 'out' : 'in'} />
+                        {b.otherIncome > 0 && <Row label="إيرادات أخرى" value={b.otherIncome} tone="in" />}
+                        <Row label="المرتجعات" value={b.refundsTotal} count={b.refundsCount} tone="out" />
+                        <Row label="الاستبدالات" value={b.exchangeValue || 0} count={b.exchangeCount} tone={(b.exchangeNet || 0) < 0 ? 'out' : (b.exchangeNet || 0) > 0 ? 'in' : undefined} />
+                        <Row label="المصروفات" value={b.expensesTotal} tone="out" />
+                        <Row label="المشتريات" value={b.purchasesTotal} tone="out" />
+                        <Row label="الرواتب والسلف" value={b.salariesTotal} tone="out" />
+                        {b.savingsOut > 0 && <Row label="محوّل للخزنة الرئيسية" value={b.savingsOut} tone="out" />}
+                        {b.savingsIn > 0 && <Row label="محوّل من الخزنة الرئيسية" value={b.savingsIn} tone="in" />}
+                        {b.reconcileIn > 0 && <Row label="تسوية جرد (زيادة)" value={b.reconcileIn} tone="in" />}
+                        {b.reconcileOut > 0 && <Row label="تسوية جرد (عجز)" value={b.reconcileOut} tone="out" />}
+                      </div>
+                    );
+                  })()}
+                  <div>
+                    <div className="text-xs font-bold text-slate-500 mb-2">الرصيد الحالي الفعلي في الخزنة (بالتقسيمة):</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {activePayKeys.map((k) => {
+                        const bal = (dayBudget.shopAvail?.[k]) ?? (dayBudget.dayIn[k] - dayBudget.dayOut[k]);
+                        const net = dayBudget.dayIn[k] - dayBudget.dayOut[k];
+                        return (
+                          <div key={k} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+                            <div className="text-[11px] font-bold text-slate-500">{payLabel(k)}</div>
+                            <div className={`text-lg font-black ${bal < 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}`}>{bal.toFixed(2)} {storeSettings.currency}</div>
+                            <div className="text-[10px] text-slate-400">صافي اليوم: {net.toFixed(2)} (داخل {dayBudget.dayIn[k].toFixed(2)} · خارج {dayBudget.dayOut[k].toFixed(2)})</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* ملخّص التقفيل: المحوّل للخزنة الرئيسية والمتبقي في المحل لكل وسيلة */}
+                  <div className={`rounded-xl border overflow-hidden ${dayBudget.isClosed ? 'border-indigo-200 dark:border-indigo-800' : 'border-slate-100 dark:border-slate-700'}`}>
+                    <div className={`px-3 py-2 text-[12px] font-black flex items-center justify-between ${dayBudget.isClosed ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300'}`}>
+                      <span>ملخّص التقفيل</span>
+                      {dayBudget.isClosed && <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">✅ اليوم مقفول</span>}
+                    </div>
+                    <div className="grid grid-cols-[1fr_auto_auto] text-[11px] font-black text-slate-400 dark:text-slate-500 px-3 pt-2">
+                      <span>الوسيلة</span>
+                      <span className="text-left w-28">محوّل للرئيسية</span>
+                      <span className="text-left w-28">متبقي في المحل</span>
+                    </div>
+                    {activePayKeys.map((k) => {
+                      const out = (dayBudget.savingsOutBy?.[k]) || 0;
+                      const left = (dayBudget.shopAvail?.[k]) || 0;
+                      if (out < 0.009 && Math.abs(left) < 0.009) return null;
+                      return (
+                        <div key={k} className="grid grid-cols-[1fr_auto_auto] items-center px-3 py-1.5 border-t border-slate-100 dark:border-slate-700/50 text-[13px]">
+                          <span className="font-bold text-slate-600 dark:text-slate-300">{payLabel(k)}</span>
+                          <span className="text-left w-28 font-black text-indigo-600">{out.toFixed(2)}</span>
+                          <span className={`text-left w-28 font-black ${left < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{left.toFixed(2)}</span>
+                        </div>
+                      );
+                    })}
+                    <div className="grid grid-cols-[1fr_auto_auto] items-center px-3 py-2 border-t-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/40 text-[13px]">
+                      <span className="font-black text-slate-700 dark:text-slate-200">الإجمالي</span>
+                      <span className="text-left w-28 font-black text-indigo-700">{(dayBudget.breakdown?.savingsOut || 0).toFixed(2)}</span>
+                      <span className="text-left w-28 font-black text-emerald-700">{activePayKeys.reduce((s, k) => s + ((dayBudget.shopAvail?.[k]) || 0), 0).toFixed(2)}</span>
+                    </div>
+                    <p className="px-3 py-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-700/50">🔁 المتبقي في خزنة المحل يترحّل تلقائياً كرصيد بداية اليوم التالي.</p>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 text-center">{(() => { const h = storeSettings.dayStartHour ?? 3; const lbl = h === 0 ? '12 منتصف الليل' : h < 12 ? `${h} صباحاً` : h === 12 ? '12 ظهراً' : `${h - 12} مساءً`; return `اليوم يبدأ الساعة ${lbl} وينتهي في نفس الساعة من اليوم التالي.`; })()}</p>
+
+                  {/* Reconcile drawer (cash count) */}
+                  {perm('savings') && (
+                  <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
+                    {!showReconcile ? (
+                      <button onClick={openReconcile} className="w-full bg-slate-700 hover:bg-slate-800 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">📋 ضبط رصيد الخزنة (جرد)</button>
+                    ) : (
+                      <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-black text-slate-800 dark:text-slate-200">ضبط رصيد الخزنة (جرد)</span>
+                          <button onClick={() => setShowReconcile(false)} className="text-xs font-bold text-slate-500">إغلاق</button>
+                        </div>
+                        <p className="text-[11px] text-slate-500">اكتب الكاش الفعلي الموجود دلوقتي لكل طريقة. النظام هيسجّل قيد تسوية يخلّي الرصيد مطابق للحقيقة (الفرق يظهر كزيادة/عجز).</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {PAY_KEYS.map(([k]) => {
+                            const cur = Number(dayBudget.shopAvail?.[k]) || 0;
+                            const counted = parseFloat(reconcileCounts[k] || '') || 0;
+                            const diff = Math.round((counted - cur) * 100) / 100;
+                            return (
+                              <div key={k}>
+                                <label className="text-[11px] font-bold text-slate-500">{payLabel(k)} <span className="text-slate-400">(محسوب {cur.toFixed(2)})</span></label>
+                                <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold" type="number" dir="ltr" value={reconcileCounts[k] ?? ''} onChange={(e) => setReconcileCounts((s) => ({ ...s, [k]: e.target.value }))} />
+                                {Math.abs(diff) > 0.009 && <div className={`text-[10px] font-bold ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}>{diff > 0 ? 'زيادة' : 'عجز'}: {Math.abs(diff).toFixed(2)}</div>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <button onClick={handleReconcile} disabled={reconcileBusy} className="w-full bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white font-black py-2.5 rounded-xl">{reconcileBusy ? 'جاري...' : 'تأكيد الجرد وضبط الرصيد'}</button>
+                      </div>
+                    )}
+                  </div>
+                  )}
+
+                  {/* Transfer to savings */}
+                  {perm('savings') && (
+                  <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
+                    {!showSaveXfer ? (
+                      <button onClick={() => {
+                        setShowSaveXfer(true);
+                        const a = dayBudget.shopAvail || {};
+                        const next: Record<string, string> = {};
+                        activePaymentKeys(storeSettings as any).forEach((k) => { next[k] = String(Math.max(0, a[k] || 0) || ''); });
+                        setSaveXfer(next);
+                      }} disabled={dayBudget.isClosed} className={`w-full font-black py-3 rounded-xl flex items-center justify-center gap-2 text-white ${dayBudget.isClosed ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}>🏦 {dayBudget.isClosed ? 'اليوم مقفول - لا يمكن التقفيل مرة أخرى' : 'تحويل للخزنة الرئيسية'}</button>
+                    ) : (
+                      <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-2xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-black text-indigo-800 dark:text-indigo-300">تحويل للخزنة الرئيسية</span>
+                          <button onClick={() => { setShowSaveXfer(false); setSaveXferSent(false); }} className="text-xs font-bold text-slate-500">إغلاق</button>
+                        </div>
+                        <p className="text-[11px] text-slate-500">المبالغ مملوءة بكامل الموجود في خزنة المحل — عدّليها لو عايزة مبلغ محدد (مش أكبر من المتاح). كل طريقة بتتحوّل بنفسها.</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {PAY_KEYS.map(([k]) => (
+                            <div key={k}>
+                              <label className="text-[11px] font-bold text-slate-500">{payLabel(k)} <span className="text-slate-400">(متاح {((dayBudget.shopAvail?.[k]) || 0).toFixed(0)})</span></label>
+                              <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold" type="number" min="0" value={saveXfer[k]} onChange={(e) => { setSaveXfer((s) => ({ ...s, [k]: e.target.value })); setSaveXferSent(false); }} />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-center font-black text-slate-700 dark:text-slate-200">الإجمالي: {saveXferTotal.toFixed(2)} {storeSettings.currency}</div>
+                        {cashierFullAccess ? (
+                          <button onClick={saveXferDirect} disabled={saveXferBusy} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-2.5 rounded-xl">{saveXferBusy ? 'جاري...' : '🏦 تنفيذ التحويل مباشرة'}</button>
+                        ) : !saveXferSent ? (
+                          <button onClick={saveXferRequest} disabled={saveXferBusy} className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-black py-2.5 rounded-xl">{saveXferBusy ? 'جاري...' : '📲 إرسال للمدير وطلب رمز التأكيد'}</button>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <input className="flex-1 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-700 rounded-lg px-3 py-2 text-center font-black tracking-widest" dir="ltr" placeholder="رمز التأكيد" value={saveXferOtp} onChange={(e) => setSaveXferOtp(e.target.value)} />
+                              <button onClick={saveXferConfirm} disabled={saveXferBusy} className="shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black px-4 rounded-lg">تأكيد</button>
+                            </div>
+                            <button onClick={saveXferRequest} disabled={saveXferBusy} className="text-[11px] font-bold text-amber-700">إعادة إرسال الرمز</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showHistory && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3" onClick={() => setShowHistory(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-indigo-600 text-white px-5 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-black flex items-center gap-2"><FileText size={22} /> {historyToday ? 'فواتير اليوم' : 'كل الفواتير'}</h2>
+              <button onClick={() => setShowHistory(false)} className="hover:bg-white/20 p-1.5 rounded-lg"><X size={22} /></button>
+            </div>
+            <div className="p-4 border-b border-slate-100 dark:border-slate-700 space-y-3">
+              <div className="flex gap-2">
+                <button onClick={() => setHistoryToday(true)} className={`flex-1 py-2 rounded-xl text-sm font-black transition ${historyToday ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300'}`}>اليوم</button>
+                <button onClick={() => setHistoryToday(false)} className={`flex-1 py-2 rounded-xl text-sm font-black transition ${!historyToday ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300'}`}>الكل</button>
+              </div>
+              <div className="relative">
+                <Search className="absolute right-3 top-3 text-slate-400" size={18} />
+                <input
+                  autoFocus
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="ابحث برقم الفاتورة أو اسم العميل أو رقم التليفون..."
+                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pr-10 pl-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {(() => {
+                const q = historySearch.trim().toLowerCase();
+                const todayStr = new Date().toDateString();
+                const matchOrder = (o: any, extra = '') => !q || o.id.toLowerCase().includes(q) || (o.customer?.name || '').toLowerCase().includes(q) || (o.customer?.phone || '').includes(q) || extra.toLowerCase().includes(q);
+                const money = (value: number) => `${(value || 0).toFixed(2)} ${storeSettings.currency}`;
+                const transactions = orders
+                  .filter((o) => !o.is_deleted && o.type !== 'payment')
+                  .flatMap((o: any) => {
+                    const rows: any[] = [{ kind: 'invoice', id: `invoice-${o.id}`, order: o, date: o.date }];
+                    const returnedValue = calculateOrderReturnValue(o);
+                    if (returnedValue > 0.005) {
+                      rows.push({
+                        kind: 'return',
+                        id: `return-${o.id}`,
+                        order: o,
+                        date: o.refunded_at || o.date,
+                        value: returnedValue,
+                      });
+                    }
+                    if (o.exchange_data) {
+                      const ex = o.exchange_data || {};
+                      const diff = Number(ex.diff) || 0;
+                      rows.push({
+                        kind: 'exchange',
+                        id: `exchange-${o.id}`,
+                        order: o,
+                        date: ex.date || o.date,
+                        value: Math.abs(diff),
+                        diff,
+                      });
+                    }
+                    return rows;
+                  })
+                  .filter((row) => !historyToday || new Date(row.date).toDateString() === todayStr)
+                  .filter((row) => matchOrder(row.order, row.kind === 'return' ? 'مرتجع return' : row.kind === 'exchange' ? 'استبدال exchange' : 'فاتورة invoice'))
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 100);
+                if (transactions.length === 0) return <p className="text-center text-slate-400 py-10 font-bold">لا توجد فواتير</p>;
+                return transactions.map((row) => {
+                  const o = row.order;
+                  if (row.kind === 'return') {
+                    return (
+                      <div key={row.id} className="bg-red-50 dark:bg-red-900/15 rounded-xl p-3 border border-red-100 dark:border-red-800/60">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div>
+                            <p className="font-black text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2"><span className="text-[11px] px-2 py-1 rounded-lg bg-red-100 text-red-700">مرتجع</span> فاتورة #{o.id} · {o.customer?.name || 'عميل نقدي'}</p>
+                            <p className="text-[11px] text-slate-500">{new Date(row.date).toLocaleString('ar-EG')} · قيمة المرتجع: <b>{money(row.value)}</b></p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => window.open(`/view-invoice/${o.id}`, '_blank')} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300">عرض</button>
+                            <button onClick={() => reprintOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 flex items-center gap-1"><Printer size={14} /> طباعة</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (row.kind === 'exchange') {
+                    const diffLabel = Math.abs(row.diff) < 0.01 ? 'بدون فرق' : row.diff > 0 ? 'تحصيل فرق' : 'رد فرق';
+                    return (
+                      <div key={row.id} className="bg-amber-50 dark:bg-amber-900/15 rounded-xl p-3 border border-amber-100 dark:border-amber-800/60">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div>
+                            <p className="font-black text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2"><span className="text-[11px] px-2 py-1 rounded-lg bg-amber-100 text-amber-700">استبدال</span> فاتورة #{o.id} · {o.customer?.name || 'عميل نقدي'}</p>
+                            <p className="text-[11px] text-slate-500">{new Date(row.date).toLocaleString('ar-EG')} · {diffLabel}: <b>{money(row.value)}</b></p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => setViewExchange(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 flex items-center gap-1"><Eye size={14} /> تفاصيل</button>
+                            <button onClick={() => reprintOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 flex items-center gap-1"><Printer size={14} /> طباعة</button>
+                            {/* استبدال تاني من صف الاستبدال نفسه — من غير ما نرجع لصف الفاتورة */}
+                            {perm('editDelete') && !canExchangeAgain(o).blocked && (
+                              <button onClick={() => openEditOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 flex items-center gap-1"><RefreshCcw size={14} /> استبدال تاني</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={row.id} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div>
+                          <p className="font-black text-slate-800 dark:text-slate-100 text-sm">#{o.id} · {o.customer?.name || 'عميل نقدي'}</p>
+                          <p className="text-[11px] text-slate-500">{new Date(o.date).toLocaleString('ar-EG')} · الإجمالي: <b>{money(o.total || 0)}</b>{(o.total - calculateOrderReturnValue(o) - o.paid_amount) > 0.5 ? ` · باقي: ${(o.total - calculateOrderReturnValue(o) - o.paid_amount).toFixed(2)}` : ''}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => window.open(`/view-invoice/${o.id}`, '_blank')} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300">عرض</button>
+                          <button onClick={() => reprintOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 flex items-center gap-1"><Printer size={14} /> طباعة</button>
+                          <button onClick={() => sendOrderWhatsApp(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#25D366] text-white hover:bg-[#1da851]">واتساب</button>
+                          {(() => {
+                            // فاتورة اترجعت بالكامل = كل أصنافها مرتجعة → مايصحّش نستبدل فيها.
+                            if (canExchangeAgain(o).blocked) return <span className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-400 flex items-center gap-1"><RefreshCcw size={14} /> مرتجعة بالكامل</span>;
+                            // فاتورة متستبدلة قبل كده: بنعرض زرار العرض *و* زرار
+                            // استبدال تاني — الفاتورة دلوقتي شايلة القطع الحالية،
+                            // فالاستبدال التاني بيشتغل عليها عادي.
+                            return (
+                              <>
+                                {o.exchange_data && (
+                                  <button onClick={() => setViewExchange(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 flex items-center gap-1"><Eye size={14} /> تم الاستبدال</button>
+                                )}
+                                {perm('editDelete') && (
+                                  <button onClick={() => openEditOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 flex items-center gap-1"><RefreshCcw size={14} /> {o.exchange_data ? 'استبدال تاني' : 'استبدال'}</button>
+                                )}
+                              </>
+                            );
+                          })()}
+                          {perm('editDelete') && (
+                            <button onClick={() => deleteOrderWithOtp(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 flex items-center gap-1"><Trash2 size={14} /> حذف</button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingOrder && (
+        <EditInvoiceModal invoice={editingOrder} onClose={() => setEditingOrder(null)} requireOtp={!canExchangeWithoutOtp} exchangeMode />
+      )}
+
+      {viewExchange && (() => {
+        const ex = viewExchange.exchange_data || {};
+        const cur = storeSettings.currency;
+        const list = (arr: any[]) => (arr || []).map((i: any, idx: number) => (
+          <div key={idx} className="flex justify-between text-sm py-1 border-b border-slate-100 dark:border-slate-700/50">
+            <span className="font-bold text-slate-700 dark:text-slate-200">{i.name} ×{i.quantity}</span>
+            <span>{((Number(i.sale_price) || 0) * (Number(i.quantity) || 0)).toFixed(2)}</span>
+          </div>
+        ));
+        const diff = Number(ex.diff) || 0;
+        return (
+          <div className="fixed inset-0 bg-black/50 z-[160] flex items-center justify-center p-3" onClick={() => setViewExchange(null)}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-slate-700 text-white px-5 py-4 flex items-center justify-between">
+                <h2 className="text-lg font-black flex items-center gap-2"><RefreshCcw size={18} /> تفاصيل استبدال #{viewExchange.id}</h2>
+                <button onClick={() => setViewExchange(null)} className="hover:bg-white/20 p-1.5 rounded-lg"><X size={22} /></button>
+              </div>
+              <div className="p-4 overflow-y-auto space-y-4">
+                {/* استبدالات سابقة (لو الفاتورة اتستبدلت أكتر من مرة) */}
+                {Array.isArray(ex.history) && ex.history.length > 0 && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-100 dark:border-amber-800 space-y-2">
+                    <div className="text-xs font-black text-amber-700">استبدالات سابقة ({ex.history.length})</div>
+                    {ex.history.map((h: any, i: number) => {
+                      const names = (arr: any[]) => (arr || []).map((it: any) => `${it.name} ×${it.quantity}`).join('، ') || '—';
+                      const hd = Number(h.diff) || 0;
+                      return (
+                        <div key={i} className="bg-white dark:bg-slate-800 rounded-lg p-2 text-[11px] space-y-0.5 border border-amber-100 dark:border-amber-800/50">
+                          <div className="flex justify-between font-black text-amber-700">
+                            <span>استبدال {i + 1}</span>
+                            <span className="text-slate-400">{h.date ? new Date(h.date).toLocaleDateString('ar-EG', { calendar: 'gregory' }) : ''}</span>
+                          </div>
+                          <div className="text-red-600 font-bold">رجّع: {names(h.before)}</div>
+                          <div className="text-emerald-700 font-bold">خد: {names(h.after)}</div>
+                          <div className="font-bold text-slate-600 dark:text-slate-300">
+                            {Math.abs(hd) < 0.01 ? 'من غير فرق' : hd > 0 ? `دفع ${Math.abs(hd).toFixed(2)} ${cur}` : `استلم ${Math.abs(hd).toFixed(2)} ${cur}`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-100 dark:border-red-800">
+                  <div className="text-xs font-black text-red-600 mb-1">
+                    {Array.isArray(ex.history) && ex.history.length > 0 ? 'آخر استبدال — رجّع' : 'قبل الاستبدال'} — الإجمالي: {(Number(ex.oldTotal) || 0).toFixed(2)} {cur}
+                  </div>
+                  {list(ex.before)}
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 border border-emerald-100 dark:border-emerald-800">
+                  <div className="text-xs font-black text-emerald-700 mb-1">بعد الاستبدال — الإجمالي: {(Number(ex.newTotal) || 0).toFixed(2)} {cur}</div>
+                  {list(ex.after)}
+                </div>
+                <div className={`rounded-xl p-3 text-center font-black ${Math.abs(diff) < 0.01 ? 'bg-slate-100 dark:bg-slate-900/40 text-slate-600' : diff > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                  {Math.abs(diff) < 0.01 ? 'لا يوجد فرق' : `${diff > 0 ? 'تم تحصيل' : 'تم رد'}: ${Math.abs(diff).toFixed(2)} ${cur}`}
+                  {/* استبدال قديم مالوش split — بيقع على method القديمة. */}
+                  {Math.abs(diff) >= 0.01 && (() => {
+                    const used = Object.entries((ex.split || {}) as Record<string, number>).filter(([, v]) => (Number(v) || 0) > 0.001);
+                    const text = used.length
+                      ? used.map(([k, v]) => `${payLabelOf(storeSettings as any, k)} ${(Number(v) || 0).toFixed(2)}`).join(' + ')
+                      : (ex.method ? payLabelOf(storeSettings as any, ex.method) : '');
+                    return text ? <div className="text-[11px] font-bold text-slate-600 mt-1">{text}</div> : null;
+                  })()}
+                  {ex.date ? <div className="text-[11px] font-bold text-slate-500 mt-1">{new Date(ex.date).toLocaleString('ar-EG')}</div> : null}
+                </div>
+                {/* استبدال تاني من جوه شاشة التفاصيل — الفاتورة دلوقتي شايلة القطع
+                    الحالية، فالجولة الجاية بتشتغل عليها زي أي فاتورة. */}
+                {perm('editDelete') && !canExchangeAgain(viewExchange).blocked && (
+                  <button onClick={() => openEditOrder(viewExchange)} className="w-full bg-amber-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2"><RefreshCcw size={16} /> استبدال تاني على الفاتورة دي</button>
+                )}
+                <button onClick={() => reprintOrder(viewExchange)} className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2"><Printer size={16} /> طباعة الفاتورة الحالية</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {showDebtModal && (
+        <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-3" onClick={() => setShowDebtModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-amber-500 text-white px-5 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-black flex items-center gap-2"><CreditCard size={20} /> سداد آجل للعملاء</h2>
+              <button onClick={() => setShowDebtModal(false)} className="hover:bg-white/20 p-1.5 rounded-lg"><X size={22} /></button>
+            </div>
+            <div className="p-4 flex-1 overflow-y-auto space-y-3">
+              {!selectedDebtCustomer ? (
+                <>
+                  <input autoFocus value={debtSearch} onChange={(e) => setDebtSearch(e.target.value)} placeholder="ابحث باسم العميل أو رقم التليفون..." className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-amber-500" />
+                  <div className="space-y-2 max-h-72 overflow-y-auto">
+                    {debtFiltered.length === 0 ? <p className="text-center text-slate-400 py-8 font-bold">لا يوجد عملاء عليهم آجل</p>
+                      : debtFiltered.map((c) => (
+                        <button key={c.id} onClick={() => { setDebtCustId(c.id); setDebtAmount(String(c.debt.toFixed(2))); }} className="w-full text-right bg-slate-50 dark:bg-slate-900/40 hover:bg-amber-50 rounded-xl p-3 border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                          <div><p className="font-black text-slate-800 dark:text-slate-100 text-sm">{c.name}</p><p className="text-[11px] text-slate-500" dir="ltr">{c.phone || '—'}</p></div>
+                          <span className="bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-lg">{c.debt.toFixed(2)} {storeSettings.currency}</span>
+                        </button>
+                      ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 flex items-center justify-between">
+                    <div><p className="font-black text-slate-800 dark:text-slate-100">{selectedDebtCustomer.name}</p><p className="text-[11px] text-slate-500" dir="ltr">{selectedDebtCustomer.phone || '—'}</p></div>
+                    <button onClick={() => { setDebtCustId(''); setDebtAmount(''); }} className="text-xs font-bold text-amber-600">تغيير</button>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-center">
+                    <div className="text-[11px] font-bold text-red-600">إجمالي المديونية</div>
+                    <div className="text-2xl font-black text-red-700">{selectedDebtCustomer.debt.toFixed(2)} {storeSettings.currency}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 block mb-1">المبلغ المدفوع</label>
+                    <input autoFocus type="number" value={debtAmount} onChange={(e) => setDebtAmount(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-3 text-lg font-black outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 block mb-1">طريقة الدفع</label>
+                    <select value={debtMethod} onChange={(e) => setDebtMethod(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-3 text-sm font-bold outline-none">
+                      <option value="cash">{payLabel('cash')}</option><option value="visa">{payLabel('visa')}</option><option value="wallet">{payLabel('wallet')}</option><option value="instapay">{payLabel('instapay')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 block mb-1">تاريخ التحصيل (يُسجَّل في حسابات هذا اليوم)</label>
+                    <input type="date" value={debtPayDate} onChange={(e) => setDebtPayDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500" />
+                  </div>
+                  <div className="bg-slate-100 dark:bg-slate-900 rounded-xl p-3 text-center">
+                    <span className="text-xs font-bold text-slate-500">المتبقي بعد السداد: </span>
+                    <span className="font-black text-slate-800 dark:text-slate-100">{Math.max(0, selectedDebtCustomer.debt - (Number(debtAmount) || 0)).toFixed(2)} {storeSettings.currency}</span>
+                  </div>
+                  <button onClick={submitDebtPayment} disabled={debtSaving} className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">
+                    <Printer size={18} /> {debtSaving ? 'جاري...' : 'تأكيد السداد وطباعة الإيصال'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReturnsModal && (
+        <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm flex items-start md:items-center justify-center p-4 pt-8 md:pt-4 pb-20 md:pb-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-gray-200 dark:border-slate-700">
+            <div className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white flex justify-between items-center">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <ArrowRightLeft size={24} /> نظام المرتجعات
+              </h2>
+              <button onClick={() => setShowReturnsModal(false)} className="hover:bg-white/20 p-2 rounded-full transition">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 flex-1 flex flex-col gap-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="أدخل رقم الفاتورة للبحث..."
+                  className="flex-1 bg-gray-100 dark:bg-slate-700 dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-mono text-left"
+                  dir="ltr"
+                  value={returnSearchQuery}
+                  onChange={(e) => setReturnSearchQuery(e.target.value)}
+                />
+                <button onClick={handleSearchOrder} className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg shrink-0">بحث برقم الفاتورة</button>
+              </div>
+
+              {activeReturnOrder && (() => {
+                const itemsSum = activeReturnOrder.items.reduce((sum: number, item: any) => sum + (item.quantity * item.sale_price), 0);
+                const discountRatio = itemsSum > 0 ? activeReturnOrder.total / itemsSum : 1;
+                
+                // calculate past refunds
+                const pastRefunds = activeReturnOrder.items.reduce((sum: number, item: any) => sum + (item.refunded_amount || 0), 0);
+
+                // Value of goods selected for return, and how it splits between
+                // settling the customer's debt and cash refunded to them.
+                const selectedReturnValue = Object.keys(pendingReturns).reduce((s, pid) => {
+                  const pr = pendingReturns[pid];
+                  const it = activeReturnOrder.items.find((i: any) => i.id === pid);
+                  return it ? s + ((pr.returnQty || 0) * it.sale_price * discountRatio) : s;
+                }, 0);
+                const outstandingDebt = Math.max(0, activeReturnOrder.total - calculateOrderReturnValue(activeReturnOrder) - activeReturnOrder.paid_amount);
+                const maxDebtDeduction = Math.min(selectedReturnValue, outstandingDebt);
+                const debtSettled = returnDebtDeduction === null
+                  ? maxDebtDeduction
+                  : Math.max(0, Math.min(returnDebtDeduction, maxDebtDeduction));
+                const cashRefundValue = Math.max(0, selectedReturnValue - debtSettled);
+                // الخصم بيقلّل اللي بيخرج من الدرج للعميل بس — قيمة المرتجع على
+                // الفاتورة بتفضل كاملة والفرق بيتسجّل إيراد (شوف processReturn).
+                const refundFee = Math.min(Math.max(0, parseFloat(refundFeeStr) || 0), cashRefundValue);
+                const cashToCustomer = Math.max(0, cashRefundValue - refundFee);
+
+                return (
+                  <>
+                    {/* Financial Summary Card */}
+                    <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">العميل</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-200">{activeReturnOrder.customer?.name || 'عميل نقدي'}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">إجمالي الفاتورة (بعد الخصم)</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-200">{activeReturnOrder.total.toFixed(2)} {storeSettings.currency}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">المبلغ المدفوع</span>
+                        <span className="text-sm font-black text-green-600 dark:text-green-400">{activeReturnOrder.paid_amount.toFixed(2)} {storeSettings.currency}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">نسبة خصم الفاتورة</span>
+                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{((1 - discountRatio) * 100).toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    {/* تاريخ المرتجع + الخصم — قبل بطاقات الأرقام عشان يبانوا */}
+                    {selectedReturnValue > 0 && (
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">تاريخ المرتجع</label>
+                          <input
+                            type="date" value={refundDate}
+                            onChange={(e) => setRefundDate(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-sm font-bold focus:ring-2 focus:ring-indigo-400 outline-none"
+                          />
+                          {refundDate !== businessDateStr(storeSettings) && (
+                            <p className="text-[10px] font-bold text-amber-600 mt-1">هيتسجّل على تقفيل يوم {refundDate}</p>
+                          )}
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">خصم من المرتجع</label>
+                          <input
+                            type="number" dir="ltr" placeholder="0.00" value={refundFeeStr}
+                            onChange={(e) => setRefundFeeStr(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-sm font-bold text-center focus:ring-2 focus:ring-indigo-400 outline-none"
+                          />
+                          <p className="text-[10px] font-bold text-slate-400 mt-1">بيقلّل اللي العميل هياخده ويفضل في الدرج كإيراد</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Return split: debt settlement vs cash to customer */}
+                    {selectedReturnValue > 0 && (
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-700">
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">قيمة المرتجع</div>
+                          <div className="text-lg font-black text-slate-800 dark:text-slate-200">{selectedReturnValue.toFixed(2)}</div>
+                        </div>
+                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 text-center border border-amber-200 dark:border-amber-800">
+                          <div className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">يُخصم من المديونية</div>
+                          {maxDebtDeduction > 0 ? (
+                            <>
+                              <input
+                                type="number"
+                                min="0"
+                                max={maxDebtDeduction}
+                                step="0.01"
+                                value={Number(debtSettled.toFixed(2))}
+                                onChange={(e) => {
+                                  const v = parseFloat(e.target.value);
+                                  setReturnDebtDeduction(isNaN(v) ? 0 : Math.max(0, Math.min(v, maxDebtDeduction)));
+                                }}
+                                className="w-full mt-1 bg-white dark:bg-slate-700 border border-amber-300 dark:border-amber-700 rounded-lg px-2 py-1 text-center text-lg font-black text-amber-700 dark:text-amber-400 focus:ring-2 focus:ring-amber-400 outline-none"
+                              />
+                              <div className="flex gap-1 mt-1 justify-center">
+                                <button type="button" onClick={() => setReturnDebtDeduction(0)} className="text-[9px] font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200">بدون خصم</button>
+                                <button type="button" onClick={() => setReturnDebtDeduction(null)} className="text-[9px] font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200">تلقائي</button>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-lg font-black text-amber-700 dark:text-amber-400">{debtSettled.toFixed(2)}</div>
+                          )}
+                        </div>
+                        <div className="bg-emerald-500 text-white rounded-xl p-3 text-center shadow-lg shadow-emerald-200 dark:shadow-none">
+                          <div className="text-[10px] font-bold uppercase tracking-wider opacity-90">تدّي العميل</div>
+                          <div className="text-lg font-black">{cashToCustomer.toFixed(2)}</div>
+                          {cashToCustomer > 0 && !refundSplitMode && (
+                            <div className="flex flex-wrap gap-1 mt-2 justify-center">
+                              {/* الوسائل المفعّلة من الإعدادات — مش قايمة ثابتة، عشان
+                                  الطريقتين الإضافيتين (5/6) يظهروا هنا كمان. */}
+                              {activePayKeys.map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => setRefundMethod(m as any)}
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded transition ${refundMethod === m ? 'bg-white text-emerald-700' : 'bg-emerald-600/60 text-white hover:bg-emerald-600'}`}
+                                >
+                                  {payLabel(m)}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {cashToCustomer > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = !refundSplitMode;
+                                setRefundSplitMode(next);
+                                // أول ما يفتح التقسيم بنحط المبلغ كله على الوسيلة
+                                // المختارة — الكاشير بيعدّل منها بدل ما يكتب من الأول.
+                                setRefundSplitInput(next ? { [refundMethod]: cashToCustomer.toFixed(2) } : {});
+                              }}
+                              className="mt-2 text-[9px] font-black px-2 py-0.5 rounded bg-emerald-700/70 hover:bg-emerald-700 text-white transition"
+                            >
+                              {refundSplitMode ? '↩ وسيلة واحدة' : '⇄ تقسيم على أكتر من وسيلة'}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* خانات التقسيم — بتاخد عرض الصف كله عشان الأرقام تبان */}
+                        {refundSplitMode && cashToCustomer > 0 && (
+                          <div className="col-span-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">وزّع {cashToCustomer.toFixed(2)} {storeSettings.currency} على الوسائل</span>
+                              <span className={`text-[11px] font-black ${Math.abs(refundSplitTotal - cashToCustomer) < 0.01 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                المكتوب: {refundSplitTotal.toFixed(2)}
+                                {Math.abs(refundSplitTotal - cashToCustomer) >= 0.01 && ` (الفرق ${(cashToCustomer - refundSplitTotal).toFixed(2)})`}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {activePayKeys.map((k) => (
+                                <div key={k}>
+                                  <label className="block text-[10px] font-bold text-emerald-700 dark:text-emerald-400 mb-0.5">{payLabel(k)}</label>
+                                  <input
+                                    type="number" dir="ltr" placeholder="0.00"
+                                    value={refundSplitInput[k] ?? ''}
+                                    onChange={(e) => setRefundSplitInput((s) => ({ ...s, [k]: e.target.value }))}
+                                    className="w-full bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 rounded-lg px-2 py-1.5 text-sm font-bold text-center focus:ring-2 focus:ring-emerald-400 outline-none"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex-1 border border-gray-200 dark:border-slate-700 flex flex-col rounded-xl overflow-hidden">
+                      <div className="bg-gray-100 dark:bg-slate-700 p-4 flex justify-between items-center border-b border-gray-200 dark:border-slate-600">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-700 dark:text-gray-200 font-mono tracking-wider">الأصناف المتاحة للإرجاع</span>
+                          <span className="text-[10px] text-slate-500 font-bold">رقم الفاتورة: #{activeReturnOrder.id} | المرتجع مسبقاً: {pastRefunds.toFixed(2)} {storeSettings.currency}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handleReturnAll}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg transition-all"
+                          >
+                            إرجاع الفاتورة بالكامل
+                          </button>
+                          <button
+                            onClick={handleConfirmReturns}
+                            disabled={Object.values(pendingReturns).filter(pr => pr.returnQty > 0).length === 0}
+                            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg transition-all"
+                          >
+                            تأكيد المرتجعات المحددة
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-3 max-h-72 overflow-y-auto hide-scrollbar">
+                        {activeReturnOrder.items.map((item: any) => {
+                          const available = item.quantity - item.returned_quantity;
+                          const effectivePrice = item.sale_price * discountRatio;
+                          const pr = pendingReturns[item.id] || { returnQty: 0, refundAmount: 0, returnType: 'cash' };
+
+                          return (
+                            <div key={item.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-600 rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
+                              <div className="flex flex-col flex-1">
+                                <span className="font-bold text-md text-gray-800 dark:text-gray-100">{item.name}</span>
+                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                                  <span>مباع: {item.quantity}</span>
+                                  <span>مسترجع مسبقاً: <span className="text-red-500 font-bold">{item.returned_quantity}</span></span>
+                                  <span>سعر الوحدة الأصلي: {item.sale_price.toFixed(2)}</span>
+                                  <span className="text-indigo-500 font-bold">سعر الوحدة بعد الخصم: {effectivePrice.toFixed(2)}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 w-full md:w-auto">
+                                <div className="flex flex-col gap-1 w-24">
+                                  <label className="text-[10px] font-bold text-slate-500">كمية الإرجاع</label>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    max={available}
+                                    value={pr.returnQty || ''}
+                                    onChange={(e) => {
+                                      let qty = parseInt(e.target.value) || 0;
+                                      if (qty > available) qty = available;
+                                      if (qty < 0) qty = 0;
+                                      setPendingReturns(prev => ({
+                                        ...prev,
+                                        [item.id]: {
+                                          returnQty: qty,
+                                          refundAmount: prev[item.id]?.returnType === 'debt' ? 0 : qty * effectivePrice,
+                                          returnType: prev[item.id]?.returnType || 'cash'
+                                        }
+                                      }));
+                                    }}
+                                    className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-center font-bold focus:ring-2 focus:ring-red-500 outline-none"
+                                    placeholder="0"
+                                    disabled={available === 0}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className={`flex-1 flex flex-col h-full pb-16 lg:pb-0 bg-white dark:bg-slate-900 shadow-2xl z-10 w-full lg:w-2/3 ${mobileView === 'cart' ? 'hidden lg:flex' : 'flex'}`}>
+        <header className="flex flex-col p-3 md:p-5 gap-4 border-b border-gray-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+          {/* Top Row: Avatar (Right), Text (Center), Dark Mode (Left) */}
+          <div className="flex justify-between items-start w-full">
+            {/* Right: Avatar and Message */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative group cursor-pointer" onClick={() => { if (confirm('هل تريد تسجيل الخروج؟')) { logoutPOS(); navigate('/pos-login'); } }}>
+                <img src={activeCashier?.photo_url || storeSettings.logo} alt="Logo" className="w-12 h-12 object-contain rounded-xl shadow-md border border-gray-100 dark:border-slate-700 bg-white p-0.5 group-hover:scale-110 transition-transform" />
+                <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900"></div>
+              </div>
+              <button 
+                onClick={() => setShowNoteModal(true)}
+                className="w-12 h-12 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors shadow-sm border border-blue-100 dark:border-blue-800/50"
+                title="إرسال رسالة للمدير"
+              >
+                <MessageSquare size={20} />
+              </button>
+              <button
+                onClick={() => { setFinanceTreasury('shop'); setFinanceDate(businessDateStr(storeSettings)); setShowFinanceModal(true); }}
+                className="w-12 h-12 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors shadow-sm border border-emerald-100 dark:border-emerald-800/50"
+                title="معاملة مالية"
+              >
+                <Wallet size={20} />
+              </button>
+              {canEmployeeAdvance && (
+                <button
+                  onClick={() => { resetAdvanceForm(); setShowAdvanceModal(true); }}
+                  className="w-12 h-12 flex items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors shadow-sm border border-amber-100 dark:border-amber-800/50"
+                  title="صرف سلفة لموظف"
+                >
+                  <HandCoins size={20} />
+                </button>
+              )}
+              {canEmployeeDeduction && (
+                <button
+                  onClick={() => { resetDeductionForm(); setShowDeductionModal(true); }}
+                  className="w-12 h-12 flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors shadow-sm border border-rose-100 dark:border-rose-800/50"
+                  title="تسجيل خصم لموظف"
+                >
+                  <UserMinus size={20} />
+                </button>
+              )}
+              {canBarcodePrint && (
+                <button
+                  onClick={() => setShowBarcodeModal(true)}
+                  className="w-12 h-12 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-700/40 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700/70 transition-colors shadow-sm border border-slate-200 dark:border-slate-700"
+                  title="طباعة باركود منتج"
+                >
+                  <ScanLine size={20} />
+                </button>
+              )}
+            </div>
+
+            {/* Center: Text & Badges */}
+            <div className="flex flex-col items-center flex-1 px-2 text-center">
+              <div className="flex flex-col md:flex-row items-center gap-2 mb-1">
+                <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 leading-tight">
+                  أهلاً، {activeCashier?.name?.split(' ')[0] || 'المحاسب'}
+                </h1>
+                
+                {/* Offline Status Badge */}
+                {/* isOfflineMode = شغّالين من النسخة المحفوظة. بيحصل كمان والنت
+                    «متصل» بس ضعيف/مش راد، فلازم يبان مش نعرض «متصل» بالغلط. */}
+                {!isOnline || isOfflineMode ? (
+                  <span
+                    className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse shadow-sm"
+                    title={offlineSnapshotAt ? `بيانات محفوظة بتاريخ ${new Date(offlineSnapshotAt).toLocaleString('ar-EG')}` : undefined}
+                  >
+                    🔴 أوفلاين ({offlineQueue.length + offlineReturnsQueue.length} محلياً)
+                  </span>
+                ) : isSyncing ? (
+                  <span className="bg-amber-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                    ⏳ جاري الرفع...
+                  </span>
+                ) : (offlineQueue.length > 0 || offlineReturnsQueue.length > 0) ? (
+                  <button 
+                    onClick={() => { syncOfflineQueue(); syncOfflineReturnsQueue(); }}
+                    className="bg-indigo-600 text-white hover:bg-indigo-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 transition shadow-sm"
+                  >
+                    🔁 مزامنة ({offlineQueue.length + offlineReturnsQueue.length} معاملات)
+                  </button>
+                ) : (
+                  <span className="bg-emerald-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                    🟢 متصل
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-tight">{storeSettings.name}</span>
+            </div>
+
+            {/* Left: Dark Mode Toggle */}
+            <button onClick={toggleTheme} className="p-3 lg:p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 transition shadow-sm shrink-0">
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
+
+          {/* Bottom Row: Camera (Right), Scanner/Search (Center), Returns (Left) */}
+          <div className="flex items-center justify-between gap-2 lg:gap-4 w-full">
+            {/* Right: Camera Button */}
+            <button 
+              onClick={() => setShowCameraScanner(true)}
+              className="p-3 lg:p-3.5 rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 transition shadow-sm flex items-center justify-center shrink-0 w-[44px] h-[44px] lg:w-[52px] lg:h-[52px]"
+              title="مسح بالكاميرا"
+            >
+              <Camera size={20} />
+            </button>
+
+            {/* Center: Barcode Scanner & Search */}
+            <div className="flex-1 flex gap-2 lg:gap-4 justify-center max-w-2xl">
+              <div className="relative w-full group flex-1">
+                 <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm opacity-0 group-focus-within:opacity-100 transition-opacity whitespace-nowrap">SCAN (Enter)</span>
+                 <div className={`relative flex items-center border-2 rounded-2xl transition-colors bg-white dark:bg-slate-800 h-[44px] lg:h-[52px] w-full ${scanStatus === 'success' ? 'border-emerald-500 ring-2 ring-emerald-200' : scanStatus === 'error' ? 'border-red-500 ring-2 ring-red-200' : 'border-indigo-200 dark:border-slate-700 focus-within:border-indigo-500 shadow-inner'}`}>
+                   <ScanLine className={`absolute right-2 lg:right-3 ${scanStatus === 'success' ? 'text-emerald-500' : scanStatus === 'error' ? 'text-red-500' : 'text-indigo-500'}`} size={18} />
+                   <input
+                     type="text"
+                     dir="ltr"
+                     placeholder="قارئ الباركود"
+                     className="w-full bg-transparent border-none h-full pr-8 lg:pr-10 pl-2 lg:pl-3 text-xs lg:text-sm focus:outline-none focus:ring-0 font-mono font-bold placeholder-indigo-300 dark:placeholder-slate-500 text-indigo-700 dark:text-indigo-400 text-center"
+                     value={barcodeInput}
+                     onChange={e => setBarcodeInput(e.target.value)}
+                     onKeyDown={handleBarcodeScan}
+                   />
+                 </div>
+              </div>
+
+              {/* Desktop Only Search */}
+              <div className="relative flex-1 hidden lg:block">
+                <Search className="absolute right-4 top-3.5 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="ابحث باسم المنتج..."
+                  style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
+                  className="w-full h-[52px] bg-slate-100 dark:bg-slate-800 dark:text-white border-none rounded-2xl py-3.5 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 shadow-inner transition"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Left: Invoices history + Returns Button */}
+            {perm('invoices') && (
+            <button onClick={() => setShowHistory(true)} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 rounded-2xl font-bold transition border border-indigo-100 dark:border-indigo-900/30 whitespace-nowrap shadow-sm shrink-0">
+              <FileText size={18} /> <span className="text-sm">الفواتير</span>
+            </button>
+            )}
+            {perm('debt') && (
+            <button onClick={() => { setDebtPayDate(businessDateStr(storeSettings)); setShowDebtModal(true); }} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 rounded-2xl font-bold transition border border-amber-100 dark:border-amber-900/30 whitespace-nowrap shadow-sm shrink-0">
+              <CreditCard size={18} /> <span className="text-sm">سداد آجل</span>
+            </button>
+            )}
+            {perm('dayClosing') && (
+            <button onClick={() => setShowDayBudget(true)} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 rounded-2xl font-bold transition border border-emerald-100 dark:border-emerald-900/30 whitespace-nowrap shadow-sm shrink-0">
+              <Banknote size={18} /> <span className="text-sm">تقفيل اليوم</span>
+            </button>
+            )}
+            {perm('returns') && (
+            <button onClick={() => setShowReturnsModal(true)} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 rounded-2xl font-bold transition border border-red-100 dark:border-red-900/30 whitespace-nowrap shadow-sm shrink-0">
+              <RefreshCcw size={18} /> <span className="text-sm">مرتجع</span>
+            </button>
+            )}
+            {perm('held') && (
+            <button onClick={() => setShowHeldModal(true)} className="relative flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 rounded-2xl font-bold transition border border-orange-100 dark:border-orange-900/30 whitespace-nowrap shadow-sm shrink-0">
+              <Clock size={18} /> <span className="text-sm">فواتير معلقة</span>
+              {heldInvoices.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 flex items-center justify-center text-[10px] font-black text-white bg-orange-500 rounded-full shadow">{heldInvoices.length}</span>
+              )}
+            </button>
+            )}
+            {/* فواتير الانتظار — مش متقيّدة بصلاحية: مفيش مخزون ولا فلوس بتتحرّك، ودي حاجة كل كاشير محتاجها. */}
+            <button onClick={() => setShowParkedModal(true)} className="relative flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 rounded-2xl font-bold transition border border-amber-100 dark:border-amber-900/30 whitespace-nowrap shadow-sm shrink-0">
+              <Hourglass size={18} /> <span className="text-sm">انتظار</span>
+              {parkedCarts.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 flex items-center justify-center text-[10px] font-black text-white bg-amber-500 rounded-full shadow">{parkedCarts.length}</span>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* Invoice type + season bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-5 px-3 py-2 border-b border-gray-100 dark:border-slate-800">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+            <span className="text-[11px] font-bold text-slate-400 shrink-0">الفاتورة</span>
+            {([['retail', 'قطاعي'], ['half', 'نص جملة'], ['wholesale', 'جملة']] as const).filter(([k]) => k === 'retail' || perm('wholesale')).map(([k, label]) => (
+              <button key={k} onClick={() => setInvoiceType(k)}
+                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition ${invoiceType === k ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+            <span className="text-[11px] font-bold text-slate-400 shrink-0">الموسم</span>
+            {([['all', 'الكل'], ['summer', 'صيفي'], ['winter', 'شتوي'], ['annual', 'سنوي']] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setPosSeason(k)}
+                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition ${posSeason === k ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Categories Tabs */}
+        <div className="relative group bg-slate-50/50 dark:bg-slate-800/20 border-b border-gray-100 dark:border-slate-800">
+          <button 
+            onClick={() => scrollCategories('right')}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 shadow-md p-2 rounded-l-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronRight size={20} className="text-gray-600 dark:text-gray-300" />
+          </button>
+          
+          <div ref={categoriesRef} className="flex gap-2 md:gap-3 p-3 md:p-5 overflow-x-auto hide-scrollbar items-center scroll-smooth">
+            <button
+              onClick={() => setActiveCategory('all')}
+              style={activeCategory === 'all' ? { background: storeSettings.themeColor } : {}}
+              className={`px-4 py-2 md:px-6 md:py-2.5 text-sm md:text-base rounded-2xl whitespace-nowrap font-bold transition shadow-sm border ${activeCategory === 'all'
+                  ? 'text-white border-transparent'
+                  : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                }`}
+            >
+              الكل
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setActiveCategory(c.id)}
+                style={activeCategory === c.id ? { background: storeSettings.themeColor } : {}}
+                className={`px-4 py-2 md:px-6 md:py-2.5 text-sm md:text-base rounded-2xl whitespace-nowrap font-bold transition shadow-sm border ${activeCategory === c.id
+                    ? 'text-white border-transparent'
+                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                  }`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+
+          <button 
+            onClick={() => scrollCategories('left')}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-slate-800/90 shadow-md p-2 rounded-r-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronLeft size={20} className="text-gray-600 dark:text-gray-300" />
+          </button>
+        </div>
+
+        {/* Product Catalog Grid */}
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-slate-900 border-l border-gray-100 dark:border-slate-800 relative">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => {
+              const isOutOfStock = product.stock_quantity <= 0;
+              const isLowStock = product.stock_quantity > 0 && product.stock_quantity < 5;
+
+              return (
+                <div
+                  key={product.id}
+                  onClick={() => !isOutOfStock && handleAddProduct(product)}
+                  className={`bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm hover:shadow-xl cursor-pointer transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between border border-gray-100 dark:border-slate-700 ring-1 ring-black/5 dark:ring-white/5 relative overflow-hidden group ${isOutOfStock ? 'opacity-60 cursor-not-allowed grayscale' : ''}`}
+                >
+                  <div className={`absolute top-0 right-0 rounded-bl-3xl rounded-tr-xl px-3 py-1 text-xs font-bold text-white shadow-sm transition-colors ${isOutOfStock ? 'bg-slate-500' : isLowStock ? 'bg-red-500' : 'bg-green-500 dark:bg-green-600'}`}>
+                    {isOutOfStock ? 'نفذت' : formatQty(product.stock_quantity, product.unit)}
+                  </div>
+
+                  <div className="pt-2">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100 line-clamp-2 leading-tight text-base">{product.name}</h3>
+                    {/* سعر الشراء مخفي في الكاشير — يظهر سعر البيع فقط */}
+                  </div>
+                  <div className="flex items-end justify-between mt-3 pt-2 border-t border-gray-100 dark:border-slate-700">
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-medium mb-0.5">سعر البيع / {getUnitConfig(product.unit).label}</p>
+                      {(() => {
+                        if (pricesHidden) return <span className="text-slate-400 font-black text-lg">🔒</span>;
+                        const wholesale = invoiceType === 'wholesale' && (product.wholesale_price || 0) > 0;
+                        const half = invoiceType === 'half' && (product.half_wholesale_price || 0) > 0;
+                        if (wholesale || half) {
+                          const price = wholesale ? product.wholesale_price : product.half_wholesale_price;
+                          return (
+                            <span className="flex items-center gap-1.5">
+                              <span style={{ color: storeSettings.themeColor }} className="text-lg font-black">{price} <span className="text-xs text-gray-500 dark:text-gray-400">{storeSettings.currency}</span></span>
+                              <span className="text-[9px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">{wholesale ? 'جملة' : 'نص جملة'}</span>
+                            </span>
+                          );
+                        }
+                        if ((product.discount_price || 0) > 0 && (product.discount_price || 0) < product.sale_price) {
+                          return (
+                            <span className="flex items-center gap-1.5">
+                              <span className="text-xs text-gray-400 line-through">{product.sale_price}</span>
+                              <span style={{ color: storeSettings.themeColor }} className="text-lg font-black">{product.discount_price} <span className="text-xs text-gray-500 dark:text-gray-400">{storeSettings.currency}</span></span>
+                            </span>
+                          );
+                        }
+                        return <span style={{ color: storeSettings.themeColor }} className="text-lg font-black dark:opacity-90">{product.sale_price} <span className="text-xs text-gray-500 dark:text-gray-400">{storeSettings.currency}</span></span>;
+                      })()}
+                    </div>
+                    <div style={!isOutOfStock ? { backgroundColor: storeSettings.themeColor + '15', color: storeSettings.themeColor, borderColor: storeSettings.themeColor + '30' } : {}} className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all ${isOutOfStock ? 'bg-gray-100 text-gray-400 border-gray-200 dark:bg-slate-700 dark:border-slate-600' : ''}`}>
+                      <Plus size={18} strokeWidth={3} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Cart Sidebar */}
+      <div className={`w-full pb-16 lg:pb-0 lg:w-1/3 min-w-0 lg:min-w-[320px] xl:min-w-[420px] bg-white dark:bg-slate-800 flex flex-col z-20 shadow-2xl relative ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'}`}>
+        <div
+          style={{
+            background: `linear-gradient(160deg, ${storeSettings.themeColor} 0%, ${storeSettings.themeColor}dd 100%)`,
+            boxShadow: `0 8px 32px ${storeSettings.themeColor}66`
+          }}
+          className="p-4 text-white flex flex-col relative h-auto rounded-bl-[40px] gap-3 z-[60]"
+        >
+
+          <div className="absolute inset-0 bg-black/20 rounded-bl-[40px]"></div>
+
+          <div className="relative flex justify-between items-start mb-4 gap-2 flex-wrap">
+            <div className="flex flex-col gap-1.5">
+              <h2 className="text-xl font-black flex items-center gap-2 drop-shadow">
+                <ShoppingCart size={24} />
+                الفاتورة
+              </h2>
+              {/* التاريخ المحاسبي الحالي — قابل للتغيير للمستخدم الرئيسي لإدخال فواتير قديمة */}
+              {(() => {
+                const effBd = workDateOverride || businessDateStr(storeSettings);
+                const overridden = !!workDateOverride;
+                const label = new Date(`${effBd}T12:00:00`).toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                return (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => { if (isMaster) setShowDatePicker((v) => !v); }}
+                      title={isMaster ? 'اضغطي لتغيير تاريخ الفواتير الجديدة (لإدخال فواتير قديمة)' : 'تاريخ اليوم'}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold w-fit transition ${overridden ? 'bg-amber-500 border-amber-300 text-white shadow' : 'bg-black/20 border-white/20'} ${isMaster ? 'cursor-pointer hover:brightness-110' : 'cursor-default'}`}
+                    >
+                      📅 <span>{label}</span>
+                      {overridden && <span className="opacity-90">• تاريخ قديم</span>}
+                    </button>
+                    {overridden && (
+                      <button type="button" onClick={() => { setWorkDateOverride(''); setShowDatePicker(false); }} className="inline-flex items-center gap-1 bg-black/25 border border-white/20 rounded-lg px-2 py-1 text-[11px] font-bold hover:brightness-110" title="رجوع لتاريخ اليوم">↺ اليوم</button>
+                    )}
+                    {isMaster && showDatePicker && (
+                      <input
+                        type="date"
+                        autoFocus
+                        value={workDateOverride || businessDateStr(storeSettings)}
+                        max={businessDateStr(storeSettings)}
+                        onChange={(e) => setWorkDateOverride(e.target.value)}
+                        className="text-slate-800 bg-white rounded-lg px-2 py-1 text-[11px] font-bold outline-none"
+                      />
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="font-mono flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg border border-white/20 text-xs">
+                <span className="opacity-80 font-sans">رقم:</span> <span className="font-bold tracking-widest">{activeInvoiceId}</span>
+              </div>
+              <div className="bg-black/20 px-3 py-1 rounded-lg text-xs font-bold border border-white/20">
+                {cart.length} الأصناف
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Inputs Grid */}
+          <div className="relative flex gap-1.5 text-sm h-11">
+            <div className="flex-1 relative group">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:scale-110 transition-transform"><CreditCard size={14} /></span>
+              <input
+                id="pos-cust-card"
+                type="text" dir="ltr" value={customerId} onChange={handleIdChange}
+                onKeyDown={(e) => keyNext(e, 'pos-salesperson')}
+                className="w-full bg-white/95 text-indigo-600 dark:text-indigo-400 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-black shadow-inner text-xs h-full"
+                placeholder="رقم الكارت"
+              />
+            </div>
+            <div className="flex-1 relative group">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:scale-110 transition-transform"><Smartphone size={14} /></span>
+              <input
+                id="pos-cust-phone"
+                type="text" dir="ltr" value={customerPhone} onChange={handlePhoneChange}
+                onKeyDown={(e) => keyNext(e, 'pos-cust-card')}
+                className="w-full bg-white/95 text-slate-800 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-full"
+                placeholder="الموبايل"
+              />
+            </div>
+            <div className="flex-[1.2] relative group">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:scale-110 transition-transform"><ShoppingCart size={14} /></span>
+              <input
+                id="pos-cust-name"
+                type="text" value={customerName}
+                onChange={e => { setCustomerName(e.target.value); setShowCustomerSuggestions(true); }}
+                onFocus={() => setShowCustomerSuggestions(true)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setShowCustomerSuggestions(false); focusById('pos-cust-phone'); } }}
+                className="w-full bg-white/95 text-slate-800 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-full"
+                placeholder="الاسم"
+              />
+              {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                <div className="absolute z-[200] left-0 right-0 top-full mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 max-h-64 overflow-y-auto">
+                  {filteredCustomers.map(c => (
+                    <button
+                      key={c.id} onClick={() => handleSelectCustomer(c)}
+                      className="w-full text-right px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center justify-between border-b border-gray-50 dark:border-slate-700 last:border-0"
+                    >
+                      <div className="flex flex-col text-right">
+                        <span className="font-bold text-slate-800 dark:text-slate-100">{c.name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono" dir="ltr">{c.phone}</span>
+                      </div>
+                      <div className="bg-indigo-600 px-3 py-1.5 rounded-lg text-white font-mono text-[10px] font-black">{c.card_number || c.custom_id || c.id.substring(0, 6)}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {customerDebt > 0 && (
+            <div className="relative mt-3 bg-black/20 border border-white/20 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between">
+              <span>⚠️ مديونية سابقة:</span>
+              <span className="bg-red-500 text-white px-2 py-0.5 rounded-lg font-mono border border-red-400">{customerDebt.toFixed(2)} {storeSettings.currency}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Cart Listing */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50 dark:bg-slate-900/50" style={{ scrollbarWidth: 'thin' }}>
+          {cart.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 transition-opacity opacity-70">
+              <ShoppingCart size={70} className="mb-4 opacity-30 drop-shadow-md" />
+              <p className="text-xl font-semibold">السلة فارغة</p>
+              <p className="text-xs mt-2 opacity-70">أضف بعض المنتجات للبدء بحساب الفاتورة.</p>
+            </div>
+          ) : (
+            cart.map((item) => (
+              <div key={item.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col gap-2 relative overflow-hidden group hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 leading-tight w-4/5 text-sm">{item.name}</h4>
+                  <button onClick={() => removeFromCart(item.id)} aria-label="حذف الصنف" className="text-red-500 hover:text-white hover:bg-red-500 dark:text-red-400 transition-colors bg-red-50 dark:bg-red-900/30 p-2 rounded-lg absolute left-3 top-3 border border-red-100 dark:border-red-900/50 shadow-sm">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between pt-2 mt-0.5 border-t border-gray-50 dark:border-slate-700/50">
+                  <div className="flex flex-col">
+                    {pricesHidden ? (
+                      <span className="font-black text-lg text-slate-400">🔒 السعر مخفي</span>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">سعر {getUnitConfig(item.unit).label}:</label>
+                          {(() => { const prod = products.find(p => p.id === item.id); return prod && (prod.discount_price || 0) > 0 && Math.abs(item.sale_price - (prod.discount_price || 0)) < 0.01 && prod.sale_price > (prod.discount_price || 0) ? (<span className="text-[9px] text-gray-400 line-through">{prod.sale_price}</span>) : null; })()}
+                          <input
+                            type="number"
+                            dir="ltr"
+                            value={item.sale_price}
+                            onChange={(e) => updatePrice(item.id, parseFloat(e.target.value) || 0)}
+                            className="w-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-none rounded-md px-1.5 py-0.5 text-xs font-black focus:ring-1 focus:ring-indigo-400 transition text-center"
+                          />
+                        </div>
+                        <span className="font-black text-lg text-indigo-600 dark:text-indigo-400">
+                          {(item.sale_price * item.quantity).toFixed(2)} <span className="text-[10px] text-gray-500">{storeSettings.currency}</span>
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {isFractionalUnit(item.unit) ? (
+                    <button
+                      onClick={() => { setWeightProduct(item); setWeightUnitInput(String(item.quantity)); setWeightSubInput(''); }}
+                      className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 rounded-lg px-3 py-1.5 text-amber-700 dark:text-amber-300 font-bold text-sm shadow-inner hover:bg-amber-100 transition"
+                      title="تعديل الوزن"
+                    >
+                      <span>{formatQty(item.quantity, item.unit)}</span>
+                      <Edit2 size={13} strokeWidth={2.5} />
+                    </button>
+                  ) : (
+                    <div className="flex items-center bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg p-0.5 shadow-inner">
+                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1.5 hover:bg-white dark:hover:bg-slate-600 rounded-md text-gray-600 dark:text-gray-300 transition-colors shadow-sm">
+                        <Minus size={14} strokeWidth={3} />
+                      </button>
+                      <span className="w-8 text-center text-sm font-bold dark:text-white">{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1.5 hover:bg-white dark:hover:bg-slate-600 rounded-md text-gray-600 dark:text-gray-300 transition-colors shadow-sm">
+                        <Plus size={14} strokeWidth={3} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Footer Checkout */}
+        <div className="p-3 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 shadow-2xl">
+          {/* Salesperson (for commission tracking) */}
+          <div className="mb-3">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">👤 الموظف البائع (لحساب مبيعاته وعمولته)</label>
+            <select
+              id="pos-salesperson"
+              value={salesperson?.id || ''}
+              onChange={(e) => { const emp = employees.find((x) => x.id === e.target.value); setSalesperson(emp ? { id: emp.id, name: emp.name } : null); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); focusById('pos-checkout-print-btn'); } }}
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="">— بدون تحديد —</option>
+              {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}{emp.job_title ? ` (${emp.job_title})` : ''}</option>)}
+            </select>
+          </div>
+
+          {/* Wholesale / half OTP gate */}
+          {pricesHidden && (
+            <div className="mb-3 bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-3 border-2 border-purple-300 dark:border-purple-700">
+              <div className="text-sm font-black text-purple-800 dark:text-purple-300 flex items-center gap-2">🔒 فاتورة {invoiceType === 'wholesale' ? 'جملة' : 'نص جملة'} — الأسعار مقفولة</div>
+              <p className="text-[11px] text-purple-600 dark:text-purple-400 mt-1 mb-2">محتاج رمز تأكيد (OTP) بيوصل على تليجرام عشان تشوف الأسعار وتعمل الفاتورة.</p>
+              <div className="flex gap-2">
+                <button onClick={requestOtp} disabled={otpBusy} className="shrink-0 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg">{otpSent ? 'إعادة إرسال' : 'اطلب رمز'}</button>
+                <input value={otpInput} onChange={(e) => setOtpInput(e.target.value)} placeholder="الرمز" dir="ltr" className="flex-1 min-w-0 bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-700 rounded-lg px-3 py-2 text-center font-black tracking-widest text-slate-800 dark:text-slate-100" />
+                <button onClick={verifyOtp} disabled={otpBusy} className="shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg">تأكيد</button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2 mb-3 px-1">
+            <div className="flex justify-between items-center text-sm font-bold text-slate-500 dark:text-slate-400">
+              <span>المجموع: <span className="text-slate-800 dark:text-slate-200 text-lg">{pricesHidden ? '🔒' : subtotal.toFixed(2)}</span></span>
+              <div className="flex items-center gap-2 bg-orange-100/50 dark:bg-orange-900/30 px-4 py-2 rounded-2xl border-2 border-orange-200 dark:border-orange-800/50 shadow-sm transition-all focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100">
+                <span className="text-xs text-orange-600 dark:text-orange-400 font-black flex items-center gap-1">🏷️ خصم:</span>
+                <input
+                  type="number" dir="ltr" value={discountStr}
+                  onChange={(e) => setDiscountStr(e.target.value)}
+                  placeholder="0.00"
+                  className="w-20 bg-transparent border-0 p-0 text-base font-black focus:ring-0 text-left text-orange-700 dark:text-orange-300 placeholder-orange-300"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-sm font-bold mt-2 text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-1">
+                كوبون:
+                {validCoupon && (
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 rounded-full">
+                    مفعل (خصم {couponDiscountAmount} ج.م)
+                  </span>
+                )}
+                {couponInput.trim() && !validCoupon && (
+                  <div className="flex flex-col text-right">
+                    <span className="text-xs text-red-500 font-bold">غير صالح</span>
+                    <span className="text-[10px] text-red-400 max-w-[200px] break-words">{couponErrorMsg || 'الكوبون غير موجود أو غير مفعل'}</span>
+                  </div>
+                )}
+              </span>
+              <div className="flex items-center gap-2 bg-rose-50/50 dark:bg-rose-900/30 px-4 py-2 rounded-2xl border-2 border-rose-200 dark:border-rose-800/50 shadow-sm transition-all focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-100">
+                <input
+                  type="text" dir="ltr" value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="كود الخصم"
+                  className="w-28 uppercase bg-transparent border-0 p-0 text-sm font-black focus:ring-0 text-left text-rose-700 dark:text-rose-300 placeholder-rose-300"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-3 mt-3 border-t border-slate-100 dark:border-slate-700/50">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">الإجمالي النهائي</span>
+              <div className="flex flex-col items-end">
+                <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">
+                  {pricesHidden ? '🔒' : total.toFixed(2)} <span className="text-xs text-slate-400 font-bold tracking-normal">{storeSettings.currency}</span>
+                </span>
+                {/* ربح الفاتورة مخفي في الكاشير */}
+              </div>
+            </div>
+          </div>
+
+          {activeDeposit && activeDeposit.amount > 0 && (
+            <div className="mb-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-2xl px-4 py-3 flex items-center justify-between">
+              <span className="text-xs font-black text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><Clock size={14} /> عربون محصّل من الحجز</span>
+              <div className="text-left">
+                <div className="text-sm font-black text-orange-700 dark:text-orange-300">{activeDeposit.amount.toFixed(2)} {storeSettings.currency}</div>
+                <div className="text-[10px] font-bold text-slate-500">الباقي المطلوب: {Math.max(0, total - activeDeposit.amount).toFixed(2)}</div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              id="pos-checkout-btn"
+              onClick={() => { setShouldPrint(false); setShowCheckoutModal(true); }}
+              disabled={cart.length === 0 || pricesHidden}
+              style={cart.length > 0 && !pricesHidden ? { background: storeSettings.themeColor } : {}}
+              className="flex-1 disabled:bg-gray-300 text-white py-4 rounded-2xl font-black flex flex-col items-center justify-center gap-1 transition-all text-sm active:scale-95 shadow-lg disabled:shadow-none group"
+            >
+              <Banknote size={20} className="group-hover:scale-110 transition-transform" />
+              <span>تحصيل ودفع</span>
+            </button>
+            <button
+              id="pos-checkout-print-btn"
+              onClick={() => { setShouldPrint(true); setShowCheckoutModal(true); }}
+              disabled={cart.length === 0 || pricesHidden}
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 disabled:from-gray-300 disabled:to-gray-300 text-white py-4 rounded-2xl font-black flex flex-col items-center justify-center gap-1 transition-all text-sm active:scale-95 shadow-lg shadow-emerald-500/20 disabled:shadow-none group"
+            >
+              <Printer size={20} className="group-hover:rotate-12 transition-transform" />
+              <span>دفع وطباعة</span>
+            </button>
+          </div>
+          {perm('held') && (
+          <button
+            onClick={openHoldForm}
+            disabled={cart.length === 0 || pricesHidden || holdBusy}
+            className="w-full mt-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-sm active:scale-95 border border-orange-100 dark:border-orange-900/30"
+          >
+            <PauseCircle size={18} /> {holdBusy ? 'جاري الحفظ...' : 'حفظ كفاتورة معلقة'}
+          </button>
+          )}
+          <button
+            onClick={parkCurrentCart}
+            disabled={cart.length === 0}
+            className="w-full mt-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-sm active:scale-95 border border-amber-100 dark:border-amber-900/30"
+          >
+            <Hourglass size={18} /> وضع الفاتورة في الانتظار
+          </button>
+          <button onClick={clearCart} className="w-full text-slate-400 hover:text-red-500 text-xs font-bold py-3 transition-colors">
+            إلغاء الطلب والتفريغ
+          </button>
+        </div>
+      </div>
+      {/* Checkout Payment Modal */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-200">
+                  <Banknote size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-white">توزيع مبالغ الدفع</h3>
+                  <p className="text-xs text-slate-400 font-bold">يرجى تحديد كيفية تحصيل مبلغ الفاتورة</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCheckoutModal(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-6">
+              {/* Total Amount Card */}
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-[24px] border border-indigo-100 dark:border-indigo-800/50 flex justify-between items-center">
+                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">إجمالي المطلوب سداده</span>
+                <span className="text-4xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">
+                  {total.toFixed(2)} <span className="text-sm font-bold opacity-60">{storeSettings.currency}</span>
+                </span>
+              </div>
+
+              {activeDeposit && activeDeposit.amount > 0 && (
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-2xl border border-orange-200 dark:border-orange-800/50 flex justify-between items-center">
+                  <span className="text-xs font-black text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><Clock size={14} /> عربون محصّل مسبقاً</span>
+                  <div className="text-left">
+                    <div className="text-base font-black text-orange-700 dark:text-orange-300">− {activeDeposit.amount.toFixed(2)} {storeSettings.currency}</div>
+                    <div className="text-[10px] font-bold text-slate-500">المطلوب تحصيله الآن: {Math.max(0, total - activeDeposit.amount).toFixed(2)}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Inputs Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {activePayKeys.map((k, idx) => (
+                  <div key={k} className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1 flex items-center gap-1.5">
+                      {k === 'cash' ? <Banknote size={18} /> : k === 'visa' ? <CreditCard size={18} /> : k === 'wallet' ? <Smartphone size={18} /> : k === 'instapay' ? <Zap size={18} /> : <Wallet size={18} />} {payLabel(k)}
+                    </label>
+                    <input
+                      autoFocus={idx === 0}
+                      type="number" dir="ltr" value={payInput[k] || ''} onChange={(e) => setPay(k, e.target.value)} placeholder="0.00"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCheckoutClick(shouldPrint); setShowCheckoutModal(false); } }}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-transparent focus:border-indigo-500 py-3 px-4 rounded-2xl focus:outline-none transition-all font-black text-lg text-left shadow-inner"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary Bar */}
+              {(() => { const effPaid = paidTotal + (activeDeposit?.amount || 0); return (
+              <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-2xl flex justify-between items-center">
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">إجمالي المدفوع{activeDeposit && activeDeposit.amount > 0 ? ' (مع العربون)' : ''}</span>
+                  <span className="text-lg font-black text-slate-700 dark:text-slate-200">
+                    {effPaid.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex gap-6">
+                  <div className="text-center">
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase">المتبقي (آجل)</span>
+                    <span className={`text-lg font-black ${total - effPaid > 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                      {Math.max(0, total - effPaid).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="text-left">
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase">الباقي (للعميل)</span>
+                    <span className={`text-lg font-black ${effPaid - total > 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                      {Math.max(0, effPaid - total).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              ); })()}
+
+              {/* Deferred Note Input */}
+              {Math.max(0, total - paidTotal - (activeDeposit?.amount || 0)) > 0 && (
+                <div className="mt-4">
+                  <label className="text-sm font-bold text-slate-600 dark:text-slate-300 block mb-2 flex items-center gap-2">
+                    <FileText size={16} />
+                    ملاحظة / سبب الآجل (اختياري)
+                  </label>
+                  <textarea
+                    value={deferredNote}
+                    onChange={(e) => setDeferredNote(e.target.value)}
+                    placeholder="مثال: باقي الحساب سيتم دفعه الأسبوع القادم..."
+                    className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 focus:border-indigo-500 rounded-xl p-3 outline-none text-sm font-medium resize-none min-h-[80px]"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 flex gap-3">
+              <button
+                onClick={() => setShowCheckoutModal(false)}
+                className="flex-1 py-4 px-6 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition-all active:scale-95"
+              >
+                تراجع
+              </button>
+              <button
+                onClick={() => {
+                  handleCheckoutClick(shouldPrint);
+                  setShowCheckoutModal(false);
+                }}
+                className="flex-[2] py-4 px-6 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                {shouldPrint ? <Printer size={20} /> : <Banknote size={20} />}
+                تأكيد العملية وإنهاء الفاتورة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Held / Reserved Invoices Modal */}
+      {showHoldForm && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-500 p-2.5 rounded-2xl text-white shadow-lg shadow-orange-200"><PauseCircle size={24} /></div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 dark:text-white">حفظ كفاتورة معلّقة (حجز)</h3>
+                  <p className="text-xs text-slate-400 font-bold">تُحجز الكمية، وتقدر تحصّل عربون يدخل الخزنة</p>
+                </div>
+              </div>
+              <button onClick={() => setShowHoldForm(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors"><X size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 flex justify-between items-center border border-indigo-100 dark:border-indigo-800/50">
+                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">إجمالي الفاتورة</span>
+                <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{total.toFixed(2)} <span className="text-xs opacity-60">{storeSettings.currency}</span></span>
+              </div>
+              {/* نوع الحجز — الأونلاين بيتتبّع بحالات (شحن/تسليم) من لوحة التحكم */}
+              <div>
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">نوع الفاتورة</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setHoldKind('shop')}
+                    className={`p-3 rounded-2xl border-2 text-sm font-black transition ${holdKind === 'shop' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500'}`}
+                  >
+                    🏬 حجز محل
+                    <span className="block text-[10px] font-bold mt-0.5 opacity-70">العميل هييجي ياخده</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHoldKind('online')}
+                    className={`p-3 rounded-2xl border-2 text-sm font-black transition ${holdKind === 'online' ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500'}`}
+                  >
+                    🚚 أونلاين
+                    <span className="block text-[10px] font-bold mt-0.5 opacity-70">شحن ← تسليم</span>
+                  </button>
+                </div>
+              </div>
+              {/* عنوان التوصيل — مطلوب للأونلاين عشان بوليصة الشحن */}
+              {holdKind === 'online' && (
+                <div className="space-y-3 bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800/40 rounded-2xl p-4">
+                  <div>
+                    <label className="text-xs font-black text-sky-700 dark:text-sky-400 uppercase tracking-widest mb-1.5 block">عنوان التوصيل <span className="text-red-500">*</span></label>
+                    <textarea
+                      value={holdAddress} onChange={(e) => setHoldAddress(e.target.value)}
+                      placeholder="المحافظة، المنطقة، الشارع، رقم العمارة والدور..."
+                      className="w-full bg-white dark:bg-slate-900 border-2 border-transparent focus:border-sky-500 py-2.5 px-3 rounded-xl outline-none font-bold text-sm resize-none h-20"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-black text-slate-500 uppercase mb-1.5 block">ملاحظة للمندوب (اختياري)</label>
+                    <input
+                      value={holdShipNote} onChange={(e) => setHoldShipNote(e.target.value)}
+                      placeholder="علامة مميزة، أفضل وقت للتسليم..."
+                      className="w-full bg-white dark:bg-slate-900 border-2 border-transparent focus:border-sky-500 py-2.5 px-3 rounded-xl outline-none font-bold text-sm"
+                    />
+                  </div>
+                  {!holdAddress.trim() && <p className="text-[11px] font-black text-amber-600">⚠️ من غير عنوان، بوليصة الشحن هتطلع ناقصة.</p>}
+                  {!customerPhone.trim() && <p className="text-[11px] font-black text-amber-600">⚠️ اكتب موبايل العميل — المندوب محتاجه.</p>}
+                </div>
+              )}
+              <div>
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">العربون المحصّل (اختياري) — يدخل الخزنة</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {activePayKeys.map((k) => (
+                    <div key={k} className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1">
+                        {k === 'cash' ? <Banknote size={14} /> : k === 'visa' ? <CreditCard size={14} /> : k === 'wallet' ? <Smartphone size={14} /> : k === 'instapay' ? <Zap size={14} /> : <Wallet size={14} />} {payLabel(k)}
+                      </label>
+                      <input type="number" dir="ltr" value={holdDepositPay[k] || ''} onChange={(e) => setHoldDepositPay((s) => ({ ...s, [k]: e.target.value }))} placeholder="0.00" className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-transparent focus:border-orange-500 py-2.5 px-3 rounded-xl outline-none font-black text-left" />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between items-center mt-3 px-1">
+                  <span className="text-xs font-bold text-slate-500">إجمالي العربون</span>
+                  <span className="text-lg font-black text-orange-600">{holdDepositTotal.toFixed(2)} {storeSettings.currency}</span>
+                </div>
+                {holdDepositTotal > 0 && <div className="text-[11px] font-bold text-slate-400 mt-1">الباقي بعد العربون: {Math.max(0, total - holdDepositTotal).toFixed(2)} {storeSettings.currency} — يتحصّل وقت الإتمام أو يتحط آجل.</div>}
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button onClick={handleHoldInvoice} disabled={holdBusy} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-3.5 rounded-2xl font-black flex items-center justify-center gap-2 transition active:scale-95"><PauseCircle size={18} /> {holdBusy ? 'جاري الحفظ...' : 'تأكيد الحجز'}</button>
+                <button onClick={() => setShowHoldForm(false)} className="px-5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-black">إلغاء</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── فواتير الانتظار ─────────────────────────────────────────────── */}
+      {showParkedModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-500 p-2.5 rounded-2xl text-white shadow-lg shadow-amber-200">
+                  <Hourglass size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-white">فواتير الانتظار</h3>
+                  <p className="text-xs text-slate-400 font-bold">محفوظة على الجهاز ده — الكمية <span className="text-amber-600 dark:text-amber-400">مش محجوزة</span> من المخزون</p>
+                </div>
+              </div>
+              <button onClick={() => setShowParkedModal(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {parkedCarts.length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                  <Hourglass size={48} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-bold">مفيش فواتير في الانتظار</p>
+                  <p className="text-xs mt-1.5">لو عميل راح يجيب حاجة تانية، اضغط «وضع الفاتورة في الانتظار» وكمّل مع اللي بعده.</p>
+                </div>
+              ) : (
+                parkedCarts.map((p) => (
+                  <div key={p.id} className="border border-amber-100 dark:border-amber-900/30 bg-amber-50/40 dark:bg-amber-900/10 rounded-2xl p-4">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-slate-800 dark:text-white truncate">{p.label}</span>
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-amber-500 text-white">{parkedAgeLabel(p.at)}</span>
+                          {p.invoiceType !== 'retail' && (
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                              {p.invoiceType === 'wholesale' ? 'جملة' : 'نص جملة'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-bold mt-1">
+                          {p.cart.length} صنف · {p.cashier}
+                          {p.customerPhone ? ` · ${p.customerPhone}` : ''}
+                          {p.salesperson ? ` · البائع: ${p.salesperson.name}` : ''}
+                        </p>
+                      </div>
+                      {!pricesHidden && (
+                        <span className="font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                          {p.total.toFixed(2)} {storeSettings.currency}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-3 line-clamp-2">
+                      {p.cart.map((i) => `${i.name} ×${formatQty(i.quantity, i.unit)}`).join(' · ')}
+                    </p>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => recallParkedCart(p.id)}
+                        className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition active:scale-95"
+                      >
+                        <Play size={16} /> استدعاء
+                      </button>
+                      <button
+                        onClick={() => deleteParkedCart(p.id)}
+                        className="px-4 bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition active:scale-95"
+                      >
+                        <Trash2 size={16} /> حذف
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {cart.length > 0 && parkedCarts.length > 0 && (
+              <div className="px-5 py-3 border-t border-gray-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold text-center">
+                  في سلة شغّالة دلوقتي — لو استدعيت فاتورة، السلة الحالية هتتحط في الانتظار تلقائياً.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showHeldModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-500 p-2.5 rounded-2xl text-white shadow-lg shadow-orange-200">
+                  <Clock size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-white">الفواتير المعلقة</h3>
+                  <p className="text-xs text-slate-400 font-bold">الكمية محجوزة من المخزون لحد تأكيد البيع أو الإرجاع</p>
+                </div>
+              </div>
+              <button onClick={() => setShowHeldModal(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* فلتر بالحالة — نفس حالات الموديول، عشان الكاشير يشوف طلبات كل مرحلة */}
+            <div className="px-5 pt-4 flex flex-wrap gap-2">
+              {([
+                { id: 'all' as const, label: 'الكل', count: heldInvoices.length },
+                ...(['held', 'shipped', 'money_pending'] as HeldStatus[]).map((st) => ({
+                  id: st, label: HELD_STATUS_LABEL[st], count: heldInvoices.filter((h) => (h.status || 'held') === st).length,
+                })),
+                { id: 'shop' as const, label: '🏬 حجوزات المحل', count: heldInvoices.filter((h) => h.kind !== 'online').length },
+              ]).map((c) => (
+                <button key={c.id} onClick={() => setHeldFilter(c.id as typeof heldFilter)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black border transition ${heldFilter === c.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                  {c.label} ({c.count})
+                </button>
+              ))}
+            </div>
+
+            <div className="p-5 space-y-3 overflow-y-auto">
+              {visibleHeld.length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                  <Clock size={48} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-bold">{heldInvoices.length === 0 ? 'لا توجد فواتير معلقة' : 'لا توجد طلبات في هذا الفلتر'}</p>
+                </div>
+              ) : (
+                visibleHeld.map((h) => {
+                  const created = new Date(h.created_at);
+                  // مفيش انتهاء صلاحية: الحجز بيفضل قائم لحد ما الموظف يأكّد البيع
+                  // أو يرجّعه للمخزون. بنعرض عمر الحجز بدل «يتبقى كذا يوم».
+                  const ageDays = Math.max(0, Math.floor((Date.now() - created.getTime()) / (1000 * 60 * 60 * 24)));
+                  const itemsCount = h.items.reduce((s, i) => s + (i.quantity || 0), 0);
+                  return (
+                    <div key={h.id} className="border border-slate-200 dark:border-slate-700 rounded-2xl p-4 bg-slate-50/50 dark:bg-slate-900/40">
+                      <div className="flex justify-between items-start gap-3 mb-2">
+                        <div className="min-w-0">
+                          <div className="font-black text-slate-800 dark:text-white truncate flex items-center gap-2">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md border shrink-0 ${h.kind === 'online' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                              {h.kind === 'online' ? '🚚 أونلاين' : '🏬 حجز'}
+                            </span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md border shrink-0 ${h.status === 'shipped' ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                              {HELD_STATUS_LABEL[(h.status || 'held') as HeldStatus]}
+                            </span>
+                            <span className="truncate">{h.customer_name?.trim() || 'عميل نقدي'}</span>
+                            {h.customer_phone ? <span className="text-xs font-bold text-slate-400 shrink-0">{h.customer_phone}</span> : null}
+                          </div>
+                          <div className="text-[11px] font-bold text-slate-400">
+                            {created.toLocaleString('ar-EG', { calendar: 'gregory', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            {h.cashier_name ? ` · ${h.cashier_name}` : ''}
+                          </div>
+                        </div>
+                        <div className="text-left shrink-0">
+                          <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">{Number(h.total).toFixed(2)} <span className="text-[10px] text-slate-400">{storeSettings.currency}</span></div>
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${ageDays >= 7 ? 'text-amber-600 bg-amber-50 border-amber-100' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
+                            {ageDays === 0 ? 'محجوزة اليوم' : `محجوزة من ${ageDays} يوم`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* العنوان بيظهر للكاشير زي الموديول — هو أهم بيانات الطلب الأونلاين */}
+                      {h.kind === 'online' && (
+                        <div className={`text-xs font-bold mb-2 ${h.customer_address ? 'text-sky-700 dark:text-sky-400' : 'text-amber-600'}`}>
+                          📍 {h.customer_address?.trim() || 'لا يوجد عنوان مسجّل'}
+                          {h.shipping_note && <span className="block text-[11px] text-slate-400 mt-0.5">🚚 {h.shipping_note}</span>}
+                        </div>
+                      )}
+
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-2 line-clamp-2">
+                        {itemsCount} قطعة · {h.items.map((i) => `${i.name}×${formatQty(i.quantity, i.unit || 'قطعة')}`).join(' ، ')}
+                      </div>
+                      {Number(h.deposit) > 0 && (
+                        <div className="flex items-center gap-2 mb-3 text-[11px] font-black">
+                          <span className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/40">عربون محصّل: {Number(h.deposit).toFixed(2)} {storeSettings.currency}</span>
+                          <span className="px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-800/40">الباقي: {Math.max(0, Number(h.total) - Number(h.deposit)).toFixed(2)}</span>
+                        </div>
+                      )}
+
+                      {/* الأونلاين: طباعة الإيصال + التحكّم الكامل في حالة الطلب من الكاشير.
+                          الحالات النشطة (معلق/تم الشحن) بتتغيّر من هنا مباشرةً؛ «تم التسليم»
+                          و«ملغي» ليهم أزرارهم تحت (تسليم وتحصيل / إرجاع للمخزون) لأنهم
+                          بيحرّكوا فلوس ومخزون مش مجرد حالة. */}
+                      {h.kind === 'online' && (
+                        <div className="space-y-2 mb-2">
+                          {/* دورة الحالة: تجهيز ← شحن ← الفلوس في الطريق.
+                              «تم التحصيل» مش هنا — ليه زرار «تسليم وتحصيل» تحت
+                              لأنه بيعمل فاتورة بيع فعلية ويدخّل فلوس الخزنة. */}
+                          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 rounded-xl p-1">
+                            {([
+                              { key: 'held', label: 'تم التجهيز', icon: Clock },
+                              { key: 'shipped', label: 'تم الشحن', icon: Truck },
+                              { key: 'money_pending', label: 'الفلوس في الطريق', icon: Wallet },
+                            ] as const).map((s) => {
+                              const active = (h.status || 'held') === s.key;
+                              return (
+                                <button
+                                  key={s.key}
+                                  onClick={async () => { if (!active) await setHeldInvoiceStatus(h.id, s.key); }}
+                                  className={`flex-1 py-1.5 px-1 rounded-lg font-black text-[10px] flex items-center justify-center gap-1 transition active:scale-95 ${active ? 'bg-violet-600 text-white shadow' : 'text-slate-500 dark:text-slate-400'}`}
+                                >
+                                  <s.icon size={12} className="shrink-0" /> {s.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {/* الطباعة الصامتة مبيبانش منها حاجة على الشاشة، فالكاشير كان
+                              بيدوس تاني وتالت وتطلع نسخ مكرّرة — نقفل الزرار لحد ما تخلص. */}
+                          <button
+                            onClick={async () => {
+                              if (printingHeldId) return;
+                              setPrintingHeldId(h.id);
+                              try { await printShippingLabel(h, storeSettings); }
+                              finally { setPrintingHeldId(null); }
+                            }}
+                            disabled={!!printingHeldId}
+                            className="w-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                          >
+                            <Printer size={14} /> {printingHeldId === h.id ? 'جارٍ الطباعة...' : 'طباعة إيصال الطلب'}
+                          </button>
+                          {/* المرتجع بيظهر بعد الشحن بس — قبل كده «إرجاع للمخزون» هو التصرّف الصح */}
+                          {(h.status || 'held') !== 'held' && (
+                            <button
+                              onClick={() => setReturningHeld(h)}
+                              className="w-full bg-white dark:bg-slate-800 text-amber-600 border border-amber-200 dark:border-amber-900/40 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
+                            >
+                              <Undo2 size={14} /> مرتجع (العميل مستلمش كله أو جزء منه)
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleConfirmHeld(h.id)}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition active:scale-95"
+                        >
+                          <Check size={16} /> {h.kind === 'online' ? 'تم التحصيل' : 'تأكيد البيع'}
+                        </button>
+                        <button
+                          onClick={() => handleReturnHeld(h.id)}
+                          className="flex-1 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-50 py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition active:scale-95"
+                        >
+                          <Undo2 size={16} /> إرجاع للمخزون
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* مودال مرتجع الطلب الأونلاين — نفس مودال الموديول */}
+      {returningHeld && (
+        <HeldReturnModal
+          held={returningHeld}
+          onClose={() => setReturningHeld(null)}
+          onDone={() => setReturningHeld(null)}
+        />
+      )}
+
+      {/* Camera Scanner Modal */}
+      {showCameraScanner && (
+        <div className="fixed inset-0 bg-black z-[200] flex flex-col">
+          <div className="flex justify-between items-center p-4 bg-black text-white">
+            <h3 className="font-bold flex items-center gap-2"><Camera size={20} /> مسح الباركود بالكاميرا</h3>
+            <div className="flex items-center gap-2">
+              {torchSupported && (
+                <button
+                  onClick={handleToggleTorch}
+                  title={torchOn ? 'إطفاء الكشّاف' : 'تشغيل الكشّاف'}
+                  className={`p-2 rounded-full transition-colors ${torchOn ? 'bg-amber-400 text-black' : 'bg-white/20 hover:bg-white/30'}`}
+                >
+                  <Zap size={20} fill={torchOn ? 'currentColor' : 'none'} />
+                </button>
+              )}
+              <button onClick={handleCloseCamera} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors"><X size={20} /></button>
+            </div>
+          </div>
+          <div className="flex-1 relative flex flex-col items-center justify-center bg-black p-4">
+            <div id="reader" className="w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl bg-white/5"></div>
+            {!scannedProduct && (
+              <p className="text-white/60 text-xs font-bold mt-4 text-center max-w-md">
+                قرّب الموبايل لحد ما الباركود يملا عرض الشباك — مش لازم يدخل جواه بالظبط
+              </p>
+            )}
+            
+            {/* Scanned Product Popup */}
+            {scannedProduct && (
+              <div className="absolute bottom-10 left-4 right-4 bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl z-[210] animate-in slide-in-from-bottom-10 max-w-md mx-auto">
+                <div className="flex items-start gap-4 border-b border-gray-100 dark:border-slate-700 pb-4 mb-4">
+                  <div className="bg-emerald-100 text-emerald-600 p-3 rounded-2xl shrink-0"><Check size={24} strokeWidth={3} /></div>
+                  <div className="flex-1">
+                    <h4 className="font-black text-lg text-slate-800 dark:text-white leading-tight mb-1">{scannedProduct.name}</h4>
+                    <p className="text-emerald-600 font-bold">{scannedProduct.sale_price} {storeSettings.currency}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 mb-6">
+                  <label className="font-bold text-slate-600 dark:text-slate-300">الكمية:</label>
+                  <div className="flex flex-1 items-center bg-gray-50 dark:bg-slate-700 rounded-xl p-1 border border-gray-200 dark:border-slate-600">
+                    <button onClick={() => setScanQty(Math.max(1, scanQty - 1))} className="p-3 hover:bg-white dark:hover:bg-slate-600 rounded-lg text-gray-600 dark:text-gray-300 shadow-sm"><Minus size={18} /></button>
+                    <span className="flex-1 text-center font-black text-xl dark:text-white">{scanQty}</span>
+                    <button onClick={() => setScanQty(scanQty + 1)} className="p-3 hover:bg-white dark:hover:bg-slate-600 rounded-lg text-gray-600 dark:text-gray-300 shadow-sm"><Plus size={18} /></button>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button onClick={handleConfirmScanAdd} className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition">إضافة للفاتورة</button>
+                  <button onClick={() => {
+                    setScannedProduct(null);
+                    if (html5QrCode && html5QrCode.getState() === 3) html5QrCode.resume();
+                  }} className="bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 font-bold px-6 py-4 rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition">تخطي</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── نافذة إدخال الوزن/الكمية للمنتجات المباعة بالوزن ── */}
+      {weightProduct && (() => {
+        const cfg = getUnitConfig(weightProduct.unit);
+        const qty = computeWeightQty();
+        const lineTotal = qty * weightProduct.sale_price;
+        const overStock = qty > weightProduct.stock_quantity;
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4" onClick={() => setWeightProduct(null)}>
+            <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start justify-between p-5 border-b border-gray-100 dark:border-slate-700">
+                <div>
+                  <h3 className="font-black text-lg text-slate-800 dark:text-white leading-tight">{weightProduct.name}</h3>
+                  <p className="text-sm text-emerald-600 font-bold mt-1">{weightProduct.sale_price} {storeSettings.currency} / {cfg.label}</p>
+                  <p className="text-[11px] text-slate-400 font-bold mt-0.5">المتاح: {formatQty(weightProduct.stock_quantity, weightProduct.unit)}</p>
+                </div>
+                <button onClick={() => setWeightProduct(null)} className="text-slate-400 hover:text-slate-600 bg-slate-50 dark:bg-slate-700 p-2 rounded-xl"><X size={18} /></button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الكمية بالـ {cfg.label}</label>
+                  <input
+                    type="number" dir="ltr" min="0" step="0.001" autoFocus
+                    value={weightUnitInput}
+                    onChange={(e) => { setWeightUnitInput(e.target.value); setWeightSubInput(''); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') confirmWeight(); }}
+                    placeholder={`مثال: 0.5 ${cfg.label}`}
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 py-3 px-4 rounded-xl text-center font-black text-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:text-white"
+                  />
+                </div>
+
+                {cfg.subUnit && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700" />
+                      <span className="text-[11px] font-bold text-slate-400">أو أدخل بالـ {cfg.subUnit}</span>
+                      <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الكمية بالـ {cfg.subUnit}</label>
+                      <input
+                        type="number" dir="ltr" min="0" step="1"
+                        value={weightSubInput}
+                        onChange={(e) => { setWeightSubInput(e.target.value); setWeightUnitInput(''); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') confirmWeight(); }}
+                        placeholder={`مثال: 250 ${cfg.subUnit}`}
+                        className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 py-3 px-4 rounded-xl text-center font-black text-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none dark:text-white"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl px-4 py-3">
+                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">الإجمالي ({formatQty(qty, weightProduct.unit)})</span>
+                  <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">{lineTotal.toFixed(2)} {storeSettings.currency}</span>
+                </div>
+                {overStock && <p className="text-xs text-red-500 font-bold text-center">⚠️ الكمية أكبر من المتاح بالمخزون</p>}
+              </div>
+
+              <div className="p-5 pt-0">
+                <button
+                  onClick={confirmWeight}
+                  disabled={qty <= 0}
+                  style={{ backgroundColor: storeSettings.themeColor }}
+                  className="w-full text-white font-black py-4 rounded-xl shadow-lg hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  إضافة للفاتورة
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Mobile Bottom Navigation (Visible only on small screens) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-[100] flex items-center justify-around px-2 pb-5 pt-2">
+        <button 
+          onClick={() => setMobileView('catalog')}
+          className={`flex flex-col items-center p-2 rounded-xl flex-1 transition-all ${mobileView === 'catalog' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+          <Box size={20} className={mobileView === 'catalog' ? 'animate-bounce' : ''} />
+          <span className="text-[11px] font-bold mt-1">المنتجات</span>
+        </button>
+        <button 
+          onClick={() => setMobileView('cart')}
+          className={`flex flex-col items-center p-2 rounded-xl flex-1 relative transition-all ${mobileView === 'cart' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+          <ShoppingCart size={20} className={mobileView === 'cart' ? 'animate-bounce' : ''} />
+          <span className="text-[11px] font-bold mt-1">الفاتورة</span>
+          {cart.length > 0 && (
+             <span className="absolute top-1 right-[25%] bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md animate-pulse border-2 border-white dark:border-slate-800">{cart.length}</span>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,2192 @@
+import { useState, useRef, useEffect } from 'react';
+import { useStore } from '../../store/useStore';
+import type { PurchaseItem, Product } from '../../store/useStore';
+import { Users, Search, Plus, Edit2, Trash2, Phone, MapPin, Calendar, ShoppingCart, FileText, X, ChevronDown, Printer, Eye, Download, Upload, FileSpreadsheet, RotateCcw } from 'lucide-react';
+import { normalizeArabic } from '../../utils/textUtils';
+import { UNIT_OPTIONS, getUnitConfig, isFractionalUnit, formatQty } from '../../utils/units';
+import { escapeHtml } from '../../utils/escapeHtml';
+import { openPrintWindow } from '../../utils/printWindow';
+import { generateBarcode, printBarcodeLabelsBatch } from '../../utils/printBarcodeLabels';
+import { businessDateStr, timestampForBusinessDate } from '../../utils/businessDay';
+import PaymentSplitInputs from '../../components/PaymentSplitInputs';
+import { activePaymentKeys, formToSplit, sumSplit, primaryMethod as primaryMethod_ } from '../../utils/paymentMethods';
+import { isMainTreasuryPurchase, markMainTreasuryNote, markSavingsGroupNote, newSavingsGroupId } from '../../utils/treasury';
+import * as XLSX from 'xlsx';
+
+function ProductSearchSelect({
+  value,
+  onChange,
+  products,
+  onEnterCommit,
+  autoOpen,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  products: Product[];
+  onEnterCommit?: () => void; // يُستدعى بعد اختيار المنتج بمفتاح Enter لنقل التركيز للخانة التالية
+  autoOpen?: boolean;         // فتح الحقل والتركيز عليه تلقائياً (عند إضافة صف جديد بالكيبورد)
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // فتح الحقل تلقائياً عند طلب ذلك (input يحمل autoFocus فيلتقط التركيز عند ظهوره)
+  useEffect(() => {
+    if (autoOpen) setIsOpen(true);
+  }, [autoOpen]);
+
+  const selectedProduct = products.find(p => p.id === value);
+
+  const normalizedSearch = normalizeArabic(search);
+  const searchTerms = normalizedSearch.split(' ').filter(t => t.trim() !== '');
+
+  const filtered = products.filter(p => {
+    const normalizedName = normalizeArabic(p.name);
+    return searchTerms.length === 0 || searchTerms.every(term => normalizedName.includes(term)) || (p.barcode && p.barcode.includes(search));
+  }).sort((a, b) => {
+    // 1. Exact match ranking
+    if (search) {
+      const aExact = normalizeArabic(a.name) === normalizedSearch;
+      const bExact = normalizeArabic(b.name) === normalizedSearch;
+      if (aExact && !bExact) return -1;
+      if (bExact && !aExact) return 1;
+      
+      const aStarts = normalizeArabic(a.name).startsWith(normalizedSearch);
+      const bStarts = normalizeArabic(b.name).startsWith(normalizedSearch);
+      if (aStarts && !bStarts) return -1;
+      if (bStarts && !aStarts) return 1;
+    }
+    
+    // 2. Sort by newest (created_at descending)
+    const timeA = new Date((a as any).created_at || 0).getTime();
+    const timeB = new Date((b as any).created_at || 0).getTime();
+    return timeB - timeA;
+  });
+
+  return (
+    <div className="relative flex-1" ref={wrapperRef}>
+      <div 
+        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm cursor-text flex justify-between items-center font-medium focus-within:ring-2 focus-within:ring-indigo-400 transition"
+        onClick={() => setIsOpen(true)}
+      >
+        {!isOpen ? (
+           <span className={selectedProduct ? 'text-slate-800' : 'text-slate-400'}>
+             {selectedProduct ? selectedProduct.name : '-- ابحث عن منتج --'}
+           </span>
+        ) : (
+          <input
+            type="text"
+            className="w-full outline-none bg-transparent"
+            placeholder="اكتب اسم المنتج أو كود/باركود المنتج..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const code = search.trim();
+                // أولوية: تطابق كامل مع كود/باركود، ثم أول نتيجة في القائمة
+                const match = (code ? products.find(p => p.barcode && String(p.barcode) === code) : undefined) || filtered[0];
+                if (match) {
+                  onChange(match.id);
+                  setIsOpen(false);
+                  setSearch('');
+                  onEnterCommit?.();
+                }
+              } else if (e.key === 'Escape') {
+                setIsOpen(false);
+              }
+            }}
+            autoFocus
+          />
+        )}
+        <ChevronDown size={16} className="text-slate-400" />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          <div 
+            className="px-4 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50 cursor-pointer flex items-center gap-2 border-b border-slate-100"
+            onClick={() => {
+              onChange('NEW_PRODUCT');
+              setIsOpen(false);
+              setSearch('');
+            }}
+          >
+            <Plus size={16} /> إضافة منتج جديد...
+          </div>
+          {filtered.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-slate-400 text-center">لا توجد نتائج</div>
+          ) : (
+            filtered.map(p => (
+              <div 
+                key={p.id}
+                className="px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer flex justify-between items-center"
+                onClick={() => {
+                  onChange(p.id);
+                  setIsOpen(false);
+                  setSearch('');
+                }}
+              >
+                <span>{p.name}</span>
+                {p.barcode && <span className="text-xs text-slate-400 font-mono">{p.barcode}</span>}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Suppliers() {
+  const { suppliers, addSupplier, updateSupplier, setSupplierOpeningBalance, deleteSupplier, storeSettings, purchaseInvoices, addPurchaseInvoice, updatePurchaseInvoice, products, orders, recordMainTreasuryOut, deletePurchaseInvoice, createSupplierReturn } = useStore();
+  const OPENING_MARK = 'رصيد افتتاحي';
+  // الرصيد الافتتاحي كصافي بإشارة: موجب = علينا للمورد، سالب = لينا عند المورد.
+  const openingBalanceOf = (supplierId: string) => {
+    const inv: any = purchaseInvoices.find((inv: any) => inv.supplier_id === supplierId && inv.invoice_number === OPENING_MARK);
+    return inv ? (Number(inv.total) || 0) - (Number(inv.paid_amount) || 0) : 0;
+  };
+  const [activeTab, setActiveTab] = useState<'suppliers' | 'invoices'>('suppliers');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQueryInvoices, setSearchQueryInvoices] = useState('');
+  const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<any>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [editingPurchaseInvoice, setEditingPurchaseInvoice] = useState<any>(null);
+  const [selectedSupplierProfile, setSelectedSupplierProfile] = useState<any>(null);
+  const [showSupplierProfile, setShowSupplierProfile] = useState(false);
+  const [supFrom, setSupFrom] = useState('');
+  const [supTo, setSupTo] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPayingDebt, setIsPayingDebt] = useState(false);
+  const [debtPay, setDebtPay] = useState<Record<string, string>>({});
+  const [showSupplierFinancialModal, setShowSupplierFinancialModal] = useState(false);
+  const [supplierFinancialType, setSupplierFinancialType] = useState<'pay_to_supplier' | 'collect_from_supplier'>('pay_to_supplier');
+  const [supplierFinancialPay, setSupplierFinancialPay] = useState<Record<string, string>>({});
+  const [supplierFinancialDate, setSupplierFinancialDate] = useState<string>(() => businessDateStr(storeSettings));
+
+  // ── مرتجع مورد ──
+  // المرتجع دايماً مربوط بفاتورة شراء، عشان نرجّع بسعر الفاتورة نفسها ونمنع
+  // إرجاع أكتر من المشترى. التسوية: خصم من المديونية (الافتراضي) أو استرداد كاش.
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnInvoice, setReturnInvoice] = useState<any>(null);
+  const [returnQty, setReturnQty] = useState<Record<string, string>>({});
+  const [returnSettlement, setReturnSettlement] = useState<'debt' | 'cash'>('debt');
+  const [returnPay, setReturnPay] = useState<Record<string, string>>({});
+  const [returnTreasuryTarget, setReturnTreasuryTarget] = useState<'shop' | 'main'>('main');
+  const [returnDate, setReturnDate] = useState<string>(() => businessDateStr(storeSettings));
+  const [isSavingReturn, setIsSavingReturn] = useState(false);
+  const [isDeletingReturn, setIsDeletingReturn] = useState(false);
+
+  const [formData, setFormData] = useState({ name: '', phone: '', address: '', openingBalance: '', openingDirection: 'owed_to_supplier' as 'owed_to_supplier' | 'owed_to_us' });
+
+  // Invoice form state
+  const [invSupplierId, setInvSupplierId] = useState('');
+  const [invPay, setInvPay] = useState<Record<string, string>>({});
+  // كل حركات الموردين (مشتريات/سداد/تحصيل) الافتراضي فيها الخزنة الرئيسية.
+  // «رئيسية» = OTP للصرف + يُستبعد من تقفيل الكاشير. «محل» = من درج المحل ويظهر في التقفيل.
+  const [invTreasurySource, setInvTreasurySource] = useState<'shop' | 'main'>('main');
+  // وضع المودال: فاتورة شراء عادية أو فاتورة مرتجع حرّة (بسعر قطعة مخصّص).
+  const [invMode, setInvMode] = useState<'purchase' | 'return'>('purchase');
+  // تسوية المرتجع: استرداد كاش أو خصم من مديونية المورد.
+  const [retSettlement, setRetSettlement] = useState<'cash' | 'debt'>('cash');
+  const [debtPaySource, setDebtPaySource] = useState<'shop' | 'main'>('main');
+  const [financialSource, setFinancialSource] = useState<'shop' | 'main'>('main');
+  const invPayKeys = activePaymentKeys(storeSettings as any);
+  const invPaidTotal = invPayKeys.reduce((s, k) => s + (parseFloat(invPay[k] || '') || 0), 0);
+  const [invItems, setInvItems] = useState<{ product_id: string; quantity: string; purchase_price: string; to_display: string }[]>([
+    { product_id: '', quantity: '1', purchase_price: '', to_display: '0' }
+  ]);
+  // مراجع للتنقل بالكيبورد بين خانات الصف (Enter ينقل للخانة التالية)
+  const qtyRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const priceRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const [autoOpenRow, setAutoOpenRow] = useState<number | null>(null);
+  // استيراد/تصدير Excel لفاتورة المشتريات
+  const invFileRef = useRef<HTMLInputElement>(null);
+  const [invImporting, setInvImporting] = useState(false);
+
+  // Quick Add Product State
+  const [showQuickProductModal, setShowQuickProductModal] = useState(false);
+  const [quickProductIndex, setQuickProductIndex] = useState<number | null>(null);
+  const [quickProductData, setQuickProductData] = useState({ name: '', category_id: '', sale_price: '', barcode: '', unit: 'قطعة' });
+  const { categories, addProduct } = useStore();
+
+  const filteredSuppliers = suppliers.filter(s =>
+    s.name.includes(searchQuery) || (s.phone && s.phone.includes(searchQuery))
+  );
+
+  const filteredInvoices = purchaseInvoices.filter(inv => {
+    const supplier = suppliers.find(s => s.id === inv.supplier_id);
+    const query = searchQueryInvoices.toLowerCase();
+    return (
+      inv.invoice_number.toLowerCase().includes(query) ||
+      (supplier?.name.toLowerCase().includes(query)) ||
+      (supplier?.phone && supplier.phone.includes(query))
+    );
+  });
+
+  // صف المرتجع بيتعرف من source_invoice_id (db/46)؛ كمياته وإجماليه سالبين.
+  const isReturnRow = (inv: any) => Boolean(inv.source_invoice_id);
+  // الكمية المرتجعة سابقاً لكل منتج في فاتورة معيّنة.
+  const returnedQtyOf = (sourceInvoiceId: string) => {
+    const map: Record<string, number> = {};
+    purchaseInvoices.forEach((inv: any) => {
+      if (inv.source_invoice_id !== sourceInvoiceId) return;
+      (inv.items || []).forEach((it: any) => {
+        map[it.product_id] = (map[it.product_id] || 0) + Math.abs(Number(it.quantity) || 0);
+      });
+    });
+    return map;
+  };
+  // المرتجع متاح لفواتير الشراء الحقيقية بس — مش السداد/التحصيل/الرصيد الافتتاحي/المرتجعات.
+  const canReturn = (inv: any) =>
+    !isReturnRow(inv) && inv.invoice_number !== OPENING_MARK && (inv.items || []).length > 0 && Number(inv.total) > 0;
+
+  // حذف مرتجع: deletePurchaseInvoice بيعكس أثر الأصناف على المخزون، وبما إن كميات
+  // المرتجع سالبة فالطرح بيرجّع الكمية للمخزن — وحذف الصف نفسه بيرجّع الرصيد والخزنة.
+  const handleDeleteReturn = async (inv: any) => {
+    const supplier = suppliers.find(s => s.id === inv.supplier_id);
+    const returnValue = Math.abs(Number(inv.total) || 0);
+    const refunded = Math.abs(Number(inv.paid_amount) || 0);
+    const qtyLines = (inv.items || []).map((it: any) => {
+      const product = products.find(p => p.id === it.product_id);
+      return `• ${product?.name || 'منتج'}: ${Math.abs(Number(it.quantity) || 0)}`;
+    }).join('\n');
+
+    const warn = refunded > 0.009
+      ? `\n\n⚠️ المرتجع ده كان فيه استرداد ${refunded.toFixed(2)} ${storeSettings.currency}. الحذف هيرجّع المبلغ ده على الخزنة.`
+      : '';
+    if (!confirm(
+      `حذف مرتجع المورد «${supplier?.name || 'مورد'}»؟\n` +
+      `رقم: ${inv.invoice_number}\nالقيمة: ${returnValue.toFixed(2)} ${storeSettings.currency}\n\n` +
+      `هترجع الكميات دي للمخزون:\n${qtyLines || '—'}${warn}`
+    )) return;
+
+    try {
+      setIsDeletingReturn(true);
+      await deletePurchaseInvoice(inv.id);
+    } finally {
+      setIsDeletingReturn(false);
+    }
+  };
+
+  /**
+   * حذف «سداد لمورد» أو «تحصيل من مورد» من كشف الحساب.
+   * الصفوف دي فلوس بس (total = 0 ومن غير أصناف) فمفيش أثر على المخزون،
+   * و deletePurchaseInvoice بيمسح كمان حركة الخزنة الرئيسية المرتبطة بالـ group_id
+   * (ولو كانت اتمسحت قبل كده من صفحة الخزنة بيعدّي عادي — وده بيصلّح الصف اليتيم).
+   */
+  const handleDeleteSupplierMoneyRow = async (inv: any, label: string) => {
+    const amount = Math.abs(Number(inv.paid_amount) || 0);
+    const isCollection = (Number(inv.paid_amount) || 0) < 0;
+    if (!confirm(
+      `حذف «${label}» رقم ${inv.invoice_number}؟\n` +
+      `المبلغ: ${amount.toFixed(2)} ${storeSettings.currency}\n\n` +
+      `هيرجع رصيد المورد زي ما كان، و${isCollection ? 'المبلغ اللي اتحصّل هيتشال من' : 'المبلغ المدفوع هيرجع على'} الخزنة المرتبطة بالمعاملة.`
+    )) return;
+    try {
+      await deletePurchaseInvoice(inv.id);
+    } catch (e) {
+      console.error('delete supplier money row:', e);
+      alert('تعذّر حذف المعاملة');
+    }
+  };
+
+  const openReturnModal = (inv: any) => {
+    setReturnInvoice(inv);
+    setReturnQty({});
+    setReturnSettlement('debt');
+    setReturnPay({});
+    setReturnTreasuryTarget('main');
+    setReturnDate(businessDateStr(storeSettings));
+    setShowReturnModal(true);
+  };
+
+  const handleSupplierSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { openingBalance, openingDirection, ...supplierData } = formData;
+    const openAmt = Number(openingBalance) || 0;
+    if (editingSupplier) {
+      await updateSupplier(editingSupplier.id, supplierData);
+      await setSupplierOpeningBalance(editingSupplier.id, openAmt, openingDirection);
+    } else {
+      const created = await addSupplier(supplierData);
+      if (created && openAmt > 0) await setSupplierOpeningBalance(created.id, openAmt, openingDirection);
+    }
+    setShowSupplierModal(false);
+    setEditingSupplier(null);
+    setFormData({ name: '', phone: '', address: '', openingBalance: '', openingDirection: 'owed_to_supplier' as 'owed_to_supplier' | 'owed_to_us' });
+  };
+
+  const invTotal = invItems.reduce((sum, item) => {
+    return sum + (parseFloat(item.quantity || '0') * parseFloat(item.purchase_price || '0'));
+  }, 0);
+
+  const confirmMainTreasurySpend = async (amount: number, details: string) => {
+    const confirmed = window.confirm(`سيتم الصرف من الخزنة الرئيسية بمبلغ ${amount.toFixed(2)} ${storeSettings.currency}.\nسيتم إرسال OTP للمدير للتأكيد.`);
+    if (!confirmed) return false;
+    try {
+      const { supabase } = await import('../../lib/supabase');
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      const r1 = await fetch('/api/wholesale-otp', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action: 'request', purpose: 'savings', details }),
+      });
+      const j1 = await r1.json();
+      if (!j1.ok) {
+        alert('تعذّر إرسال رمز التأكيد: ' + (j1.error || ''));
+        return false;
+      }
+      const code = window.prompt('تم إرسال رمز التأكيد للمدير على تيليجرام.\nأدخل الرمز لتأكيد الصرف من الخزنة الرئيسية:');
+      if (!code) return false;
+      const r2 = await fetch('/api/wholesale-otp', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action: 'verify', purpose: 'savings', code: code.trim() }),
+      });
+      const j2 = await r2.json();
+      if (!j2.ok) {
+        alert(j2.error || 'رمز غير صحيح');
+        return false;
+      }
+      return true;
+    } catch {
+      alert('تعذّر التحقق من رمز الخزنة الرئيسية');
+      return false;
+    }
+  };
+
+  const handleAddInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invSupplierId) return alert('اختر المورد أولاً');
+    const validItems = invItems.filter(i => i.product_id && parseFloat(i.quantity) > 0 && parseFloat(i.purchase_price) > 0);
+    if (validItems.length === 0) return alert('أضف منتجاً واحداً على الأقل');
+
+    // ── وضع المرتجع الحرّ ──────────────────────────────────────────────────────
+    if (invMode === 'return') {
+      const lines = validItems.map(i => ({ product_id: i.product_id, quantity: parseFloat(i.quantity), purchase_price: parseFloat(i.purchase_price) }));
+      const split: Record<string, number> = {};
+      invPayKeys.forEach((k) => { split[k] = parseFloat(invPay[k] || '') || 0; });
+      try {
+        setIsSaving(true);
+        const ok = await createSupplierReturn(
+          invSupplierId,
+          lines,
+          retSettlement,
+          retSettlement === 'cash' ? (split as any) : undefined,
+          undefined,
+          retSettlement === 'cash' && invTreasurySource === 'main',
+        );
+        if (ok) {
+          alert('تم تسجيل مرتجع المورد بنجاح');
+          setShowInvoiceModal(false);
+          setInvMode('purchase');
+          setInvSupplierId('');
+          setInvPay({});
+          setInvItems([{ product_id: '', quantity: '1', purchase_price: '', to_display: '0' }]);
+          setActiveTab('invoices');
+        }
+      } catch (error: any) {
+        alert(error.message || 'حدث خطأ أثناء حفظ المرتجع');
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const items: PurchaseItem[] = validItems.map(i => ({
+        product_id: i.product_id,
+        quantity: parseFloat(i.quantity),
+        purchase_price: parseFloat(i.purchase_price),
+        to_display: Math.max(0, Math.min(parseFloat(i.to_display) || 0, parseFloat(i.quantity) || 0)),
+      }));
+
+      const splitPayments: Record<string, number> = {};
+      invPayKeys.forEach((k) => { splitPayments[k] = parseFloat(invPay[k] || '') || 0; });
+
+      const finalPaidAmount = invPayKeys.reduce((s, k) => s + splitPayments[k], 0);
+      const change = Math.max(0, finalPaidAmount - invTotal);
+      const adjustedSplit: Record<string, number> = { ...splitPayments, cash: Math.max(0, (splitPayments.cash || 0) - change) };
+      const primaryMethod = primaryMethod_(adjustedSplit);
+      const effectivePaidAmount = finalPaidAmount - change;
+      const payFromMainTreasury = !editingPurchaseInvoice && invTreasurySource === 'main' && effectivePaidAmount > 0;
+
+      if (payFromMainTreasury) {
+        const supplier = suppliers.find((s) => s.id === invSupplierId);
+        const details = `صرف من الخزنة الرئيسية\nالنوع: فاتورة مشتريات\nالمورد: ${supplier?.name || 'مورد'}\nالمبلغ المدفوع: ${effectivePaidAmount.toFixed(2)} ${storeSettings.currency}\nإجمالي الفاتورة: ${invTotal.toFixed(2)} ${storeSettings.currency}`;
+        const ok = await confirmMainTreasurySpend(effectivePaidAmount, details);
+        if (!ok) return;
+      }
+
+      if (editingPurchaseInvoice) {
+        await updatePurchaseInvoice(
+          editingPurchaseInvoice.id,
+          {
+            total: invTotal,
+            paid_amount: effectivePaidAmount,
+            payment_method: primaryMethod as any,
+          } as any,
+          items,
+          adjustedSplit as any
+        );
+        alert('تم تعديل الفاتورة بنجاح وتحديث المخزن');
+      } else {
+        const invoiceNumber = `PO-${Date.now()}`;
+        // نفس الـ group_id على الفاتورة وصف دفتر الرئيسية، ونفس التوقيت المحاسبي
+        // للاتنين — من غير التوقيت كان صف الدفتر بياخد وقت السيرفر، فبين
+        // منتصف الليل وبداية اليوم المحاسبي كان بيقع في يوم غير الفاتورة.
+        const mainGroupId = payFromMainTreasury ? newSavingsGroupId() : null;
+        const mainCreatedAt = timestampForBusinessDate(businessDateStr(storeSettings), storeSettings);
+        await addPurchaseInvoice({
+          invoice_number: invoiceNumber,
+          supplier_id: invSupplierId,
+          total: invTotal,
+          paid_amount: effectivePaidAmount,
+          payment_method: primaryMethod as any,
+          notes: payFromMainTreasury ? markSavingsGroupNote(markMainTreasuryNote('فاتورة مشتريات مدفوعة من الخزنة الرئيسية'), mainGroupId) : undefined,
+        }, items, adjustedSplit as any);
+        if (payFromMainTreasury) {
+          await recordMainTreasuryOut(adjustedSplit as any, 'main_purchase', `فاتورة مشتريات #${invoiceNumber}`, mainCreatedAt, mainGroupId as any);
+        }
+        alert('تم حفظ الفاتورة بنجاح وتحديث المخزن');
+      }
+
+      setShowInvoiceModal(false);
+      setEditingPurchaseInvoice(null);
+      setInvSupplierId('');
+      setInvPay({});
+      setInvTreasurySource('main');
+      setInvItems([{ product_id: '', quantity: '1', purchase_price: '', to_display: '0' }]);
+      setActiveTab('invoices');
+    } catch (error: any) {
+      alert(error.message || 'حدث خطأ أثناء حفظ الفاتورة');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /**
+   * طباعة ملصق باركود لكل صنف في الفاتورة بعدد كميته — كله في أمر طباعة واحد.
+   * بتشتغل والفاتورة لسه بتتكتب (قبل الحفظ)، عشان تلزق الملصقات وإنت بتفرّغ
+   * الكرتونة. الأسعار من كارت المنتج مش من الفاتورة (سعر البيع مش الشراء).
+   */
+  const printInvoiceBarcodes = () => {
+    const labels = invItems
+      .map((row) => {
+        const p = products.find((x) => x.id === row.product_id);
+        const qty = Math.floor(parseFloat(row.quantity) || 0);
+        if (!p || qty <= 0) return null;
+        return {
+          name: p.name,
+          code: p.barcode || '',
+          price: Number(p.sale_price) || 0,
+          discountPrice: Number(p.discount_price) || 0,
+          count: qty,
+        };
+      })
+      .filter(Boolean) as { name: string; code: string; price: number; discountPrice: number; count: number }[];
+
+    if (labels.length === 0) return alert('مفيش أصناف بكميات في الفاتورة.');
+    const noBarcode = labels.filter((l) => !l.code);
+    if (noBarcode.length) {
+      return alert(`فيه ${noBarcode.length} صنف من غير باركود:\n${noBarcode.map((l) => `• ${l.name}`).join('\n')}\n\nحدّد لهم باركود من صفحة المخزون الأول.`);
+    }
+    const total = labels.reduce((s, l) => s + l.count, 0);
+    if (!confirm(`طباعة ${total} ملصق لـ ${labels.length} صنف؟`)) return;
+    printBarcodeLabelsBatch(labels, { currency: storeSettings.currency, storeName: storeSettings.name });
+  };
+
+  const addInvRow = () => setInvItems([...invItems, { product_id: '', quantity: '1', purchase_price: '', to_display: '0' }]);
+  const removeInvRow = (idx: number) => setInvItems(invItems.filter((_, i) => i !== idx));
+  const updateInvRow = (idx: number, field: string, value: string) => {
+    if (field === 'product_id' && value === 'NEW_PRODUCT') {
+      setQuickProductIndex(idx);
+      setQuickProductData({ ...quickProductData, barcode: `P-${Date.now().toString().slice(-6)}` });
+      setShowQuickProductModal(true);
+      return;
+    }
+    const updated = invItems.map((item, i) => i === idx ? { ...item, [field]: value } : item);
+    if (field === 'product_id' && value) {
+      const prod = products.find(p => p.id === value);
+      if (prod) updated[idx].purchase_price = String(prod.purchase_price || prod.average_purchase_price || '');
+    }
+    setInvItems(updated);
+  };
+
+  // إضافة صف جديد وفتح خانة المنتج فيه تلقائياً (يُستخدم عند الضغط Enter من خانة السعر)
+  const addInvRowAndFocus = () => {
+    setInvItems(prev => {
+      const next = [...prev, { product_id: '', quantity: '1', purchase_price: '', to_display: '0' }];
+      setAutoOpenRow(next.length - 1);
+      return next;
+    });
+  };
+
+  // ── تصدير قالب Excel لفاتورة الشراء (مملوء بمنتجات المورد المختار لتعديل الكميات وإعادة الاستيراد) ──
+  const INV_TEMPLATE_HEADERS = ['كود المنتج', 'اسم المنتج', 'الوحدة', 'عدد القطع', 'سعر الشراء', 'كمية المحل'];
+  const exportInvoiceTemplate = () => {
+    const supplier = suppliers.find(s => s.id === invSupplierId);
+    const supNorm = supplier ? normalizeArabic(supplier.name) : '';
+    // منتجات مرتبطة بهذا المورد بالاسم (عمود «المورد» في المخزون) — لتسهيل التعبئة
+    const supProducts = supplier
+      ? products.filter(p => p.supplier_name && normalizeArabic(p.supplier_name) === supNorm)
+      : [];
+    const rows = supProducts.map(p => [
+      p.barcode || '',
+      p.name,
+      getUnitConfig(p.unit).label,
+      '', // عدد القطع — يملؤه المستخدم
+      p.purchase_price || p.average_purchase_price || 0,
+      '', // كمية المحل — اختياري
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([INV_TEMPLATE_HEADERS, ...rows]);
+    ws['!cols'] = INV_TEMPLATE_HEADERS.map(() => ({ wch: 18 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'فاتورة شراء');
+    const namePart = supplier ? supplier.name.replace(/[\\/:*?"<>|]/g, '_') : 'مورد';
+    XLSX.writeFile(wb, `purchase_template_${namePart}.xlsx`);
+  };
+
+  // ── استيراد فاتورة شراء من Excel: يطابق المنتج بالكود/الباركود (أو الاسم)، وينشئ الناقص، ويملأ صفوف الفاتورة ──
+  const importInvoiceExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!invSupplierId) { alert('اختر المورد أولاً قبل الاستيراد'); if (invFileRef.current) invFileRef.current.value = ''; return; }
+    setInvImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) { alert('الملف فارغ أو لا يحتوي على صفوف.'); return; }
+
+      const pick = (row: any, ...keys: string[]): any => {
+        for (const k of keys) if (row[k] !== undefined && row[k] !== '') return row[k];
+        const nk = keys.map(normalizeArabic);
+        for (const key of Object.keys(row)) if (nk.includes(normalizeArabic(key))) return row[key];
+        return '';
+      };
+      const num = (v: any) => { const n = parseFloat(String(v).replace(/[^\d.-]/g, '')); return isNaN(n) ? 0 : n; };
+
+      const supplier = suppliers.find(s => s.id === invSupplierId);
+      const byBarcode = new Map(products.filter(p => p.barcode).map(p => [String(p.barcode), p]));
+      const byName = new Map(products.map(p => [normalizeArabic(p.name), p]));
+      const usedBarcodes = new Set(products.map(p => p.barcode).filter(Boolean) as string[]);
+      const defaultCat = categories[0]?.id || '';
+
+      const newItems: { product_id: string; quantity: string; purchase_price: string; to_display: string }[] = [];
+      let matched = 0, created = 0, skipped = 0;
+
+      for (const row of rows) {
+        try {
+          const code = String(pick(row, 'كود المنتج', 'الكود', 'الباركود', 'code', 'barcode')).trim();
+          const name = String(pick(row, 'اسم المنتج', 'الاسم', 'name')).trim();
+          const qty = num(pick(row, 'عدد القطع', 'الكمية', 'quantity', 'qty'));
+          const price = num(pick(row, 'سعر الشراء', 'السعر', 'purchase', 'price'));
+          const toDisplay = num(pick(row, 'كمية المحل', 'المحل', 'display'));
+          if (!code && !name) { skipped++; continue; }
+          if (qty <= 0) { skipped++; continue; }
+
+          // 1) تطابق بالكود/الباركود ثم بالاسم
+          let prod = code ? byBarcode.get(code) : undefined;
+          if (!prod && name) prod = byName.get(normalizeArabic(name));
+
+          // 2) إنشاء منتج جديد لو غير موجود (يُسجَّل بالمخزون عند حفظ الفاتورة)
+          if (!prod) {
+            if (!defaultCat) { skipped++; continue; }
+            let barcode = code;
+            if (!barcode) barcode = generateBarcode(usedBarcodes);
+            usedBarcodes.add(barcode);
+            const createdProd = await addProduct({
+              name: name || barcode,
+              barcode,
+              category_id: defaultCat,
+              sale_price: 0,
+              purchase_price: price,
+              average_purchase_price: price,
+              stock_quantity: 0,
+              unit: 'قطعة',
+              supplier_name: supplier?.name || '',
+            } as any);
+            if (createdProd) {
+              prod = createdProd as any;
+              byBarcode.set(barcode, createdProd as any);
+              byName.set(normalizeArabic(createdProd.name), createdProd as any);
+              created++;
+            } else { skipped++; continue; }
+          } else {
+            matched++;
+          }
+
+          newItems.push({
+            product_id: prod!.id,
+            quantity: String(qty),
+            purchase_price: String(price > 0 ? price : (prod!.purchase_price || prod!.average_purchase_price || 0)),
+            to_display: String(Math.max(0, Math.min(toDisplay, qty))),
+          });
+        } catch (rowErr) {
+          console.error('Import invoice row error:', rowErr, row);
+          skipped++;
+        }
+      }
+
+      if (newItems.length === 0) { alert('لم يتم استيراد أي صنف. تأكد من الأعمدة (كود المنتج / عدد القطع / سعر الشراء).'); return; }
+      // إضافة الأصناف المستوردة للفاتورة (نستبدل الصف الفارغ الأول إن وُجد)
+      setInvItems(prev => {
+        const hasOnlyEmpty = prev.length === 1 && !prev[0].product_id;
+        return hasOnlyEmpty ? newItems : [...prev, ...newItems];
+      });
+      alert(`تم استيراد الأصناف ✅\nمطابقة بالكود: ${matched}\nمنتجات جديدة: ${created}${skipped ? `\nصفوف متجاهلة: ${skipped}` : ''}\n\nراجع الفاتورة ثم اضغط «حفظ الفاتورة» للتسجيل في المخزون.`);
+    } catch (err) {
+      console.error('Import invoice error:', err);
+      alert('حدث خطأ أثناء قراءة الملف. تأكد أنه ملف Excel صحيح وبنفس أعمدة القالب.');
+    } finally {
+      setInvImporting(false);
+      if (invFileRef.current) invFileRef.current.value = '';
+    }
+  };
+
+  const handleQuickProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickProductData.name || !quickProductData.category_id) return alert('أكمل بيانات المنتج');
+    
+    try {
+      setIsSaving(true);
+      const newProd = {
+        name: quickProductData.name,
+        barcode: quickProductData.barcode,
+        category_id: quickProductData.category_id,
+        sale_price: parseFloat(quickProductData.sale_price) || 0,
+        purchase_price: 0,
+        stock_quantity: 0,
+        average_purchase_price: 0,
+        unit: quickProductData.unit || 'قطعة'
+      };
+      
+      const createdProduct = await addProduct(newProd);
+      
+      // Try to find it in store as fallback just in case
+      const allProducts = useStore.getState().products;
+      const created = createdProduct || allProducts.find(p => p.barcode === quickProductData.barcode);
+      
+      if (created && quickProductIndex !== null) {
+        const updated = [...invItems];
+        updated[quickProductIndex] = { ...updated[quickProductIndex], product_id: created.id };
+        setInvItems(updated);
+      }
+      
+      setShowQuickProductModal(false);
+      setQuickProductData({ name: '', category_id: '', sale_price: '', barcode: '', unit: 'قطعة' });
+    } catch (err) {
+      alert('خطأ في إضافة المنتج');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const printPurchaseInvoice = (inv: any) => {
+    const supplier = suppliers.find(s => s.id === inv.supplier_id);
+    const isPaymentReceipt = inv.total === 0;
+    const isSupplierCollection = isPaymentReceipt && (Number(inv.paid_amount) || 0) < 0;
+    const receiptAmount = Math.abs(Number(inv.paid_amount) || 0);
+    
+    // Calculate historical debt at the time of this invoice/payment
+    const relevantInvoices = purchaseInvoices
+      .filter(i => i.supplier_id === inv.supplier_id && new Date(i.created_at) <= new Date(inv.created_at))
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    let debtBefore = 0;
+    relevantInvoices.forEach(i => {
+      if (i.id !== inv.id) {
+        debtBefore += (i.total - i.paid_amount);
+      }
+    });
+
+    // If it's a purchase invoice, debtBefore doesn't include the current invoice's total yet.
+    // If it's a payment receipt, debtBefore is the total debt just before this payment.
+    const currentDebtImpact = inv.total - inv.paid_amount;
+    const debtAfter = debtBefore + currentDebtImpact;
+
+    const itemsHtml = (inv.items || []).map((item: any, index: number) => {
+      const product = products.find(p => p.id === item.product_id);
+      return `
+        <tr>
+          <td style="text-align:center;">${index + 1}</td>
+          <td style="text-align:right;font-weight:bold;">${escapeHtml(product?.name || 'منتج غير معروف')}</td>
+          <td style="text-align:center;">${item.quantity}</td>
+          <td style="text-align:center;">${item.purchase_price.toFixed(2)}</td>
+          <td style="text-align:left;font-weight:bold;">${(item.purchase_price * item.quantity).toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`https://cashier-branch3.vercel.app/view-invoice/${inv.id}`)}`;
+
+    const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8"/>
+<title>${isPaymentReceipt ? (isSupplierCollection ? 'إيصال تحصيل' : 'إيصال سداد') : 'فاتورة مشتريات'} #${inv.invoice_number}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo', sans-serif;}
+  body{background:#fff;color:#000;margin:0;}
+  .invoice-container{width:72mm;margin:0 auto;padding:2mm 1.5mm;display:flex;flex-direction:column;}
+
+  .header-main{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;}
+  .logo{max-height:55px;max-width:62mm;width:auto;object-fit:contain;display:block;margin:0 auto 4px;}
+  .store-name{font-size:17px;font-weight:900;color:#000;}
+  .store-details{font-size:9px;color:#333;margin-top:2px;line-height:1.4;}
+  .invoice-title-badge{display:inline-block;background:#000;color:#fff;padding:3px 12px;border-radius:6px;font-weight:900;font-size:11px;margin-top:5px;}
+
+  .info-grid{display:flex;flex-direction:column;gap:2px;margin:6px 0;font-size:10px;}
+  .info-item{display:flex;justify-content:space-between;gap:6px;}
+  .info-item strong{color:#444;white-space:nowrap;}
+  .info-item span{color:#000;font-weight:700;}
+
+  table{width:100%;border-collapse:collapse;margin-bottom:5px;}
+  thead th{font-size:9px;padding:4px 1px;text-align:center;border-bottom:1px solid #000;font-weight:900;}
+  thead th:nth-child(2){text-align:right;}
+  thead th:last-child{text-align:left;}
+  tbody td{font-size:9px;padding:3px 1px;border-bottom:1px dotted #bbb;}
+
+  .summary-section{width:100%;margin-top:4px;}
+  .summary-row{display:flex;justify-content:space-between;padding:2px 0;font-size:10px;}
+  .summary-row.total{border-top:1px solid #000;border-bottom:1px solid #000;margin-top:3px;padding:4px 0;font-size:14px;font-weight:900;}
+
+  .footer-container{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:8px;padding-top:6px;border-top:1px dashed #000;}
+  .footer-text{font-size:9px;color:#333;text-align:center;}
+  .qr-code{width:80px;height:80px;}
+
+  @media print{
+    @page{size:72mm auto;margin:0;}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .invoice-container{width:72mm;padding:2mm 1.5mm;}
+  }
+</style>
+</head>
+<body>
+<div class="invoice-container">
+  <div class="header-main">
+    <img class="logo" src="${escapeHtml(storeSettings.logo)}" onerror="this.style.display='none'" />
+    <div class="store-name">${escapeHtml(storeSettings.name)}</div>
+    <div class="store-details">${escapeHtml(storeSettings.address)} | ${escapeHtml(storeSettings.phone)}</div>
+    <div class="invoice-title-badge">${isPaymentReceipt ? (isSupplierCollection ? 'إيصال تحصيل من مورد' : 'إيصال سداد مورد') : 'فاتورة مشتريات'}</div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-item"><strong>المورد:</strong> <span>${escapeHtml(supplier?.name || 'مورد محذوف')}</span></div>
+    <div class="info-item"><strong>رقم الهاتف:</strong> <span dir="ltr">${escapeHtml(supplier?.phone || '—')}</span></div>
+    <div class="info-item"><strong>رقم المستند:</strong> <span>#${inv.invoice_number}</span></div>
+    <div class="info-item"><strong>التاريخ:</strong> <span>${new Date(inv.created_at).toLocaleString('ar-EG', { calendar: 'gregory' })}</span></div>
+  </div>
+
+  ${!isPaymentReceipt ? `
+  <table>
+    <thead><tr>
+      <th style="width:40px">#</th>
+      <th style="text-align:right">المنتج</th>
+      <th style="width:60px">الكمية</th>
+      <th style="width:80px">سعر الشراء</th>
+      <th style="width:100px;text-align:left">الإجمالي</th>
+    </tr></thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+  ` : `
+  <div style="padding:30px; text-align:center; background:#f0fdf4; border:2px dashed #bbf7d0; border-radius:20px; margin-bottom:20px;">
+    <h2 style="color:#15803d; font-size:22px; font-weight:900;">${isSupplierCollection ? 'إيصال تحصيل من المورد' : 'إيصال سداد مديونية'}</h2>
+    <p style="color:#166534; margin-top:5px; font-weight:bold;">${isSupplierCollection ? 'تم استلام المبلغ من المورد وتخفيض الرصيد لنا عنده' : 'تم تسليم المبلغ للمورد وتخفيضه من الحساب'}</p>
+  </div>
+  `}
+
+  <div class="summary-section">
+    ${!isPaymentReceipt ? `<div class="summary-row total"><span>إجمالي الفاتورة:</span><span>${inv.total.toFixed(2)}</span></div>` : ''}
+    
+    <div class="summary-row" style="color: #64748b; font-weight: bold;">
+      <span>المديونية قبل السداد:</span>
+      <span>${debtBefore.toFixed(2)}</span>
+    </div>
+
+    <div class="summary-row" style="color: #059669; font-weight: 900; font-size: 20px; background: #ecfdf5; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0; margin: 8px 0;">
+      <span>${isSupplierCollection ? 'المبلغ المحصل حالياً:' : 'المبلغ المدفوع حالياً:'}</span>
+       <span>${receiptAmount.toFixed(2)}</span>
+    </div>
+
+    <div class="summary-row" style="color: #ef4444; font-weight: 900; font-size: 18px; border-top: 2px solid #ef4444; padding-top: 10px;">
+       <span>${debtAfter < -0.009 ? 'المتبقي لنا عند المورد:' : 'المتبقي للمورد:'}</span>
+       <span>${debtAfter.toFixed(2)}</span>
+    </div>
+    
+    <div style="display: flex; gap: 20px; align-items: flex-end; margin-top: 15px;">
+      <div style="flex: 1; padding: 10px; background: #f9fafb; border-radius: 10px; border: 1px solid #eee;">
+        <div style="font-size: 11px; color: #64748b; margin-bottom: 4px; border-bottom: 1px solid #eee; padding-bottom: 4px; text-align: right; font-weight: bold;">طريقة الدفع:</div>
+        ${Math.abs(inv.paid_cash || 0) > 0 ? `<div class="summary-row" style="font-size: 12px; border: none; padding: 2px 0;"><span>💵 كاش:</span><span>${Math.abs(inv.paid_cash).toFixed(2)}</span></div>` : ''}
+        ${Math.abs(inv.paid_visa || 0) > 0 ? `<div class="summary-row" style="font-size: 12px; border: none; padding: 2px 0;"><span>💳 فيزا:</span><span>${Math.abs(inv.paid_visa).toFixed(2)}</span></div>` : ''}
+        ${Math.abs(inv.paid_wallet || 0) > 0 ? `<div class="summary-row" style="font-size: 12px; border: none; padding: 2px 0;"><span>📱 محفظة:</span><span>${Math.abs(inv.paid_wallet).toFixed(2)}</span></div>` : ''}
+        ${Math.abs(inv.paid_instapay || 0) > 0 ? `<div class="summary-row" style="font-size: 12px; border: none; padding: 2px 0;"><span>⚡ انستا باي:</span><span>${Math.abs(inv.paid_instapay).toFixed(2)}</span></div>` : ''}
+      </div>
+      <div style="text-align: center;">
+        <img src="${qrCodeUrl}" style="width: 80px; height: 80px; border: 1px solid #eee; padding: 5px; border-radius: 8px; background: white;" />
+        <div style="font-size: 9px; font-weight: bold; color: #1e293b; margin-top: 4px;">تفاصيل الفاتورة</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px; border-top: 1px dashed #cbd5e1; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="font-size: 10px; color: #94a3b8;">${escapeHtml(storeSettings.name)} - إدارة الموردين</div>
+    <div style="font-size: 10px; color: #94a3b8; font-family: monospace;">#${inv.invoice_number}</div>
+  </div>
+</div>
+<script>window.onload=()=>{setTimeout(()=>{window.print();window.onafterprint=()=>window.close();},500);}<\/script>
+</body></html>`;
+
+    openPrintWindow(html);
+  };
+
+  const tc = storeSettings.themeColor;
+
+  return (
+    <div className="p-4 md:p-8 h-[calc(100vh-2rem)] overflow-y-auto">
+      {/* Header */}
+      <div className="flex flex-wrap gap-3 justify-between items-end mb-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 flex items-center gap-3">
+            <Users style={{ color: tc }} size={32} />
+            الموردين والمشتريات
+          </h1>
+          <p className="text-slate-500 mt-2 font-medium">إدارة الموردين وتسجيل فواتير الشراء</p>
+        </div>
+        <button
+          onClick={() => {
+            if (activeTab === 'suppliers') {
+              setEditingSupplier(null);
+              setFormData({ name: '', phone: '', address: '', openingBalance: '', openingDirection: 'owed_to_supplier' as 'owed_to_supplier' | 'owed_to_us' });
+              setShowSupplierModal(true);
+            } else {
+              setEditingPurchaseInvoice(null);
+              setInvMode('purchase');
+              setInvSupplierId('');
+              setInvPay({});
+              setInvTreasurySource('shop');
+              setInvItems([{ product_id: '', quantity: '1', purchase_price: '', to_display: '0' }]);
+              setAutoOpenRow(null);
+              setShowInvoiceModal(true);
+            }
+          }}
+          style={{ backgroundColor: tc }}
+          className="text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:opacity-90 transition shadow-lg"
+        >
+          <Plus size={20} />
+          {activeTab === 'suppliers' ? 'إضافة مورد جديد' : 'فاتورة مشتريات جديدة'}
+        </button>
+        {activeTab === 'invoices' && (
+          <button
+            onClick={() => {
+              setEditingPurchaseInvoice(null);
+              setInvMode('return');
+              setRetSettlement('cash');
+              setInvSupplierId('');
+              setInvPay({});
+              setInvTreasurySource('shop');
+              setInvItems([{ product_id: '', quantity: '1', purchase_price: '', to_display: '0' }]);
+              setAutoOpenRow(null);
+              setShowInvoiceModal(true);
+            }}
+            className="bg-amber-500 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2 hover:opacity-90 transition shadow-lg"
+          >
+            <RotateCcw size={18} /> فاتورة مرتجع
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 bg-slate-100 rounded-2xl p-1.5 w-fit">
+        <button
+          onClick={() => setActiveTab('suppliers')}
+          style={activeTab === 'suppliers' ? { backgroundColor: tc, color: 'white' } : {}}
+          className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${activeTab === 'suppliers' ? 'shadow-lg' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          <Users size={18} />
+          الموردين ({suppliers.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('invoices')}
+          style={activeTab === 'invoices' ? { backgroundColor: tc, color: 'white' } : {}}
+          className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${activeTab === 'invoices' ? 'shadow-lg' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          <ShoppingCart size={18} />
+          فواتير المشتريات ({purchaseInvoices.length})
+        </button>
+      </div>
+
+      {/* ── Suppliers Tab ── */}
+      {activeTab === 'suppliers' && (
+        <>
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 mb-6">
+            <div className="relative">
+              <Search className="absolute right-4 top-3.5 text-slate-400" size={20} />
+              <input
+                type="text"
+                placeholder="ابحث باسم المورد أو رقم الهاتف..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-12 pl-4 focus:outline-none focus:ring-2 transition text-slate-700"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSuppliers.map((supplier) => {
+              const supplierInvoices = purchaseInvoices.filter(inv => inv.supplier_id === supplier.id);
+              const totalDebt = supplierInvoices.reduce((sum, inv) => sum + (inv.total - inv.paid_amount), 0);
+              return (
+                <div key={supplier.id} className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all border border-slate-100 group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-slate-100 to-transparent rounded-bl-full opacity-50 group-hover:scale-150 transition-transform duration-500" />
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner">
+                      <Users size={28} style={{ color: tc }} />
+                    </div>
+                    <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => { setSelectedSupplierProfile(supplier); setShowSupplierProfile(true); }}
+                        className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition"
+                        title="ملف المورد"
+                      ><Eye size={16} /></button>
+                      <button
+                        onClick={() => { const ob = openingBalanceOf(supplier.id); setEditingSupplier(supplier); setFormData({ name: supplier.name, phone: supplier.phone || '', address: supplier.address || '', openingBalance: ob ? String(Math.abs(ob)) : '', openingDirection: ob < 0 ? 'owed_to_us' : 'owed_to_supplier' }); setShowSupplierModal(true); }}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition"
+                      ><Edit2 size={16} /></button>
+                      <button
+                        onClick={() => { if (confirm('هل أنت متأكد من حذف هذا المورد؟')) deleteSupplier(supplier.id); }}
+                        className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition"
+                      ><Trash2 size={16} /></button>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-black text-slate-800 mb-2">{supplier.name}</h3>
+                  {totalDebt > 0.009 && (
+                    <div className="mb-4 inline-block bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold border border-red-100">
+                      علينا للمورد: {totalDebt.toLocaleString()} {storeSettings.currency}
+                    </div>
+                  )}
+                  {totalDebt < -0.009 && (
+                    <div className="mb-4 inline-block bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-100">
+                      لينا عند المورد: {Math.abs(totalDebt).toLocaleString()} {storeSettings.currency}
+                    </div>
+                  )}
+                  <div className="space-y-3 text-slate-600 text-sm font-medium">
+                    <div className="flex items-center gap-3"><Phone size={16} className="text-slate-400" /><span dir="ltr" className="font-mono">{supplier.phone || 'لا يوجد هاتف'}</span></div>
+                    <div className="flex items-center gap-3"><MapPin size={16} className="text-slate-400" /><span>{supplier.address || 'لا يوجد عنوان'}</span></div>
+                    <div className="flex items-center gap-3 pt-3 border-t border-slate-50">
+                      <Calendar size={16} className="text-slate-400" />
+                      <span className="text-xs text-slate-400">أضيف في: {new Date(supplier.created_at).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredSuppliers.length === 0 && (
+              <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                <Users size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-xl font-bold mb-2">لا يوجد موردين</p>
+                <p className="text-sm">لم يتم العثور على أي مورد مسجل حالياً.</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Invoices Tab ── */}
+      {activeTab === 'invoices' && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 mb-6">
+            <div className="relative">
+              <Search className="absolute right-4 top-3.5 text-slate-400" size={20} />
+              <input
+                type="text"
+                placeholder="ابحث برقم الفاتورة أو اسم المورد أو هاتفه..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-12 pl-4 focus:outline-none focus:ring-2 transition text-slate-700"
+                value={searchQueryInvoices}
+                onChange={(e) => setSearchQueryInvoices(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {filteredInvoices.length === 0 ? (
+            <div className="py-20 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm">
+              <ShoppingCart size={48} className="mx-auto mb-4 opacity-50" />
+              <p className="text-xl font-bold mb-2">لا توجد فواتير مشتريات</p>
+              <p className="text-sm">اضغط على "فاتورة مشتريات جديدة" لإنشاء أول فاتورة.</p>
+            </div>
+          ) : (
+            filteredInvoices.map((inv) => {
+              const supplier = suppliers.find(s => s.id === inv.supplier_id);
+              const remaining = inv.total - inv.paid_amount;
+              return (
+                <div key={inv.id} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition group">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tc + '20' }}>
+                        <FileText size={22} style={{ color: tc }} />
+                      </div>
+                      <div>
+                        <p className="font-black text-slate-800 text-lg flex items-center gap-2">
+                          {inv.invoice_number}
+                          {isReturnRow(inv) && <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-100 text-amber-700">مرتجع مورد</span>}
+                        </p>
+                        <p className="text-slate-500 text-sm font-medium">{supplier?.name || 'مورد محذوف'}</p>
+                        <p className="text-slate-400 text-xs mt-1">{new Date(inv.created_at).toLocaleDateString('ar-EG', { calendar: 'gregory', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-6 items-start">
+                      <div className="text-right">
+                        <p className="font-black text-slate-800 text-xl">{inv.total.toLocaleString()} {storeSettings.currency}</p>
+                        <p className="text-sm font-bold text-emerald-600 mt-1">مدفوع: {inv.paid_amount.toLocaleString()}</p>
+                        {remaining > 0 && <p className="text-sm font-bold text-red-500">متبقي: {remaining.toLocaleString()}</p>}
+                      </div>
+                      {/* التعديل متاح للفواتير العادية بس — صف المرتجع إشاراته سالبة
+                          و updatePurchaseInvoice مش بيتعامل معاها، فالتعديل هيبوّظ
+                          المخزون والرصيد. المرتجع الغلط يتحذف ويتعاد. */}
+                      {!isReturnRow(inv) && (
+                      <button
+                        onClick={() => {
+                          setEditingPurchaseInvoice(inv);
+                          setInvSupplierId(inv.supplier_id);
+                          setInvTreasurySource(isMainTreasuryPurchase(inv) ? 'main' : 'shop');
+                          {
+                            const pop: Record<string, string> = {};
+                            invPayKeys.forEach((k) => {
+                              const col = (inv as any)['paid_' + k];
+                              pop[k] = col ? col.toString() : (inv.payment_method === k ? inv.paid_amount.toString() : '');
+                            });
+                            setInvPay(pop);
+                          }
+                          setInvItems((inv.items && inv.items.length > 0) ? inv.items.map((i: any) => ({ product_id: i.product_id, quantity: i.quantity.toString(), purchase_price: i.purchase_price.toString(), to_display: (i.to_display ?? 0).toString() })) : [{ product_id: '', quantity: '1', purchase_price: '', to_display: '0' }]);
+                          setAutoOpenRow(null);
+                          setShowInvoiceModal(true);
+                        }}
+                        className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                        title="تعديل الفاتورة"
+                      >
+                        <Edit2 size={20} />
+                      </button>
+                      )}
+                      {isReturnRow(inv) && (
+                        <button
+                          onClick={() => handleDeleteReturn(inv)}
+                          disabled={isDeletingReturn}
+                          className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-40"
+                          title="حذف المرتجع"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      )}
+                      {canReturn(inv) && (
+                        <button
+                          onClick={() => openReturnModal(inv)}
+                          className="p-3 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-100 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                          title="مرتجع للمورد"
+                        >
+                          <RotateCcw size={20} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => printPurchaseInvoice(inv)}
+                        className="p-3 bg-slate-50 text-slate-600 rounded-2xl hover:bg-slate-100 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                        title="طباعة الفاتورة"
+                      >
+                        <Printer size={20} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* ── Supplier Return Modal (مرتجع مورد) ── */}
+      {showReturnModal && returnInvoice && (() => {
+        const supplier = suppliers.find(s => s.id === returnInvoice.supplier_id);
+        const alreadyReturned = returnedQtyOf(returnInvoice.id);
+        const rows = (returnInvoice.items || []).map((it: any) => {
+          const product = products.find(p => p.id === it.product_id);
+          const unit = (product as any)?.unit || 'قطعة';
+          const available = (Number(it.quantity) || 0) - (alreadyReturned[it.product_id] || 0);
+          const entered = parseFloat(returnQty[it.product_id] || '') || 0;
+          return { it, product, unit, available, entered, lineValue: entered * (Number(it.purchase_price) || 0) };
+        });
+        const returnValue = rows.reduce((s: number, r: any) => s + r.lineValue, 0);
+        const overLimit = rows.some((r: any) => r.entered > r.available + 0.0001);
+        const overStock = rows.some((r: any) => r.entered > 0 && (Number(r.product?.stock_quantity) || 0) < r.entered - 0.0001);
+        const refundTotal = sumSplit(formToSplit(returnPay));
+        const isCash = returnSettlement === 'cash';
+        const canSubmit = returnValue > 0.009 && !overLimit && !overStock && !isSavingReturn &&
+          (!isCash || (refundTotal > 0.009 && refundTotal <= returnValue + 0.01));
+
+        const submitReturn = async () => {
+          const returns = rows
+            .filter((r: any) => r.entered > 0)
+            .map((r: any) => ({ productId: r.it.product_id, returnQty: r.entered }));
+          if (returns.length === 0) return alert('حدد كمية للإرجاع');
+
+          const useMain = isCash && returnTreasuryTarget === 'main';
+          const label = isCash
+            ? `استرداد ${refundTotal.toFixed(2)} ${storeSettings.currency} ${useMain ? 'للخزنة الرئيسية' : 'لدرج المحل'}`
+            : `خصم ${returnValue.toFixed(2)} ${storeSettings.currency} من مديونية المورد`;
+          if (!confirm(`تأكيد مرتجع للمورد «${supplier?.name || 'مورد'}»\nفاتورة: ${returnInvoice.invoice_number}\nقيمة المرتجع: ${returnValue.toFixed(2)} ${storeSettings.currency}\nالتسوية: ${label}\n\nسيتم خصم الكميات من المخزون.`)) return;
+
+          try {
+            setIsSavingReturn(true);
+            const dateISO = timestampForBusinessDate(returnDate, storeSettings);
+            const ok = await useStore.getState().processPurchaseReturn(
+              returnInvoice.id,
+              returns,
+              returnSettlement,
+              isCash ? (formToSplit(returnPay) as any) : undefined,
+              dateISO,
+              useMain
+            );
+            if (ok) {
+              alert('تم تسجيل مرتجع المورد بنجاح');
+              setShowReturnModal(false);
+              setReturnInvoice(null);
+            }
+          } finally {
+            setIsSavingReturn(false);
+          }
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100">
+              <div className="p-6 bg-amber-50 border-b border-amber-100 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-black text-slate-800">مرتجع للمورد</h2>
+                  <p className="text-sm text-slate-500 font-medium mt-1">
+                    {supplier?.name || 'مورد'} — فاتورة {returnInvoice.invoice_number}
+                  </p>
+                </div>
+                <button onClick={() => { setShowReturnModal(false); setReturnInvoice(null); }} className="p-2 rounded-xl hover:bg-amber-100 transition"><X size={20} /></button>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ المرتجع</label>
+                  <input type="date" value={returnDate} onChange={e => setReturnDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 transition font-medium" />
+                </div>
+
+                {/* الأصناف — السعر ثابت من الفاتورة الأصلية، مش متوسط التكلفة الحالي */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">الأصناف المرتجعة</label>
+                  <div className="space-y-2">
+                    {rows.map((r: any) => (
+                      <div key={r.it.product_id} className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center gap-3 flex-wrap">
+                        <div className="flex-1 min-w-[160px]">
+                          <p className="font-bold text-slate-800 text-sm">{r.product?.name || 'منتج محذوف'}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            سعر الشراء: {Number(r.it.purchase_price).toFixed(2)} · متاح للإرجاع: <b>{formatQty(r.available, r.unit)}</b>
+                            {' · '}بالمخزون: {formatQty(Number(r.product?.stock_quantity) || 0, r.unit)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step={isFractionalUnit(r.unit) ? '0.01' : '1'}
+                            max={r.available}
+                            placeholder="0"
+                            value={returnQty[r.it.product_id] || ''}
+                            onChange={e => setReturnQty({ ...returnQty, [r.it.product_id]: e.target.value })}
+                            disabled={r.available <= 0}
+                            className="w-24 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-amber-400 transition disabled:bg-slate-100 disabled:text-slate-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setReturnQty({ ...returnQty, [r.it.product_id]: String(r.available) })}
+                            disabled={r.available <= 0}
+                            className="text-xs font-bold px-2 py-2 rounded-xl bg-amber-100 text-amber-700 hover:bg-amber-200 transition disabled:opacity-40"
+                          >
+                            الكل
+                          </button>
+                          <span className="text-sm font-black text-slate-700 w-20 text-left">{r.lineValue.toFixed(2)}</span>
+                        </div>
+                        {r.entered > r.available + 0.0001 && (
+                          <p className="w-full text-xs font-bold text-red-500">أكبر من المتاح للإرجاع</p>
+                        )}
+                        {r.entered > 0 && (Number(r.product?.stock_quantity) || 0) < r.entered - 0.0001 && (
+                          <p className="w-full text-xs font-bold text-red-500">المخزون الحالي لا يكفي — الكمية دي اتباعت</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-slate-800 text-white rounded-2xl p-4 flex justify-between items-center">
+                  <span className="font-bold">قيمة المرتجع</span>
+                  <span className="text-2xl font-black">{returnValue.toFixed(2)} {storeSettings.currency}</span>
+                </div>
+
+                {/* التسوية */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">طريقة التسوية</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setReturnSettlement('debt'); setReturnPay({}); }}
+                      className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnSettlement === 'debt' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500'}`}
+                    >
+                      خصم من المديونية
+                      <span className="block text-[11px] font-medium mt-0.5 opacity-70">مفيش فلوس بتتحرك</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReturnSettlement('cash')}
+                      className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnSettlement === 'cash' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}
+                    >
+                      استرداد نقدي
+                      <span className="block text-[11px] font-medium mt-0.5 opacity-70">المورد رجّع فلوس</span>
+                    </button>
+                  </div>
+                </div>
+
+                {isCash && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">المبلغ المسترد وطريقة استلامه</label>
+                      <PaymentSplitInputs
+                        value={returnPay}
+                        onChange={(k, v) => setReturnPay((s) => ({ ...s, [k]: v }))}
+                        labelClassName="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide text-right"
+                        inputClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-bold text-right"
+                      />
+                      {refundTotal > returnValue + 0.01 && (
+                        <p className="text-xs font-bold text-red-500 mt-2">المبلغ المسترد أكبر من قيمة المرتجع</p>
+                      )}
+                      {refundTotal > 0.009 && refundTotal < returnValue - 0.01 && (
+                        <p className="text-xs font-bold text-slate-500 mt-2">
+                          الباقي ({(returnValue - refundTotal).toFixed(2)}) هيتخصم من مديونية المورد.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">الفلوس تدخل فين؟</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" onClick={() => setReturnTreasuryTarget('main')} className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnTreasuryTarget === 'main' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500'}`}>الخزنة الرئيسية</button>
+                        <button type="button" onClick={() => setReturnTreasuryTarget('shop')} className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnTreasuryTarget === 'shop' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500'}`}>درج المحل</button>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-2 font-medium">
+                        «درج المحل» بيظهر في تقفيل الكاشير. «الرئيسية» بيتستبعد منه ويتسجّل إيراد في الخزنة الرئيسية.
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowReturnModal(false); setReturnInvoice(null); }}
+                    className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submitReturn}
+                    disabled={!canSubmit}
+                    className="flex-1 py-3 rounded-2xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {isSavingReturn ? 'جارٍ الحفظ...' : 'تأكيد المرتجع'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Supplier Modal ── */}
+      {showSupplierModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-100">
+            <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+              <h2 className="text-xl font-black text-slate-800">{editingSupplier ? 'تعديل بيانات المورد' : 'إضافة مورد جديد'}</h2>
+              <button onClick={() => setShowSupplierModal(false)} className="p-2 rounded-xl hover:bg-slate-200 transition"><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSupplierSubmit} className="p-6 space-y-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">اسم المورد أو الشركة <span className="text-red-500">*</span></label>
+                <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف</label>
+                <input type="text" dir="ltr" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium text-left" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">العنوان</label>
+                <textarea value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium resize-none h-24" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">الرصيد الافتتاحي ({storeSettings.currency})</label>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <button type="button" onClick={() => setFormData({ ...formData, openingDirection: 'owed_to_supplier' })}
+                    className={`py-2.5 rounded-xl font-bold text-sm border transition ${formData.openingDirection === 'owed_to_supplier' ? 'bg-red-500 text-white border-transparent' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                    علينا للمورد (دَين)
+                  </button>
+                  <button type="button" onClick={() => setFormData({ ...formData, openingDirection: 'owed_to_us' })}
+                    className={`py-2.5 rounded-xl font-bold text-sm border transition ${formData.openingDirection === 'owed_to_us' ? 'bg-emerald-500 text-white border-transparent' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                    لينا عند المورد (رصيد)
+                  </button>
+                </div>
+                <input type="number" min="0" step="any" value={formData.openingBalance} onChange={e => setFormData({ ...formData, openingBalance: e.target.value })} placeholder="0" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold" />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {formData.openingDirection === 'owed_to_supplier'
+                    ? 'دَينك للمورد قبل بدء العمل على النظام — بيتضاف لمديونيته وبيتسدّد عادي.'
+                    : 'رصيد ليك عند المورد (دفعت مقدّم أو ليك مرتجع) قبل بدء العمل — بيظهر في كشف الحساب كرصيد دائن ليك.'}
+                  {' '}بيظهر في كشف الحساب كبند «رصيد افتتاحي». لا يؤثر على الخزنة.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <button type="submit" style={{ backgroundColor: tc }} className="flex-1 text-white py-3.5 rounded-xl font-bold shadow-lg hover:opacity-90 transition">حفظ البيانات</button>
+                <button type="button" onClick={() => setShowSupplierModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition">إلغاء</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Purchase Invoice Modal ── */}
+      {showInvoiceModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">{invMode === 'return' ? <RotateCcw size={22} className="text-amber-600" /> : <ShoppingCart size={22} style={{ color: tc }} />}{editingPurchaseInvoice ? 'تعديل فاتورة المشتريات' : (invMode === 'return' ? 'فاتورة مرتجع للمورد' : 'فاتورة مشتريات جديدة')}</h2>
+              <button onClick={() => setShowInvoiceModal(false)} className="p-2 rounded-xl hover:bg-slate-200 transition"><X size={20} /></button>
+            </div>
+
+            <form onSubmit={handleAddInvoice} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                {/* Supplier Select */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">المورد <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <select value={invSupplierId} onChange={e => setInvSupplierId(e.target.value)} required className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium">
+                      <option value="">-- اختر المورد --</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                    <ChevronDown size={16} className="absolute left-4 top-4 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {invMode === 'return' && (
+                  <p className="text-[12px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-center">
+                    مرتجع حرّ — حدّد المنتج والكمية وسعر القطعة بنفسك (مش لازم يكون في فاتورة شراء). المخزون هيتخصم.
+                  </p>
+                )}
+
+                {/* Items */}
+                <div>
+                  <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+                    <label className="text-sm font-bold text-slate-700">{invMode === 'return' ? 'المنتجات المرتجعة' : 'المنتجات المشتراة'}</label>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <input ref={invFileRef} type="file" accept=".xlsx,.xls" onChange={importInvoiceExcel} className="hidden" />
+                      <button type="button" onClick={exportInvoiceTemplate} title="تحميل قالب Excel لهذا المورد (مملوء بمنتجاته لتعديل الكميات)" className="text-xs font-bold flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
+                        <FileSpreadsheet size={14} /> قالب Excel
+                      </button>
+                      <button type="button" disabled={invImporting} onClick={() => invFileRef.current?.click()} title="استيراد أصناف الفاتورة من ملف Excel (يُطابق بالكود وينشئ الناقص)" className="text-xs font-bold flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition disabled:opacity-60">
+                        <Upload size={14} /> {invImporting ? 'جارٍ الاستيراد...' : 'استيراد Excel'}
+                      </button>
+                      {invMode !== 'return' && (
+                        <button type="button" onClick={printInvoiceBarcodes} title="طباعة ملصق باركود لكل صنف بعدد كميته في الفاتورة" className="text-xs font-bold flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition">
+                          <Printer size={14} /> طباعة باركود الأصناف
+                        </button>
+                      )}
+                      <button type="button" onClick={addInvRow} className="text-sm font-bold flex items-center gap-1 px-3 py-1.5 rounded-lg hover:opacity-80 transition" style={{ color: tc }}>
+                        <Plus size={14} /> إضافة منتج
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {invItems.map((item, idx) => {
+                      const rowProduct = products.find(p => p.id === item.product_id);
+                      const rowUnit = rowProduct?.unit || 'قطعة';
+                      const rowFractional = isFractionalUnit(rowUnit);
+                      return (
+                      <div key={idx} className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <ProductSearchSelect
+                            value={item.product_id}
+                            onChange={val => updateInvRow(idx, 'product_id', val)}
+                            products={products}
+                            autoOpen={autoOpenRow === idx}
+                            onEnterCommit={() => qtyRefs.current[idx]?.focus()}
+                          />
+                          <div className="relative w-24 shrink-0">
+                            <input
+                              ref={el => { qtyRefs.current[idx] = el; }}
+                              type="number" min="0" step={rowFractional ? '0.001' : '1'} placeholder="الكمية"
+                              value={item.quantity} onChange={e => updateInvRow(idx, 'quantity', e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); priceRefs.current[idx]?.focus(); } }}
+                              onFocus={e => e.currentTarget.select()}
+                              className="w-full bg-white border border-slate-200 rounded-xl pl-2 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-center"
+                            />
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 pointer-events-none">{getUnitConfig(rowUnit).label}</span>
+                          </div>
+                          {invMode !== 'return' && (
+                          <div className="relative w-24 shrink-0">
+                            <input
+                              type="number" min="0" max={item.quantity} step={rowFractional ? '0.001' : '1'} placeholder="المحل"
+                              value={item.to_display} onChange={e => updateInvRow(idx, 'to_display', e.target.value)}
+                              title="كمية تدخل المحل (المعروض) — الباقي يدخل المستودع"
+                              className="w-full bg-white border border-slate-200 rounded-xl pl-2 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 font-medium text-center border-l-4 border-l-emerald-400"
+                            />
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-emerald-500 pointer-events-none">محل</span>
+                          </div>
+                          )}
+                          <input
+                            ref={el => { priceRefs.current[idx] = el; }}
+                            type="number" min="0" step="0.01" placeholder={`سعر شراء الـ${getUnitConfig(rowUnit).label}`}
+                            value={item.purchase_price} onChange={e => updateInvRow(idx, 'purchase_price', e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (idx === invItems.length - 1) addInvRowAndFocus(); else setAutoOpenRow(idx + 1); } }}
+                            onFocus={e => e.currentTarget.select()}
+                            className="w-28 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-center"
+                          />
+                          {invItems.length > 1 && (
+                            <button type="button" onClick={() => removeInvRow(idx)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                              <X size={16} />
+                            </button>
+                          )}
+                        </div>
+                        {invMode !== 'return' && (parseFloat(item.quantity) || 0) > 0 && (
+                          <p className="text-[10px] text-slate-400 mt-2 pr-1">
+                            التوزيع: <b className="text-emerald-600">محل {Math.max(0, Math.min(parseFloat(item.to_display) || 0, parseFloat(item.quantity) || 0))}</b>
+                            {' · '}<b className="text-blue-600">مستودع {Math.max(0, (parseFloat(item.quantity) || 0) - Math.min(parseFloat(item.to_display) || 0, parseFloat(item.quantity) || 0))}</b>
+                            <span className="text-slate-300"> — لو سِبت خانة المحل 0 هيدخل كله المستودع</span>
+                          </p>
+                        )}
+                      </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* تسوية المرتجع */}
+                {invMode === 'return' && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                    <label className="block text-sm font-bold text-slate-700 mb-2">طريقة التسوية</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setRetSettlement('cash')}
+                        className={`py-2.5 rounded-xl font-black text-sm ${retSettlement === 'cash' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                        استرداد نقدي<span className="block text-[10px] font-normal opacity-80">المورد رجّع فلوس</span>
+                      </button>
+                      <button type="button" onClick={() => setRetSettlement('debt')}
+                        className={`py-2.5 rounded-xl font-black text-sm ${retSettlement === 'debt' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                        خصم من المديونية<span className="block text-[10px] font-normal opacity-80">مفيش فلوس بتتحرك</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* مصدر الخزنة: للشراء دايماً، وللمرتجع النقدي بس (فين تروح الفلوس) */}
+                {((invMode === 'purchase' && !editingPurchaseInvoice) || (invMode === 'return' && retSettlement === 'cash')) && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                    <label className="block text-sm font-bold text-slate-700 mb-2">{invMode === 'return' ? 'الفلوس ترجع لأي خزنة؟' : 'مصدر دفع المشتريات'}</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setInvTreasurySource('shop')}
+                        className={`py-2.5 rounded-xl font-black text-sm ${invTreasurySource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                      >
+                        {invMode === 'return' ? 'درج المحل' : 'خزنة المحل'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInvTreasurySource('main')}
+                        className={`py-2.5 rounded-xl font-black text-sm ${invTreasurySource === 'main' ? 'bg-amber-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                      >
+                        الخزنة الرئيسية
+                      </button>
+                    </div>
+                    {invMode === 'purchase' && invTreasurySource === 'main' && (
+                      <p className="text-[11px] text-amber-700 font-bold mt-2">سيتم طلب OTP من المدير، ولن يتم خصم المدفوع من خزنة المحل.</p>
+                    )}
+                    {invMode === 'return' && invTreasurySource === 'main' && (
+                      <p className="text-[11px] text-amber-700 font-bold mt-2">هيتسجّل إيراد في الخزنة الرئيسية، ومش هيظهر في تقفيل الكاشير.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* المبلغ المدفوع (شراء) / المسترد (مرتجع نقدي) */}
+                {(invMode === 'purchase' || (invMode === 'return' && retSettlement === 'cash')) && (
+                  <div>
+                    {invMode === 'return' && <label className="block text-sm font-bold text-slate-700 mb-2">المبلغ المسترد وطريقة استلامه</label>}
+                    <PaymentSplitInputs
+                      value={invPay}
+                      onChange={(k, v) => setInvPay((s) => ({ ...s, [k]: v }))}
+                      labelClassName="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide text-right"
+                      inputClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition font-bold text-right"
+                    />
+                  </div>
+                )}
+
+                {/* Summary */}
+                <div className="rounded-2xl p-5 border shadow-inner" style={{ backgroundColor: (invMode === 'return' ? '#f59e0b' : tc) + '10', borderColor: (invMode === 'return' ? '#f59e0b' : tc) + '30' }}>
+                  <div className="flex justify-between font-black text-slate-800 text-lg mb-3 pb-3 border-b border-white">
+                    <span>{invMode === 'return' ? 'قيمة المرتجع' : 'إجمالي الفاتورة'}</span>
+                    <span>{invTotal.toLocaleString()} {storeSettings.currency}</span>
+                  </div>
+
+                  {invMode === 'return' ? (
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className="text-slate-500">{retSettlement === 'cash' ? 'المبلغ المسترد نقداً' : 'هيتخصم من مديونية المورد'}</span>
+                      <span className="text-emerald-600">
+                        {(retSettlement === 'cash' ? invPaidTotal : invTotal).toLocaleString()} {storeSettings.currency}
+                      </span>
+                    </div>
+                  ) : (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-slate-500 font-bold">
+                      <span>إجمالي المدفوع</span>
+                      <span className="text-slate-800">{invPaidTotal.toLocaleString()}</span>
+                    </div>
+
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className="text-slate-500">متبقي للمورد (آجل)</span>
+                      <span className={invTotal - invPaidTotal > 0 ? 'text-red-500' : 'text-slate-400'}>
+                        {Math.max(0, invTotal - invPaidTotal).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className="text-slate-500">الباقي (مسترد)</span>
+                      <span className={invPaidTotal - invTotal > 0 ? 'text-emerald-600' : 'text-slate-400'}>
+                        {Math.max(0, invPaidTotal - invTotal).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-100 flex gap-3 flex-shrink-0">
+                <button type="submit" disabled={isSaving} style={{ backgroundColor: invMode === 'return' ? '#f59e0b' : tc }} className="flex-1 text-white py-3.5 rounded-xl font-bold shadow-lg hover:opacity-90 transition disabled:opacity-60">
+                  {isSaving ? 'جاري الحفظ...' : (invMode === 'return' ? 'حفظ المرتجع' : 'حفظ الفاتورة')}
+                </button>
+                <button type="button" onClick={() => setShowInvoiceModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition">إلغاء</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Supplier Profile Modal ── */}
+      {showSupplierProfile && selectedSupplierProfile && (() => {
+        const _start = supFrom ? new Date(`${supFrom}T00:00:00`) : null;
+        const _end = supTo ? (() => { const d = new Date(`${supTo}T00:00:00`); d.setDate(d.getDate() + 1); return d; })() : null;
+        const inRange = (dt: any) => { const d = new Date(dt); return (!_start || d >= _start) && (!_end || d < _end); };
+        const supplierInvoices = purchaseInvoices.filter(inv => inv.supplier_id === selectedSupplierProfile.id && inRange(inv.created_at));
+        // المشتريات والمدفوع الحقيقي (باستثناء بند الرصيد الافتتاحي)
+        const realInvoices = supplierInvoices.filter(inv => inv.invoice_number !== OPENING_MARK);
+        const totalPurchases = realInvoices.reduce((sum, inv) => sum + inv.total, 0);
+        const totalPaid = realInvoices.reduce((sum, inv) => sum + Math.max(0, inv.paid_amount), 0);
+        // الصافي بإشارة: موجب = علينا للمورد، سالب = لينا عند المورد (يشمل الرصيد الافتتاحي)
+        const netBalance = supplierInvoices.reduce((sum, inv) => sum + (inv.total - inv.paid_amount), 0);
+        const totalDebt = netBalance; // للتوافق مع منطق السداد الحالي (السداد يظهر فقط لو علينا)
+
+        // ── كشف حساب دائن/مدين مع رصيد جاري (تصاعدي بالتاريخ) ──
+        // دائن = يزيد ما علينا (مشتريات + رصيد افتتاحي علينا). مدين = يخفّض ما علينا (سداد + رصيد افتتاحي لينا).
+        let _run = 0;
+        const ledgerRows = [...supplierInvoices]
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          .map(inv => {
+            const paid = Number(inv.paid_amount) || 0;
+            const total = Number(inv.total) || 0;
+            const credit = Math.max(0, total) + Math.max(0, -paid);           // دائن (علينا / تحصيل من المورد)
+            const debit = Math.max(0, paid) + Math.max(0, -total);            // مدين (سداد/لينا)
+            _run += credit - debit;
+            const isOpening = inv.invoice_number === OPENING_MARK;
+            const isPayment = !isOpening && total === 0 && paid > 0;
+            const isCollection = !isOpening && total === 0 && paid < 0;
+            const isReturn = Boolean((inv as any).source_invoice_id);
+            const label = isOpening ? 'رصيد افتتاحي' : isReturn ? 'مرتجع مورد' : isCollection ? 'تحصيل من المورد' : isPayment ? 'سداد مديونية' : 'فاتورة مشتريات';
+            return { inv, credit, debit, balance: _run, label, isOpening, isPayment, isCollection, isReturn };
+          });
+
+        // ── إحصائيات المنتجات المشتراة من هذا المورد ──
+        const productStats = (() => {
+          const map = new Map<string, { product_id: string; totalQty: number; totalCost: number; lastPrice: number; lastDate: string }>();
+          // ترتيب تصاعدي بالتاريخ حتى يكون آخر سعر هو الأحدث
+          const sorted = [...supplierInvoices].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          for (const inv of sorted) {
+            for (const it of (inv.items || [])) {
+              if (!it.product_id) continue;
+              let s = map.get(it.product_id);
+              if (!s) { s = { product_id: it.product_id, totalQty: 0, totalCost: 0, lastPrice: 0, lastDate: '' }; map.set(it.product_id, s); }
+              const q = Number(it.quantity) || 0;
+              s.totalQty += q;
+              s.totalCost += q * (Number(it.purchase_price) || 0);
+              s.lastPrice = Number(it.purchase_price) || 0;
+              s.lastDate = inv.created_at;
+            }
+          }
+          // + المنتجات المرتبطة بهذا المورد بالاسم (عمود «المورد» في شيت المخزون) حتى لو مفيش فواتير شراء
+          const supNameNorm = normalizeArabic(selectedSupplierProfile.name || '');
+          for (const p of products) {
+            if (!p.supplier_name || normalizeArabic(p.supplier_name) !== supNameNorm) continue;
+            if (!map.has(p.id)) map.set(p.id, { product_id: p.id, totalQty: 0, totalCost: 0, lastPrice: 0, lastDate: '' });
+          }
+          return Array.from(map.values()).map(s => {
+            const product = products.find(p => p.id === s.product_id);
+            let sold = 0;
+            for (const o of orders) {
+              if (o.is_deleted || o.type !== 'sale') continue;
+              for (const oi of (o.items || [])) {
+                if (oi.id === s.product_id) sold += (Number(oi.quantity) || 0) - (Number(oi.returned_quantity) || 0);
+              }
+            }
+            return {
+              ...s,
+              name: product?.name || 'منتج محذوف',
+              unit: product?.unit || 'قطعة',
+              avgPrice: s.totalQty > 0 ? s.totalCost / s.totalQty : (Number(product?.average_purchase_price) || Number(product?.purchase_price) || 0),
+              lastPrice: s.lastPrice > 0 ? s.lastPrice : (Number(product?.purchase_price) || Number(product?.average_purchase_price) || 0),
+              currentStock: product?.stock_quantity ?? 0,
+              sold
+            };
+          }).sort((a, b) => (b.currentStock - a.currentStock) || (b.totalQty - a.totalQty));
+        })();
+
+        const handlePayDebt = async () => {
+          const splitPayments = formToSplit(debtPay);
+          const totalPaid = sumSplit(splitPayments);
+
+          if (totalPaid <= 0) return alert('أدخل مبلغاً صحيحاً للسداد');
+          if (totalPaid > totalDebt + 0.01) return alert('المبلغ المدخل أكبر من المديونية الحالية');
+
+          const fromMain = debtPaySource === 'main';
+          if (fromMain) {
+            const details = `صرف من الخزنة الرئيسية\nالنوع: سداد مورد\nالمورد: ${selectedSupplierProfile.name}\nالمبلغ: ${totalPaid.toFixed(2)} ${storeSettings.currency}`;
+            const ok = await confirmMainTreasurySpend(totalPaid, details);
+            if (!ok) return;
+          }
+
+          try {
+            setIsPayingDebt(true);
+            await useStore.getState().paySupplierDebt(selectedSupplierProfile.id, totalPaid, splitPayments as any, undefined, fromMain);
+            alert('تم تسجيل عملية السداد بنجاح');
+            setDebtPay({});
+            setDebtPaySource('main');
+          } catch (e) {
+            alert('حدث خطأ أثناء تسجيل السداد');
+          } finally {
+            setIsPayingDebt(false);
+          }
+        };
+
+        const handleSupplierFinancialTransaction = async () => {
+          const splitPayments = formToSplit(supplierFinancialPay);
+          const totalPaid = sumSplit(splitPayments);
+          const isCollection = supplierFinancialType === 'collect_from_supplier';
+          const availableBalance = isCollection ? Math.max(0, -netBalance) : Math.max(0, netBalance);
+
+          if (totalPaid <= 0) return alert('أدخل مبلغاً صحيحاً للمعاملة');
+          // التحصيل محدود بالرصيد اللي لينا فعلاً. أما السداد فمسموح يتخطى المديونية،
+          // والزيادة تتسجّل كدفعة مقدمة (رصيد لينا عند المورد).
+          if (isCollection) {
+            if (availableBalance <= 0.009) return alert('لا يوجد رصيد لنا عند المورد لتحصيله');
+            if (totalPaid > availableBalance + 0.01) return alert('المبلغ أكبر من الرصيد لنا عند المورد');
+          }
+
+          // المصدر/الوجهة: للسداد = من فين تتصرف الفلوس، للتحصيل = فين تدخل الفلوس.
+          const useMain = financialSource === 'main';
+          // السداد من الخزنة الرئيسية بس هو اللي محتاج OTP (صرف). التحصيل للرئيسية إيراد بدون OTP.
+          if (!isCollection && useMain) {
+            const details = `صرف من الخزنة الرئيسية\nالنوع: سداد مورد\nالمورد: ${selectedSupplierProfile.name}\nالمبلغ: ${totalPaid.toFixed(2)} ${storeSettings.currency}`;
+            const ok = await confirmMainTreasurySpend(totalPaid, details);
+            if (!ok) return;
+          }
+
+          try {
+            setIsPayingDebt(true);
+            const dateISO = timestampForBusinessDate(supplierFinancialDate, storeSettings);
+            if (isCollection) {
+              // collectSupplierCredit بقى بيسجّل حركة الرئيسية جوّه بنفسه (مربوطة بـ group_id).
+              await useStore.getState().collectSupplierCredit(selectedSupplierProfile.id, totalPaid, splitPayments as any, dateISO, useMain);
+            } else {
+              await useStore.getState().paySupplierDebt(selectedSupplierProfile.id, totalPaid, splitPayments as any, dateISO, useMain);
+            }
+            alert(isCollection ? 'تم تسجيل تحصيل من المورد بنجاح' : 'تم تسجيل سداد للمورد بنجاح');
+            setSupplierFinancialPay({});
+            setFinancialSource('main');
+            setShowSupplierFinancialModal(false);
+          } catch (e) {
+            alert('حدث خطأ أثناء تسجيل المعاملة المالية');
+          } finally {
+            setIsPayingDebt(false);
+          }
+        };
+
+        const exportSupplierPDF = () => {
+          const cur = storeSettings.currency;
+          const period = (supFrom || supTo) ? `الفترة: ${supFrom || '...'} ← ${supTo || '...'}` : 'كل الفترات';
+          const prodRows = productStats.map((s: any) => `<tr><td>${escapeHtml(s.name)}</td><td>${formatQty(s.totalQty, s.unit)}</td><td>${s.avgPrice.toFixed(2)}</td><td>${s.lastPrice.toFixed(2)}</td><td>${formatQty(s.currentStock, s.unit)}</td><td>${formatQty(s.sold, s.unit)}</td></tr>`).join('');
+          const ledgerHtml = ledgerRows.map((r) => {
+            const bal = r.balance > 0.009 ? `${r.balance.toFixed(2)} علينا` : r.balance < -0.009 ? `${Math.abs(r.balance).toFixed(2)} لينا` : '0';
+            return `<tr><td>${new Date(r.inv.created_at).toLocaleDateString('ar-EG')}</td><td>${escapeHtml(r.label)} (${escapeHtml(String(r.inv.invoice_number))})</td><td>${r.credit > 0.009 ? r.credit.toFixed(2) : '—'}</td><td>${r.debit > 0.009 ? r.debit.toFixed(2) : '—'}</td><td>${bal}</td></tr>`;
+          }).join('');
+          const netLabel = netBalance > 0.009 ? 'الرصيد: علينا للمورد' : netBalance < -0.009 ? 'الرصيد: لينا عند المورد' : 'الرصيد: مُصفّى';
+          const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"/><title>كشف حساب مورد - ${escapeHtml(selectedSupplierProfile.name)}</title><style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+            *{font-family:'Cairo',sans-serif;box-sizing:border-box;} body{padding:12mm;color:#000;}
+            h1{font-size:22px;text-align:center;margin:0;} h2{font-size:13px;text-align:center;color:#555;margin:4px 0;font-weight:700;}
+            h3{font-size:14px;margin:16px 0 6px;} .sum{display:flex;gap:10px;justify-content:center;margin:10px 0;flex-wrap:wrap;}
+            .card{border:1px solid #ccc;border-radius:8px;padding:8px 14px;text-align:center;} .card b{display:block;font-size:16px;}
+            table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px;} th,td{border:1px solid #ccc;padding:5px 7px;text-align:right;} thead th{background:#f1f5f9;font-weight:900;}
+            @media print{@page{size:A4;margin:8mm;}}
+          </style></head><body>
+            <h1>${escapeHtml(storeSettings.name)}</h1>
+            <h2>كشف حساب المورد: ${escapeHtml(selectedSupplierProfile.name)} — ${escapeHtml(selectedSupplierProfile.phone || '')}</h2>
+            <h2>${period}</h2>
+            <div class="sum">
+              <div class="card">إجمالي المشتريات<b>${totalPurchases.toFixed(2)} ${cur}</b></div>
+              <div class="card">المدفوع<b>${totalPaid.toFixed(2)} ${cur}</b></div>
+              <div class="card">${netLabel}<b>${Math.abs(netBalance).toFixed(2)} ${cur}</b></div>
+            </div>
+            <h3>الأصناف المشتراة</h3>
+            <table><thead><tr><th>المنتج</th><th>الكمية</th><th>متوسط الشراء</th><th>آخر شراء</th><th>المتاح بالمخزون</th><th>المباع</th></tr></thead><tbody>${prodRows || '<tr><td colspan=6>لا يوجد</td></tr>'}</tbody></table>
+            <h3>كشف الحساب (دائن / مدين)</h3>
+            <table><thead><tr><th>التاريخ</th><th>البيان</th><th>دائن (علينا)</th><th>مدين (له/سداد)</th><th>الرصيد الجاري</th></tr></thead><tbody>${ledgerHtml || '<tr><td colspan=5>لا يوجد</td></tr>'}</tbody></table>
+            <p style="margin-top:16px;font-size:11px;color:#888;text-align:center;">تم الإصدار: ${new Date().toLocaleString('ar-EG')}</p>
+            <script>window.onload=()=>{setTimeout(()=>{window.print();},400);}</script>
+          </body></html>`;
+          openPrintWindow(html);
+        };
+
+        // تصدير أصناف المورد المشتراة إلى Excel (يمكن تعديله وإعادة استيراده في فاتورة شراء)
+        const exportSupplierExcel = () => {
+          const headers = ['كود المنتج', 'اسم المنتج', 'الوحدة', 'عدد القطع', 'سعر الشراء', 'متوسط الشراء', 'آخر شراء', 'المتاح بالمخزون', 'المباع'];
+          const rows = productStats.map((s: any) => {
+            const p = products.find(pr => pr.id === s.product_id);
+            return [
+              p?.barcode || '',
+              s.name,
+              getUnitConfig(s.unit).label,
+              s.totalQty,
+              s.lastPrice || 0,
+              Number(s.avgPrice.toFixed(2)),
+              Number(s.lastPrice.toFixed(2)),
+              s.currentStock,
+              s.sold,
+            ];
+          });
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          ws['!cols'] = headers.map(() => ({ wch: 16 }));
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'أصناف المورد');
+          const namePart = (selectedSupplierProfile.name || 'مورد').replace(/[\\/:*?"<>|]/g, '_');
+          XLSX.writeFile(wb, `supplier_products_${namePart}.xlsx`);
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+              <div className="p-8 border-b border-slate-100 flex flex-wrap gap-3 justify-between items-start bg-white">
+                <div className="flex gap-6 items-center">
+                  <div style={{ backgroundColor: tc }} className="w-16 h-16 rounded-3xl flex items-center justify-center text-white text-2xl font-black">
+                    {selectedSupplierProfile.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-800">{selectedSupplierProfile.name}</h2>
+                    <p className="text-slate-500 font-bold mt-1 flex items-center gap-2"><Phone size={14} /> {selectedSupplierProfile.phone}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <div className="flex items-center gap-1 text-xs">
+                    <span className="text-slate-400 font-bold">من</span>
+                    <input type="date" value={supFrom} onChange={(e) => setSupFrom(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold" />
+                    <span className="text-slate-400 font-bold">إلى</span>
+                    <input type="date" value={supTo} onChange={(e) => setSupTo(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold" />
+                    {(supFrom || supTo) && <button onClick={() => { setSupFrom(''); setSupTo(''); }} className="text-slate-400 hover:text-red-500 px-1">✕</button>}
+                  </div>
+                  <button onClick={exportSupplierExcel} className="text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 transition"><FileSpreadsheet size={16} /> تصدير Excel</button>
+                  <button onClick={exportSupplierPDF} style={{ backgroundColor: tc }} className="text-white px-4 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 hover:opacity-90 transition"><Download size={16} /> تصدير PDF</button>
+                  <button
+                    onClick={() => {
+                      setSupplierFinancialType(netBalance < -0.009 ? 'collect_from_supplier' : 'pay_to_supplier');
+                      setSupplierFinancialPay({});
+                      setSupplierFinancialDate(businessDateStr(storeSettings));
+                      setShowSupplierFinancialModal(true);
+                    }}
+                    className="text-white bg-slate-900 hover:bg-slate-800 px-4 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 transition"
+                  >
+                    <Plus size={16} /> إضافة معاملة مالية
+                  </button>
+                  <button onClick={() => setShowSupplierProfile(false)} className="p-2 rounded-2xl hover:bg-slate-100 transition"><X size={24} /></button>
+                </div>
+              </div>
+
+              <div id="supplier-profile-pdf" className="p-8 bg-slate-50 flex-1 overflow-y-auto">
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                    <p className="text-xs font-bold text-slate-400 mb-1">إجمالي المشتريات</p>
+                    <p className="text-2xl font-black text-slate-800">{totalPurchases.toLocaleString()} {storeSettings.currency}</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                    <p className="text-xs font-bold text-slate-400 mb-1">إجمالي المدفوع</p>
+                    <p className="text-2xl font-black text-emerald-600">{totalPaid.toLocaleString()} {storeSettings.currency}</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+                    <div className="relative z-10">
+                      <p className="text-xs font-bold text-slate-400 mb-1">
+                        {netBalance > 0.009 ? 'الرصيد: علينا للمورد' : netBalance < -0.009 ? 'الرصيد: لينا عند المورد' : 'الرصيد'}
+                      </p>
+                      <p className={`text-2xl font-black ${netBalance > 0.009 ? 'text-red-600' : netBalance < -0.009 ? 'text-emerald-600' : 'text-slate-500'}`}>
+                        {Math.abs(netBalance).toLocaleString()} {storeSettings.currency}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pay Debt Section */}
+                {totalDebt > 0 && (
+                  <div className="bg-white p-8 rounded-[40px] border-2 border-emerald-100 shadow-xl mb-8 flex flex-col gap-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-0 opacity-50" />
+                    <div className="relative z-10 flex justify-between items-center">
+                      <div>
+                        <h3 className="text-xl font-black text-slate-800 mb-1">تسديد مديونية للمورد</h3>
+                        <p className="text-sm text-slate-500 font-medium">اختر طريقة الدفع ووزع المبالغ المسددة</p>
+                      </div>
+                      <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-2xl font-black text-lg">
+                        إجمالي السداد: {sumSplit(formToSplit(debtPay)).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="relative z-10">
+                      <PaymentSplitInputs
+                        value={debtPay}
+                        onChange={(k, v) => setDebtPay((s) => ({ ...s, [k]: v }))}
+                        cols={2}
+                        labelClassName="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2"
+                        inputClassName="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
+                      />
+                    </div>
+
+                    <div className="relative z-10 bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                      <label className="block text-sm font-bold text-slate-700 mb-2">مصدر السداد</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" onClick={() => setDebtPaySource('shop')}
+                          className={`py-2.5 rounded-xl font-black text-sm ${debtPaySource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                          خزنة المحل
+                        </button>
+                        <button type="button" onClick={() => setDebtPaySource('main')}
+                          className={`py-2.5 rounded-xl font-black text-sm ${debtPaySource === 'main' ? 'bg-amber-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                          الخزنة الرئيسية
+                        </button>
+                      </div>
+                      {debtPaySource === 'main' && (
+                        <p className="text-[11px] text-amber-700 font-bold mt-2">سيتم طلب OTP من المدير، ولن يظهر في تقفيل الكاشير ولا يُخصم من خزنة المحل.</p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={handlePayDebt}
+                      disabled={isPayingDebt}
+                      className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 relative z-10"
+                    >
+                      {isPayingDebt ? 'جاري تسجيل السداد...' : 'تأكيد عملية السداد وحفظ الإيصال'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Per-product purchase statistics */}
+                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden mb-8">
+                  <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+                    <h3 className="font-black text-slate-800 flex items-center gap-2"><ShoppingCart size={18} style={{ color: tc }} /> الأصناف المشتراة من هذا المورد</h3>
+                    <span className="text-xs font-bold text-slate-400">{productStats.length} صنف · إجمالي القطع المشتراة: <span className="text-slate-700">{productStats.reduce((sum, s) => sum + s.totalQty, 0).toLocaleString()}</span></span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right text-sm">
+                      <thead className="bg-slate-50 text-slate-400 font-bold uppercase tracking-wider">
+                        <tr>
+                          <th className="p-4">المنتج</th>
+                          <th className="p-4 text-center">الكود</th>
+                          <th className="p-4 text-center">الوحدة</th>
+                          <th className="p-4 text-center">الكمية المشتراة</th>
+                          <th className="p-4 text-center">متوسط سعر الشراء</th>
+                          <th className="p-4 text-center">آخر سعر شراء</th>
+                          <th className="p-4 text-center">المتاح بالمخزون</th>
+                          <th className="p-4 text-center">المباع</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {productStats.length === 0 ? (
+                          <tr><td colSpan={8} className="p-10 text-center text-slate-400 font-bold">لا توجد أصناف مشتراة من هذا المورد</td></tr>
+                        ) : (
+                          productStats.map(s => {
+                            const rowBarcode = products.find(p => p.id === s.product_id)?.barcode || '';
+                            return (
+                            <tr key={s.product_id} className="hover:bg-slate-50/50 transition">
+                              <td className="p-4 font-bold text-slate-800">{s.name}</td>
+                              <td className="p-4 text-center">
+                                {rowBarcode
+                                  ? <span className="text-[11px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{rowBarcode}</span>
+                                  : <span className="text-slate-300">—</span>}
+                              </td>
+                              <td className="p-4 text-center">
+                                <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{getUnitConfig(s.unit).label}</span>
+                              </td>
+                              <td className="p-4 text-center font-bold text-slate-700">{formatQty(s.totalQty, s.unit)}</td>
+                              <td className="p-4 text-center font-bold text-indigo-600">{s.avgPrice.toFixed(2)} {storeSettings.currency}</td>
+                              <td className="p-4 text-center font-bold text-orange-500">{s.lastPrice.toFixed(2)} {storeSettings.currency}</td>
+                              <td className="p-4 text-center font-bold text-emerald-600">{formatQty(s.currentStock, s.unit)}</td>
+                              <td className="p-4 text-center font-bold text-slate-500">{formatQty(s.sold, s.unit)}</td>
+                            </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Account Statement (Debit / Credit ledger) */}
+                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-slate-50 flex items-center justify-between flex-wrap gap-2">
+                    <h3 className="font-black text-slate-800">كشف الحساب (دائن / مدين)</h3>
+                    <div className="text-sm font-bold">
+                      {netBalance > 0.009 ? (
+                        <span className="text-red-600">الرصيد النهائي: علينا للمورد {netBalance.toLocaleString()} {storeSettings.currency}</span>
+                      ) : netBalance < -0.009 ? (
+                        <span className="text-emerald-600">الرصيد النهائي: لينا عند المورد {Math.abs(netBalance).toLocaleString()} {storeSettings.currency}</span>
+                      ) : (
+                        <span className="text-slate-400">الرصيد النهائي: مُصفّى (0)</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead className="bg-slate-50 text-slate-400 font-bold uppercase tracking-wider">
+                      <tr>
+                        <th className="p-4">التاريخ</th>
+                        <th className="p-4">البيان</th>
+                        <th className="p-4 text-center text-red-500">دائن (علينا)</th>
+                        <th className="p-4 text-center text-emerald-600">مدين (له / سداد)</th>
+                        <th className="p-4 text-center">الرصيد الجاري</th>
+                        <th className="p-4 text-left">طباعة</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {ledgerRows.length === 0 ? (
+                        <tr><td colSpan={6} className="p-10 text-center text-slate-400 font-bold">لا توجد حركات على هذا المورد</td></tr>
+                      ) : (
+                        ledgerRows.map(({ inv, credit, debit, balance, label, isOpening, isPayment, isCollection }) => (
+                          <tr key={inv.id} className={`hover:bg-slate-50 transition ${isCollection ? 'bg-sky-50/40' : isPayment ? 'bg-emerald-50/30' : isOpening ? 'bg-amber-50/40' : ''}`}>
+                            <td className="p-4 text-xs font-medium whitespace-nowrap">{new Date(inv.created_at).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</td>
+                            <td className="p-4 font-bold text-slate-800">
+                              {label}
+                              <span className="block text-[10px] text-slate-400 font-mono">{inv.invoice_number}</span>
+                            </td>
+                            <td className="p-4 text-center font-bold text-red-600">{credit > 0.009 ? credit.toLocaleString() : '—'}</td>
+                            <td className="p-4 text-center font-bold text-emerald-600">{debit > 0.009 ? debit.toLocaleString() : '—'}</td>
+                            <td className="p-4 text-center font-black whitespace-nowrap">
+                              {balance > 0.009 ? (
+                                <span className="text-red-600">{balance.toLocaleString()} <span className="text-[10px] font-bold">علينا</span></span>
+                              ) : balance < -0.009 ? (
+                                <span className="text-emerald-600">{Math.abs(balance).toLocaleString()} <span className="text-[10px] font-bold">لينا</span></span>
+                              ) : (
+                                <span className="text-slate-400">0</span>
+                              )}
+                            </td>
+                            <td className="p-4 text-left">
+                              <button onClick={() => printPurchaseInvoice(inv)} className="p-2 text-slate-400 hover:text-slate-800 transition" title="طباعة"><Printer size={16} /></button>
+                              {/* حذف السداد/التحصيل: صفوف فلوس بس (مفيش مخزون)، وحذفها بيرجّع
+                                  رصيد المورد ويعكس أثرها على الخزنة المرتبطة. الفواتير والمرتجعات
+                                  ليها مسارات حذف خاصة بيها لأنها بتلمس المخزون. */}
+                              {(isPayment || isCollection) && (
+                                <button
+                                  onClick={() => handleDeleteSupplierMoneyRow(inv, label)}
+                                  className="p-2 text-slate-400 hover:text-red-600 transition"
+                                  title="حذف المعاملة"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+              </div>
+
+              {showSupplierFinancialModal && (
+                <div className="fixed inset-0 z-[60] bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="p-6 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+                      <div>
+                        <h3 className="text-xl font-black text-slate-800">إضافة معاملة مالية</h3>
+                        <p className="text-sm font-bold text-slate-400 mt-1">{selectedSupplierProfile.name}</p>
+                      </div>
+                      <button onClick={() => setShowSupplierFinancialModal(false)} className="p-2 rounded-2xl hover:bg-slate-100 transition"><X size={22} /></button>
+                    </div>
+
+                    <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSupplierFinancialType('collect_from_supplier')}
+                          className={`py-3 rounded-2xl font-black border transition ${supplierFinancialType === 'collect_from_supplier' ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                        >
+                          تحصيل من المورد
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSupplierFinancialType('pay_to_supplier')}
+                          className={`py-3 rounded-2xl font-black border transition ${supplierFinancialType === 'pay_to_supplier' ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-100' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                        >
+                          سداد للمورد
+                        </button>
+                      </div>
+
+                      <div className="bg-slate-50 rounded-2xl p-4 flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-slate-500">
+                            {supplierFinancialType === 'collect_from_supplier' ? 'المتاح تحصيله' : 'المديونية الحالية'}
+                          </span>
+                          <span className="text-lg font-black text-slate-800">
+                            {(supplierFinancialType === 'collect_from_supplier' ? Math.max(0, -netBalance) : Math.max(0, netBalance)).toLocaleString()} {storeSettings.currency}
+                          </span>
+                        </div>
+                        {supplierFinancialType === 'pay_to_supplier' && (
+                          <p className="text-[11px] font-bold text-slate-400">
+                            أي مبلغ يزيد عن المديونية يُسجَّل كدفعة مقدمة (رصيد لينا عند المورد)
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-black text-slate-400 block pr-2 mb-1">تاريخ العملية (تُسجَّل في حسابات هذا اليوم)</label>
+                        <input
+                          type="date"
+                          value={supplierFinancialDate}
+                          onChange={(e) => setSupplierFinancialDate(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
+                        />
+                      </div>
+
+                      <PaymentSplitInputs
+                        value={supplierFinancialPay}
+                        onChange={(k, v) => setSupplierFinancialPay((s) => ({ ...s, [k]: v }))}
+                        cols={2}
+                        labelClassName="text-[11px] font-black text-slate-400 block pr-2 mb-1"
+                        inputClassName="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
+                      />
+
+                      <div className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
+                        <span className="text-sm font-bold text-slate-500">إجمالي المعاملة</span>
+                        <span className="text-xl font-black text-emerald-600">{sumSplit(formToSplit(supplierFinancialPay)).toLocaleString()} {storeSettings.currency}</span>
+                      </div>
+
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                        <label className="block text-sm font-bold text-slate-700 mb-2">{supplierFinancialType === 'collect_from_supplier' ? 'وجهة التحصيل' : 'مصدر السداد'}</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button type="button" onClick={() => setFinancialSource('shop')}
+                            className={`py-2.5 rounded-xl font-black text-sm ${financialSource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                            خزنة المحل
+                          </button>
+                          <button type="button" onClick={() => setFinancialSource('main')}
+                            className={`py-2.5 rounded-xl font-black text-sm ${financialSource === 'main' ? 'bg-amber-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                            الخزنة الرئيسية
+                          </button>
+                        </div>
+                        {financialSource === 'main' && (
+                          <p className="text-[11px] text-amber-700 font-bold mt-2">
+                            {supplierFinancialType === 'collect_from_supplier'
+                              ? 'المبلغ يدخل الخزنة الرئيسية ولن يظهر في تقفيل الكاشير.'
+                              : 'سيتم طلب OTP من المدير، ولن يظهر في تقفيل الكاشير ولا يُخصم من خزنة المحل.'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-6 border-t border-slate-100 flex gap-3 flex-shrink-0">
+                      <button
+                        onClick={handleSupplierFinancialTransaction}
+                        disabled={isPayingDebt}
+                        className="flex-1 bg-slate-900 text-white py-3.5 rounded-2xl font-black hover:bg-slate-800 transition disabled:opacity-50"
+                      >
+                        {isPayingDebt ? 'جاري الحفظ...' : 'حفظ المعاملة'}
+                      </button>
+                      <button type="button" onClick={() => setShowSupplierFinancialModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-3.5 rounded-2xl font-black hover:bg-slate-200 transition">إلغاء</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+      {/* ── Quick Add Product Modal ── */}
+      {showQuickProductModal && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto border border-slate-200 animate-in zoom-in-95 duration-200">
+            <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="font-black text-slate-800">إضافة منتج سريع</h3>
+              <button onClick={() => setShowQuickProductModal(false)} className="p-2 hover:bg-slate-200 rounded-xl transition"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleQuickProductSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">اسم المنتج</label>
+                <input required type="text" value={quickProductData.name} onChange={e => setQuickProductData({...quickProductData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">التصنيف</label>
+                  <select required value={quickProductData.category_id} onChange={e => setQuickProductData({...quickProductData, category_id: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm">
+                    <option value="">-- اختر --</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">سعر البيع لكل {getUnitConfig(quickProductData.unit).label}</label>
+                  <input type="number" step="0.01" value={quickProductData.sale_price} onChange={e => setQuickProductData({...quickProductData, sale_price: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold" placeholder="0.00" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">وحدة البيع</label>
+                <select value={quickProductData.unit} onChange={e => setQuickProductData({...quickProductData, unit: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm">
+                  {UNIT_OPTIONS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">الباركود (تلقائي)</label>
+                <input readOnly type="text" value={quickProductData.barcode} className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-400 font-mono text-xs" />
+              </div>
+              <button type="submit" disabled={isSaving} className="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition disabled:opacity-50">
+                {isSaving ? 'جاري الحفظ...' : 'تأكيد وإضافة للفاتورة'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
