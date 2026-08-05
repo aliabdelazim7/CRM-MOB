@@ -719,46 +719,46 @@ export default function Inventory() {
 
       {/* STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex items-center gap-6 group hover:border-indigo-200 transition-all">
-          <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+        <div className="bg-white dark:bg-slate-800 rounded-[32px] p-6 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-6 group hover:border-indigo-200 transition-all">
+          <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
             <TrendingUp size={32} />
           </div>
           <div>
             <p className="text-slate-400 font-bold text-sm">إجمالي قيمة المخزون</p>
-            <h3 className="text-2xl font-black text-slate-800">
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {totalStockValue.toLocaleString()} <span className="text-sm font-normal text-slate-400">{storeSettings.currency}</span>
             </h3>
             <p className="text-[11px] font-bold text-slate-400 mt-1">
-              مشتراة بفواتير: <span className="text-slate-600">{fmtMoney(stockValueSplit.purchased)}</span>
+              مشتراة بفواتير: <span className="text-slate-600 dark:text-slate-300">{fmtMoney(stockValueSplit.purchased)}</span>
               {' • '}
-              بدون شراء: <span className="text-amber-600">{fmtMoney(stockValueSplit.noPurchase)}</span>
+              بدون شراء: <span className="text-amber-600 dark:text-amber-400">{fmtMoney(stockValueSplit.noPurchase)}</span>
             </p>
           </div>
         </div>
 
         <div
           onClick={() => setShowIntakeModal(true)}
-          className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex items-center gap-6 group hover:border-amber-200 transition-all cursor-pointer"
+          className="bg-white dark:bg-slate-800 rounded-[32px] p-6 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-6 group hover:border-amber-200 transition-all cursor-pointer"
         >
-          <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+          <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/40 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
             <Layers size={32} />
           </div>
           <div>
             <p className="text-slate-400 font-bold text-sm">مخزون دخل بدون شراء</p>
-            <h3 className="text-2xl font-black text-slate-800">
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {fmtMoney(noPurchaseTotal)} <span className="text-sm font-normal text-slate-400">{storeSettings.currency}</span>
             </h3>
             <p className="text-[11px] font-bold text-slate-400 mt-1">رأس مال بضاعة بادئين بيه — {visibleIntakes.length} قيد (اضغط للتفاصيل)</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex items-center gap-6 group hover:border-emerald-200 transition-all">
-          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+        <div className="bg-white dark:bg-slate-800 rounded-[32px] p-6 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-6 group hover:border-emerald-200 transition-all">
+          <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
             <Box size={32} />
           </div>
           <div>
             <p className="text-slate-400 font-bold text-sm">إجمالي القطع المتوفرة</p>
-            <h3 className="text-2xl font-black text-slate-800">
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {totalItems.toLocaleString()} <span className="text-sm font-normal text-slate-400">قطعة</span>
             </h3>
           </div>
@@ -766,14 +766,14 @@ export default function Inventory() {
 
         <div 
           onClick={() => setShowLowStock(!showLowStock)}
-          className={`bg-white rounded-[32px] p-6 shadow-sm border flex items-center gap-6 group hover:border-red-200 transition-all cursor-pointer ${showLowStock ? 'border-red-500 bg-red-50/20 ring-4 ring-red-50' : 'border-slate-100'}`}
+          className={`bg-white dark:bg-slate-800 rounded-[32px] p-6 shadow-sm border flex items-center gap-6 group hover:border-red-200 transition-all cursor-pointer ${showLowStock ? 'border-red-500 bg-red-50/20 dark:bg-red-950/20 ring-4 ring-red-50 dark:ring-red-950' : 'border-slate-100 dark:border-slate-700'}`}
         >
-          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-950/40 rounded-2xl flex items-center justify-center text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
             <AlertTriangle size={32} />
           </div>
           <div>
             <p className="text-slate-400 font-bold text-sm">منتجات قاربت على النفاد</p>
-            <h3 className="text-2xl font-black text-slate-800">
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
               {lowStockCount} <span className="text-sm font-normal text-slate-400">منتج</span>
             </h3>
           </div>
@@ -782,20 +782,20 @@ export default function Inventory() {
 
       {/* فلاتر: الموسم + المخزن */}
       <div className="flex items-center gap-3 flex-wrap mb-2">
-        <div className="flex items-center gap-2 bg-white rounded-2xl p-2 shadow-sm border border-slate-100 w-fit">
-          <span className="text-xs font-bold text-slate-500 px-2">الموسم:</span>
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 w-fit">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 px-2">الموسم:</span>
           {([['all', 'الكل'], ['summer', 'صيفي'], ['winter', 'شتوي'], ['annual', 'سنوي']] as const).map(([k, label]) => (
             <button key={k} onClick={() => setSeasonFilter(k)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition ${seasonFilter === k ? 'bg-amber-500 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}>
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition ${seasonFilter === k ? 'bg-amber-500 text-white shadow' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
               {label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-2xl p-2 shadow-sm border border-slate-100 w-fit">
-          <span className="text-xs font-bold text-slate-500 px-2">المخزن:</span>
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 w-fit">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 px-2">المخزن:</span>
           {([['all', 'الكل'], ['warehouse', 'المستودع'], ['display', 'المحل']] as const).map(([k, label]) => (
             <button key={k} onClick={() => setStockLocation(k)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition ${stockLocation === k ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}>
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition ${stockLocation === k ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
               {label}
             </button>
           ))}
@@ -1563,7 +1563,7 @@ export default function Inventory() {
         )}
 
         {categories.length === 0 ? (
-          <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-6 text-center text-slate-400">
+          <div className="bg-white dark:bg-slate-800 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center text-slate-400">
             <Tag size={32} className="mx-auto mb-2 opacity-40" />
             <p className="font-semibold">لا توجد تصنيفات بعد - أضف تصنيفات أولاً لتستطيع إضافة منتجات</p>
           </div>
@@ -1572,12 +1572,12 @@ export default function Inventory() {
             {categories.map(cat => {
               const count = products.filter(p => p.category_id === cat.id).length;
               return (
-                <div key={cat.id} className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm">
-                  <span className="font-bold text-slate-700">{cat.name}</span>
+                <div key={cat.id} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 shadow-sm">
+                  <span className="font-bold text-slate-700 dark:text-slate-200">{cat.name}</span>
                   <span style={{ backgroundColor: storeSettings.themeColor + '15', color: storeSettings.themeColor }} className="text-xs font-bold px-2 py-0.5 rounded-lg">{count} منتج</span>
                   <button
                     onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                    className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded-lg transition"
+                    className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 p-1 rounded-lg transition"
                   >
                     <X size={14} />
                   </button>
@@ -1591,7 +1591,7 @@ export default function Inventory() {
       {/* DASHBOARD CONTENT */}
       <div className="flex flex-wrap gap-3 justify-between items-end mb-6">
         <div>
-          <h2 className="text-xl font-black text-slate-800">المنتجات</h2>
+          <h2 className="text-xl font-black text-slate-800 dark:text-white">المنتجات</h2>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-2 flex-wrap">
@@ -1646,15 +1646,15 @@ export default function Inventory() {
         </div>
       </div>
 
-      <div id="inventory-table" className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-[500px]">
-        <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-3 flex-wrap">
+      <div id="inventory-table" className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col min-h-[500px]">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between gap-3 flex-wrap">
           <div className="relative w-full md:w-1/3 md:min-w-[300px]">
             <Search className="absolute right-4 top-3 text-slate-400" size={20} />
               <input
                 type="text"
                 placeholder="ابحث باسم المنتج أو الباركود..."
                 style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-                className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 shadow-sm"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-xl py-2.5 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 shadow-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -1666,7 +1666,7 @@ export default function Inventory() {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-                className="bg-white border border-slate-200 rounded-xl py-2.5 pr-10 pl-4 text-sm font-bold text-slate-600 focus:outline-none focus:ring-2 shadow-sm cursor-pointer"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pr-10 pl-4 text-sm font-bold text-slate-600 dark:text-slate-200 focus:outline-none focus:ring-2 shadow-sm cursor-pointer"
               >
                 <option value="all">كل التصنيفات</option>
                 {categories.map(c => (
@@ -1680,14 +1680,14 @@ export default function Inventory() {
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm border transition ${
                   showHidden
                     ? 'bg-slate-800 text-white border-slate-800'
-                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'
+                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'
                 }`}
               >
                 {showHidden ? <Eye size={15} /> : <EyeOff size={15} />}
                 {showHidden ? 'إخفاء المخفيين' : `إظهار المخفيين (${hiddenCount})`}
               </button>
             )}
-            <div className="text-sm text-slate-500 font-bold bg-white px-4 py-2 border border-slate-200 rounded-xl">
+            <div className="text-sm text-slate-500 dark:text-slate-300 font-bold bg-white dark:bg-slate-900 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl">
               إجمالي المنتجات: {products.length}
             </div>
           </div>
@@ -1695,7 +1695,7 @@ export default function Inventory() {
 
         <div className="flex-1 overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="bg-white border-b border-slate-100 text-slate-400 font-medium">
+            <thead className="bg-white dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 font-medium">
               <tr>
                 <th className="p-4">الباركود</th>
                 <th className="p-4">اسم المنتج</th>
@@ -1704,18 +1704,18 @@ export default function Inventory() {
                 <th className="p-4 text-center">الوحدة</th>
                 <th className="p-4 text-center">سعر الشراء</th>
                 <th className="p-4 text-center">متوسط الشراء</th>
-                <th className="p-4 text-center border-x border-slate-100 bg-slate-50">سعر البيع</th>
-                <th className="p-4 text-center border-l border-slate-100 bg-slate-50">المخزون المتوفر</th>
+                <th className="p-4 text-center border-x border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40">سعر البيع</th>
+                <th className="p-4 text-center border-l border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40">المخزون المتوفر</th>
                 <th className="p-4 text-center">الإجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200">
               {filteredProducts.map((product) => {
                 const category = categories.find(c => c.id === product.category_id)?.name;
                 const isLowStock = qtyOf(product) < 5;
                 
                 return (
-                  <tr key={product.id} className={`hover:bg-slate-50 transition ${product.is_hidden ? 'opacity-50 bg-slate-50/80' : ''}`}>
+                  <tr key={product.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition ${product.is_hidden ? 'opacity-50 bg-slate-50/80 dark:bg-slate-900/40' : ''}`}>
                     <td className="p-4 font-mono text-slate-400">
                       {product.barcode}
                       {product.is_hidden && (
