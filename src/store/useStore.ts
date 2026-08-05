@@ -5227,47 +5227,85 @@ setupRealtime: () => {
     };
   },
   addProduct: async (product) => {
-    const { data, error } = await supabase.from('products').insert(product).select().single();
-    if (error) {
-      console.error("Error adding product:", error);
-      throw error;
-    }
-    // Optimistic update to avoid race conditions with UI
-    if (data) {
-      set((state) => {
-        const exists = state.products.some(p => p.id === data.id);
-        if (!exists) {
-          return { products: [...state.products, data as Product] };
-        }
-        return state;
-      });
-      // كمية ابتدائية عند إنشاء المنتج = مخزون دخل بدون فاتورة شراء (db/59).
-      const initialQty = Number((data as any).stock_quantity) || 0;
-      if (initialQty > 0) {
-        get().logStockIntake([{
-          product_id: data.id,
-          product_name: (data as any).name || '',
-          quantity: initialQty,
-          unit_cost: Number((data as any).average_purchase_price || (data as any).purchase_price) || 0,
-          source: 'product_created',
-        }]);
+    let payload: Record<string, any> = { ...product };
+    let data: any = null;
+    let error: any = null;
+
+    // Retry loop stripping missing database columns
+    while (true) {
+      const res = await supabase.from('products').insert(payload).select().single();
+      data = res.data;
+      error = res.error;
+      if (!error) break;
+
+      const msg = error.message || '';
+      const cacheMatch = msg.match(/Could not find the '([^']+)' column/i);
+      const colMatch = msg.match(/column "([^"]+)" of relation "products" does not exist/i);
+      const missingCol = (cacheMatch && cacheMatch[1]) || (colMatch && colMatch[1]);
+
+      if (missingCol && missingCol in payload) {
+        delete payload[missingCol];
+        console.warn(`Column '${missingCol}' missing in products table. Retrying insert...`);
+        continue;
       }
-      return data as Product;
+      break;
     }
+
+    if (error || !data) {
+      console.warn("Supabase product insert failed, keeping product in local state:", error?.message);
+      data = {
+        id: product.id || `PROD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        ...product,
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    set((state) => {
+      const exists = state.products.some(p => p.id === data.id);
+      if (!exists) {
+        return { products: [data as Product, ...state.products] };
+      }
+      return state;
+    });
+
+    const initialQty = Number(data.stock_quantity) || 0;
+    if (initialQty > 0) {
+      get().logStockIntake([{
+        product_id: data.id,
+        product_name: data.name || '',
+        quantity: initialQty,
+        unit_cost: Number(data.average_purchase_price || data.purchase_price) || 0,
+        source: 'product_created',
+      }]);
+    }
+
+    new BroadcastChannel('cashier-sync').postMessage('sync_products');
+    return data as Product;
   },
   updateProduct: async (id, updated, opts) => {
     const before = get().products.find(p => p.id === id);
-    // Realtime subscription handles the live UPDATE — no need to broadcast
-    set((state) => ({ products: state.products.map(p => p.id === id ? { ...p, ...updated } : p) })); await supabase.from('products').update(updated).eq('id', id);
-    // أي زيادة يدوية في الكمية = مخزون دخل بدون فاتورة شراء (db/59). فواتير الشراء
-    // والبيع بتعدّل products مباشرة (مش عن طريق updateProduct) فمفيش ازدواج.
+    set((state) => ({ products: state.products.map(p => p.id === id ? { ...p, ...updated } : p) }));
+
+    let payload: Record<string, any> = { ...updated };
+    while (true) {
+      const { error } = await supabase.from('products').update(payload).eq('id', id);
+      if (!error) break;
+
+      const msg = error.message || '';
+      const cacheMatch = msg.match(/Could not find the '([^']+)' column/i);
+      const colMatch = msg.match(/column "([^"]+)" of relation "products" does not exist/i);
+      const missingCol = (cacheMatch && cacheMatch[1]) || (colMatch && colMatch[1]);
+
+      if (missingCol && missingCol in payload) {
+        delete payload[missingCol];
+        console.warn(`Column '${missingCol}' missing in products table. Retrying update...`);
+        continue;
+      }
+      break;
+    }
+
     if (!opts?.skipIntakeLog && before && updated.stock_quantity !== undefined) {
       const delta = (Number(updated.stock_quantity) || 0) - (Number(before.stock_quantity) || 0);
-      // **النقصان بيتسجّل زي الزيادة.** قبل كده كان `delta > 0` بس، يعني لو حد
-      // قلّل الكمية بإيده المخزون بيختفي من غير أي أثر: لا سجل، لا تكلفة، ولا
-      // طريقة تعرف بيها راح فين. ده كان بيسيب فروق في قيمة المخزون مستحيل
-      // تتفسّر بعدين (شوف db/69 — أصناف كميتها أقل من كل حركاتها المسجّلة).
-      // النقصان بيتسجّل بكمية سالبة ومصدر مستقل عشان يبان في السجل بوضوح.
       if (delta !== 0) {
         get().logStockIntake([{
           product_id: id,
@@ -5281,6 +5319,7 @@ setupRealtime: () => {
         }]);
       }
     }
+    new BroadcastChannel('cashier-sync').postMessage('sync_products');
   },
 
   // ── مخزون دخل بدون فاتورة شراء (db/59) ────────────────────

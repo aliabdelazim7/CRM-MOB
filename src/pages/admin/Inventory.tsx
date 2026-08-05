@@ -402,27 +402,36 @@ export default function Inventory() {
     }
 
     let payload = { ...formData, barcode, supplier_name: supplierName };
-    if (editingProductId) {
-      // المعروض لا يتجاوز الإجمالي
-      payload = { ...payload, display_quantity: Math.min(Number(formData.display_quantity) || 0, Number(formData.stock_quantity) || 0) };
-      updateProduct(editingProductId, payload);
-    } else {
-      // الإجمالي = مستودع + معروض، والمعروض يتسجّل كما هو
-      const display = Number(formData.display_quantity) || 0;
-      payload = { ...payload, stock_quantity: (Number(warehouseQty) || 0) + display, display_quantity: display };
-      addProduct(payload);
-      // طباعة ملصقات الباركود بعدد القطع المضافة على طابعة الباركود الحراري
-      if (payload.stock_quantity > 0) {
-        printBarcodeLabels({
-          name: payload.name,
-          code: barcode,
-          price: payload.sale_price,
-          discountPrice: payload.discount_price,
-          currency: storeSettings.currency,
-          count: payload.stock_quantity,
-          storeName: storeSettings.name,
-        });
+    try {
+      if (editingProductId) {
+        // المعروض لا يتجاوز الإجمالي
+        payload = { ...payload, display_quantity: Math.min(Number(formData.display_quantity) || 0, Number(formData.stock_quantity) || 0) };
+        await updateProduct(editingProductId, payload);
+      } else {
+        // الإجمالي = مستودع + معروض، والمعروض يتسجّل كما هو
+        const display = Number(formData.display_quantity) || 0;
+        payload = { ...payload, stock_quantity: (Number(warehouseQty) || 0) + display, display_quantity: display };
+        await addProduct(payload);
+        // إعادة ضبط الفلتر والبحث عشان المنتج الجديد يبان أول صف في الجدول فوراً
+        setSelectedCategory('all');
+        setSearchQuery('');
+        // طباعة ملصقات الباركود بعدد القطع المضافة على طابعة الباركود الحراري
+        if (payload.stock_quantity > 0) {
+          printBarcodeLabels({
+            name: payload.name,
+            code: barcode,
+            price: payload.sale_price,
+            discountPrice: payload.discount_price,
+            currency: storeSettings.currency,
+            count: payload.stock_quantity,
+            storeName: storeSettings.name,
+          });
+        }
       }
+    } catch (err: any) {
+      console.error("Product submission failed:", err);
+      alert(`حدث خطأ أثناء حفظ المنتج: ${err?.message || 'خطأ غير معروف'}`);
+      return;
     }
 
     setShowAddModal(false);
