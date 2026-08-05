@@ -17,16 +17,48 @@ export default function Inventory() {
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
-      alert('حجم الصورة كبير جداً (أكبر من 4 ميجابايت). يرجى اختيار صورة أصغر.');
+    if (file.size > 12 * 1024 * 1024) {
+      alert('حجم الصورة كبير جداً (أكبر من 12 ميجابايت).');
       return;
     }
     const reader = new FileReader();
     reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        setFormData(prev => ({ ...prev, image_url: base64 }));
-      }
+      const rawUrl = event.target?.result as string;
+      if (!rawUrl) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          setFormData(prev => ({ ...prev, image_url: compressed }));
+        } else {
+          setFormData(prev => ({ ...prev, image_url: rawUrl }));
+        }
+      };
+      img.onerror = () => {
+        setFormData(prev => ({ ...prev, image_url: rawUrl }));
+      };
+      img.src = rawUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -861,21 +893,21 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* ADD / EDIT PRODUCT MODAL (Matches user reference screenshot 100%) */}
+      {/* ADD / EDIT PRODUCT MODAL (Matches user reference screenshot + Full Light/Dark Mode) */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-slate-900 text-white rounded-3xl shadow-2xl w-full max-w-2xl lg:max-w-3xl border border-slate-700/80 overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/75 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-3xl shadow-2xl w-full max-w-2xl lg:max-w-3xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]">
             
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/80 shrink-0">
-              <div className="flex items-center gap-2 text-lg font-black text-white">
-                <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm border border-emerald-500/40">🟩</span>
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/80 shrink-0">
+              <div className="flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
+                <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm border border-emerald-300 dark:border-emerald-500/40">🟩</span>
                 {editingProductId ? 'تعديل بيانات المنتج' : 'إضافة منتج جديد'}
               </div>
               <button
                 type="button"
                 onClick={() => { setShowAddModal(false); setEditingProductId(null); }}
-                className="text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 p-2 rounded-xl border border-slate-700 transition"
+                className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white bg-slate-100 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 transition"
               >
                 <X size={18} />
               </button>
@@ -888,8 +920,8 @@ export default function Inventory() {
               <div className="space-y-4">
                 {/* Product Name */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    🏷️ اسم المنتج <span className="text-red-400">*</span>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    🏷️ اسم المنتج <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -897,16 +929,16 @@ export default function Inventory() {
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                     placeholder="أدخل اسم المنتج..."
-                    className="w-full bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
                   />
                 </div>
 
                 {/* Product Barcode line + Generate Button */}
                 <div className="relative">
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-xs font-bold text-slate-300 flex items-center gap-1">
-                      <ScanLine size={14} className="text-emerald-400" />
-                      🔢 باركود المنتج <span className="text-[10px] text-slate-400">(يتولّد تلقائياً تسلسلياً لو فاضي)</span>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                      <ScanLine size={14} className="text-emerald-500 dark:text-emerald-400" />
+                      🔢 باركود المنتج <span className="text-[10px] text-slate-400 dark:text-slate-500">(يتولّد تلقائياً تسلسلياً لو فاضي)</span>
                     </label>
                     <button
                       type="button"
@@ -928,18 +960,18 @@ export default function Inventory() {
                       onChange={e => setFormData({ ...formData, barcode: e.target.value })}
                       onKeyDown={handleBarcodeKeyDown}
                       placeholder="امسح الباركود أو انقر على توليد..."
-                      className={`w-full bg-slate-950 border text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono font-bold text-sm text-left transition ${scanSuccess ? 'border-emerald-500 bg-emerald-950/40' : 'border-slate-700/80'}`}
+                      className={`w-full bg-slate-50 dark:bg-slate-950 border text-slate-900 dark:text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono font-bold text-sm text-left transition ${scanSuccess ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' : 'border-slate-200 dark:border-slate-700/80'}`}
                     />
                     {scanSuccess && (
-                      <CheckCircle2 className="absolute left-3 top-3.5 text-emerald-400 animate-in zoom-in" size={18} />
+                      <CheckCircle2 className="absolute left-3 top-3.5 text-emerald-500 dark:text-emerald-400 animate-in zoom-in" size={18} />
                     )}
                   </div>
                 </div>
 
                 {/* Colors & Codes Repeater Section */}
-                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-200 flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                       🎨 الألوان والأكواد
                     </span>
                     <button
@@ -949,14 +981,14 @@ export default function Inventory() {
                         updated.push({ name: '', code: '' });
                         setFormData({ ...formData, colors: updated });
                       }}
-                      className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1"
+                      className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 border border-emerald-300 dark:border-emerald-500/40 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1"
                     >
                       + إضافة لون
                     </button>
                   </div>
 
                   {(!formData.colors || formData.colors.length === 0) ? (
-                    <p className="text-center text-xs text-slate-500 py-1">اضغط على "+ إضافة لون" لربط أكواد الألوان بالمنتج</p>
+                    <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-1">اضغط على "+ إضافة لون" لربط أكواد الألوان بالمنتج</p>
                   ) : (
                     formData.colors.map((c: any, idx: number) => (
                       <div key={idx} className="flex gap-2 items-center">
@@ -966,7 +998,7 @@ export default function Inventory() {
                             const updated = formData.colors.filter((_: any, i: number) => i !== idx);
                             setFormData({ ...formData, colors: updated });
                           }}
-                          className="p-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition shrink-0"
+                          className="p-2.5 rounded-xl bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 hover:bg-red-200 transition shrink-0"
                           title="حذف اللون"
                         >
                           <Trash2 size={16} />
@@ -980,7 +1012,7 @@ export default function Inventory() {
                             updated[idx].name = e.target.value;
                             setFormData({ ...formData, colors: updated });
                           }}
-                          className="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs font-bold text-white flex-1"
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white flex-1"
                         />
                         <input
                           type="text"
@@ -992,7 +1024,7 @@ export default function Inventory() {
                             updated[idx].code = e.target.value;
                             setFormData({ ...formData, colors: updated });
                           }}
-                          className="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white text-left flex-1"
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white text-left flex-1"
                         />
                       </div>
                     ))
@@ -1001,13 +1033,13 @@ export default function Inventory() {
 
                 {/* Collection / Category Dropdown */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     📦 الكوليكشن / التصنيف
                   </label>
                   <select
                     value={formData.category_id}
                     onChange={e => setFormData({ ...formData, category_id: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
                   >
                     <option value="">-- اختر الكوليكشن --</option>
                     {categories.map(c => (
@@ -1018,7 +1050,7 @@ export default function Inventory() {
 
                 {/* Supplier Dropdown + Add Supplier Button */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     🏭 اسم المورد
                   </label>
                   <div className="flex gap-2">
@@ -1028,7 +1060,7 @@ export default function Inventory() {
                       value={formData.supplier_name}
                       onChange={e => setFormData({ ...formData, supplier_name: e.target.value })}
                       placeholder="-- اختر المورد أو اكتب اسماً جديداً --"
-                      className="flex-1 bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
+                      className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
                     />
                     <button
                       type="button"
@@ -1052,10 +1084,10 @@ export default function Inventory() {
                 {/* Product Image URL & Device File Upload */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-xs font-bold text-slate-300">
-                      🖼️ صورة المنتج (URL) <span className="text-[10px] text-slate-400">(تظهر بالمجدول والسيستم)</span>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      🖼️ صورة المنتج (URL) <span className="text-[10px] text-slate-400 dark:text-slate-500">(تظهر بالمجدول والسيستم)</span>
                     </label>
-                    <label className="cursor-pointer px-3 py-1 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 rounded-xl font-bold text-xs flex items-center gap-1 transition border border-indigo-500/30 shrink-0">
+                    <label className="cursor-pointer px-3 py-1 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/30 rounded-xl font-bold text-xs flex items-center gap-1 transition border border-indigo-200 dark:border-indigo-500/30 shrink-0">
                       <Upload size={13} /> رفع صورة من الجهاز
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageFileUpload} />
                     </label>
@@ -1066,18 +1098,18 @@ export default function Inventory() {
                       placeholder="ضع رابط الصورة هنا (مثلاً: https://...)"
                       value={formData.image_url}
                       onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                      className="flex-1 bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none text-left font-mono text-xs"
+                      className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none text-left font-mono text-xs"
                       dir="ltr"
                     />
                     {formData.image_url ? (
                       <img
                         src={formatImageUrl(formData.image_url)}
                         alt="Preview"
-                        className="w-12 h-12 rounded-2xl object-cover border border-slate-700 shrink-0 shadow bg-slate-950 p-0.5"
-                        onError={(e) => { (e.target as HTMLElement).style.opacity = '0.3'; }}
+                        className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow bg-slate-100 dark:bg-slate-950 p-0.5"
+                        onError={(e) => { (e.target as HTMLElement).style.opacity = '0.4'; }}
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-2xl border border-dashed border-slate-700 bg-slate-950 flex items-center justify-center shrink-0 text-slate-500">
+                      <div className="w-12 h-12 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 flex items-center justify-center shrink-0 text-slate-400 dark:text-slate-500">
                         <ImageIcon size={20} />
                       </div>
                     )}
@@ -1085,13 +1117,13 @@ export default function Inventory() {
                 </div>
 
                 {/* Stock Quantities & Unit Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950/40 p-3 rounded-2xl border border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">وحدة البيع</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">وحدة البيع</label>
                     <select
                       value={formData.unit}
                       onChange={e => setFormData({ ...formData, unit: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs"
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-white py-2 px-3 rounded-xl font-bold text-xs"
                     >
                       {UNIT_OPTIONS.map(u => (
                         <option key={u.value} value={u.value}>{u.label}</option>
@@ -1101,42 +1133,42 @@ export default function Inventory() {
                   {!editingProductId ? (
                     <>
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">كمية المستودع</label>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">كمية المستودع</label>
                         <input
                           type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'}
                           value={warehouseQty}
                           onChange={e => setWarehouseQty(parseFloat(e.target.value) || 0)}
-                          className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
+                          className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">المعروض بالمحل</label>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">المعروض بالمحل</label>
                         <input
                           type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'}
                           value={formData.display_quantity}
                           onChange={e => setFormData({ ...formData, display_quantity: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
+                          className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
                         />
                       </div>
                     </>
                   ) : (
                     <>
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">إجمالي المخزون</label>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">إجمالي المخزون</label>
                         <input
                           type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'}
                           value={formData.stock_quantity}
                           onChange={e => setFormData({ ...formData, stock_quantity: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
+                          className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">المعروض بالمحل</label>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">المعروض بالمحل</label>
                         <input
                           type="number" min="0" max={formData.stock_quantity} step={isFractionalUnit(formData.unit) ? '0.001' : '1'}
                           value={formData.display_quantity}
                           onChange={e => setFormData({ ...formData, display_quantity: Math.min(parseFloat(e.target.value) || 0, formData.stock_quantity) })}
-                          className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
+                          className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
                         />
                       </div>
                     </>
@@ -1146,12 +1178,12 @@ export default function Inventory() {
               </div>
 
               {/* 2. Pricing & Cost Breakdown Cards */}
-              <div className="pt-2 border-t border-slate-800 space-y-4">
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-4">
                 
                 {/* Inputs Grid: Purchase Price, Sale Price, Discount % */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-amber-400 mb-1">
+                    <label className="block text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">
                       💰 سعر الشراء [جنيه]
                     </label>
                     <input
@@ -1163,13 +1195,13 @@ export default function Inventory() {
                         const v = parseFloat(e.target.value) || 0;
                         setFormData({ ...formData, purchase_price: v, average_purchase_price: v });
                       }}
-                      className="w-full bg-slate-950 border border-amber-500/40 text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-amber-300 dark:border-amber-500/40 text-slate-900 dark:text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-emerald-400 mb-1">
-                      🏷️ سعر البيع [جنيه] <span className="text-red-400">*</span>
+                    <label className="block text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                      🏷️ سعر البيع [جنيه] <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -1178,12 +1210,12 @@ export default function Inventory() {
                       required
                       value={formData.sale_price || ''}
                       onChange={e => setFormData({ ...formData, sale_price: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-emerald-500/40 text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-emerald-300 dark:border-emerald-500/40 text-slate-900 dark:text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-sky-400 mb-1">
+                    <label className="block text-xs font-bold text-sky-600 dark:text-sky-400 mb-1">
                       🏷️ الخصم (%)
                     </label>
                     <input
@@ -1201,7 +1233,7 @@ export default function Inventory() {
                           discount_price: (formData.sale_price || 0) - discVal,
                         });
                       }}
-                      className="w-full bg-slate-950 border border-sky-500/40 text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-300 dark:border-sky-500/40 text-slate-900 dark:text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1209,36 +1241,36 @@ export default function Inventory() {
                 {/* Wholesale & Half Wholesale optional prices */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <label className="block font-bold text-slate-400 mb-1">سعر نص الجملة [جنيه]</label>
+                    <label className="block font-bold text-slate-500 dark:text-slate-400 mb-1">سعر نص الجملة [جنيه]</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.half_wholesale_price || ''}
                       onChange={e => setFormData({ ...formData, half_wholesale_price: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-slate-800 text-white py-2 px-3 rounded-xl text-center font-bold"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white py-2 px-3 rounded-xl text-center font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-400 mb-1">سعر الجملة [جنيه]</label>
+                    <label className="block font-bold text-slate-500 dark:text-slate-400 mb-1">سعر الجملة [جنيه]</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.wholesale_price || ''}
                       onChange={e => setFormData({ ...formData, wholesale_price: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-slate-800 text-white py-2 px-3 rounded-xl text-center font-bold"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white py-2 px-3 rounded-xl text-center font-bold"
                     />
                   </div>
                 </div>
 
                 {/* Yellow Card: Purchase Price & VAT 14% */}
-                <div className="bg-amber-950/30 border border-amber-500/40 rounded-2xl p-3.5 text-xs space-y-1.5 text-amber-200">
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/40 rounded-2xl p-3.5 text-xs space-y-1.5 text-amber-900 dark:text-amber-200">
                   <div className="flex justify-between">
                     <span>🛒 سعر الشراء:</span>
                     <span className="font-bold">{(formData.purchase_price || 0).toFixed(2)} جنيه</span>
                   </div>
-                  <div className="flex justify-between text-amber-300/80">
+                  <div className="flex justify-between text-amber-800/80 dark:text-amber-300/80">
                     <span>🛍️ الضريبة 14%:</span>
                     <span className="font-bold">{((formData.purchase_price || 0) * 0.14).toFixed(2)} جنيه</span>
                   </div>
-                  <div className="flex justify-between pt-1.5 border-t border-amber-500/30 font-black text-amber-400 text-sm">
+                  <div className="flex justify-between pt-1.5 border-t border-amber-200 dark:border-amber-500/30 font-black text-amber-900 dark:text-amber-400 text-sm">
                     <span>⚖️ الإجمالي عند الشراء:</span>
                     <span>{((formData.purchase_price || 0) * 1.14).toFixed(2)} جنيه</span>
                   </div>
@@ -1251,16 +1283,16 @@ export default function Inventory() {
                   const discAmt = sale * (pct / 100);
                   const netSale = sale - discAmt;
                   return (
-                    <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-2xl p-3.5 text-xs space-y-1.5 text-emerald-200">
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/40 rounded-2xl p-3.5 text-xs space-y-1.5 text-emerald-900 dark:text-emerald-200">
                       <div className="flex justify-between">
                         <span>🏷️ سعر البيع:</span>
                         <span className="font-bold">{sale.toFixed(2)} جنيه</span>
                       </div>
-                      <div className="flex justify-between text-emerald-300/80">
+                      <div className="flex justify-between text-emerald-800/80 dark:text-emerald-300/80">
                         <span>🏷️ الخصم ({pct}%):</span>
                         <span className="font-bold">{discAmt.toFixed(2)} جنيه</span>
                       </div>
-                      <div className="flex justify-between pt-1.5 border-t border-emerald-500/30 font-black text-emerald-400 text-sm">
+                      <div className="flex justify-between pt-1.5 border-t border-emerald-200 dark:border-emerald-500/30 font-black text-emerald-900 dark:text-emerald-400 text-sm">
                         <span>🎯 صافي سعر البيع:</span>
                         <span>{netSale.toFixed(2)} جنيه</span>
                       </div>
@@ -1270,7 +1302,7 @@ export default function Inventory() {
 
                 {/* Low Stock Alert Threshold */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     ⚖️ حد التنبيه (المحل)
                   </label>
                   <input
@@ -1278,7 +1310,7 @@ export default function Inventory() {
                     min="1"
                     value={formData.alert_limit || 5}
                     onChange={e => setFormData({ ...formData, alert_limit: parseInt(e.target.value) || 5 })}
-                    className="w-full bg-slate-950 border border-slate-700/80 text-white py-2.5 px-3 rounded-xl font-bold text-xs text-center"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white py-2.5 px-3 rounded-xl font-bold text-xs text-center"
                   />
                 </div>
 
@@ -1292,11 +1324,11 @@ export default function Inventory() {
                   const webAd = formData.website_ad_cost || 0;
                   const netProfit = netSale - totalCost - webAd;
                   return (
-                    <div className="bg-emerald-950/50 border-2 border-emerald-500/80 rounded-2xl p-4 text-center space-y-1 shadow-lg">
-                      <div className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1">
+                    <div className="bg-emerald-100/80 dark:bg-emerald-950/50 border-2 border-emerald-500 dark:border-emerald-500/80 rounded-2xl p-4 text-center space-y-1 shadow-md">
+                      <div className="text-xs font-bold text-emerald-800 dark:text-emerald-400 flex items-center justify-center gap-1">
                         💵 صافي مكسب الموقع
                       </div>
-                      <div className={`text-2xl sm:text-3xl font-black ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`text-2xl sm:text-3xl font-black ${netProfit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                         {netProfit.toFixed(2)} جنيه
                       </div>
                     </div>
@@ -1306,45 +1338,45 @@ export default function Inventory() {
               </div>
 
               {/* 3. Noon Store Section (Light Blue Box) */}
-              <div className="bg-sky-950/20 border border-sky-500/50 rounded-2xl p-4 space-y-3">
-                <div className="text-xs font-black text-sky-300 flex items-center gap-1.5">
+              <div className="bg-sky-50/70 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-500/50 rounded-2xl p-4 space-y-3">
+                <div className="text-xs font-black text-sky-800 dark:text-sky-300 flex items-center gap-1.5">
                   🏪 متجر نون (Noon)
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-sky-200/80 mb-1">🛍️ سعر نون [جنيه]</label>
+                    <label className="block text-[11px] font-bold text-sky-800 dark:text-sky-200/80 mb-1">🛍️ سعر نون [جنيه]</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.noon_price || ''}
                       onChange={e => setFormData({ ...formData, noon_price: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-sky-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-sky-300 dark:border-sky-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-sky-200/80 mb-1">📊 عمولة نون (%)</label>
+                    <label className="block text-[11px] font-bold text-sky-800 dark:text-sky-200/80 mb-1">📊 عمولة نون (%)</label>
                     <input
                       type="number" min="0" step="0.1"
                       value={formData.noon_commission || ''}
                       onChange={e => setFormData({ ...formData, noon_commission: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-sky-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-sky-300 dark:border-sky-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-sky-200/80 mb-1">🏷️ سعر خصم نون [جنيه]</label>
+                    <label className="block text-[11px] font-bold text-sky-800 dark:text-sky-200/80 mb-1">🏷️ سعر خصم نون [جنيه]</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.noon_discount_price || ''}
                       onChange={e => setFormData({ ...formData, noon_discount_price: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-sky-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-sky-300 dark:border-sky-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-sky-200/80 mb-1">🚚 شحن نون [جنيه]</label>
+                    <label className="block text-[11px] font-bold text-sky-800 dark:text-sky-200/80 mb-1">🚚 شحن نون [جنيه]</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.noon_shipping || ''}
                       onChange={e => setFormData({ ...formData, noon_shipping: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-sky-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-sky-300 dark:border-sky-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                 </div>
@@ -1359,45 +1391,45 @@ export default function Inventory() {
                   const noonTotalCost = (formData.purchase_price || 0) * 1.14;
                   const noonNet = noonP - noonTotalCost - noonComm - noonShip - noonAd;
                   return (
-                    <div className="bg-sky-950/40 border border-sky-500/40 rounded-xl p-3 text-xs space-y-1.5 text-sky-200">
-                      <div className="text-center pb-1 border-b border-sky-500/30">
-                        <span className="text-[11px] font-bold text-sky-300">💵 صافي مكسب نون</span>
-                        <div className={`text-xl font-black ${noonNet >= 0 ? 'text-sky-300' : 'text-red-400'}`}>
+                    <div className="bg-sky-100/60 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-500/40 rounded-xl p-3 text-xs space-y-1.5 text-sky-900 dark:text-sky-200">
+                      <div className="text-center pb-1 border-b border-sky-200 dark:border-sky-500/30">
+                        <span className="text-[11px] font-bold text-sky-800 dark:text-sky-300">💵 صافي مكسب نون</span>
+                        <div className={`text-xl font-black ${noonNet >= 0 ? 'text-sky-700 dark:text-sky-300' : 'text-red-600 dark:text-red-400'}`}>
                           {noonNet.toFixed(2)} جنيه
                         </div>
                       </div>
                       <div className="flex justify-between"><span>🏷️ سعر نون:</span><span className="font-bold">{noonP.toFixed(2)} جنيه</span></div>
-                      <div className="flex justify-between text-sky-300/70"><span>🛍️ ضريبة 14%:</span><span className="font-bold">{noonVat.toFixed(2)} جنيه</span></div>
-                      <div className="flex justify-between text-sky-300/70"><span>⚖️ الإجمالي بعد الضريبة:</span><span className="font-bold">{(noonP + noonVat).toFixed(2)} جنيه</span></div>
-                      <div className="flex justify-between text-sky-300/70"><span>⛔ العمولة:</span><span className="font-bold">{noonComm.toFixed(2)} جنيه</span></div>
-                      <div className="flex justify-between text-sky-300/70"><span>🚚 الشحن:</span><span className="font-bold">{noonShip.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-sky-800/80 dark:text-sky-300/70"><span>🛍️ ضريبة 14%:</span><span className="font-bold">{noonVat.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-sky-800/80 dark:text-sky-300/70"><span>⚖️ الإجمالي بعد الضريبة:</span><span className="font-bold">{(noonP + noonVat).toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-sky-800/80 dark:text-sky-300/70"><span>⛔ العمولة:</span><span className="font-bold">{noonComm.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-sky-800/80 dark:text-sky-300/70"><span>🚚 الشحن:</span><span className="font-bold">{noonShip.toFixed(2)} جنيه</span></div>
                     </div>
                   );
                 })()}
               </div>
 
               {/* 4. Jumia Store Section (Orange/Red Box) */}
-              <div className="bg-amber-950/20 border border-amber-500/50 rounded-2xl p-4 space-y-3">
-                <div className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+              <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/50 rounded-2xl p-4 space-y-3">
+                <div className="text-xs font-black text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
                   🛍️ متجر جوميا (Jumia)
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-amber-200/80 mb-1">📊 نسبة جوميا (%)</label>
+                    <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-200/80 mb-1">📊 نسبة جوميا (%)</label>
                     <input
                       type="number" min="0" step="0.1"
                       value={formData.jumia_commission || ''}
                       onChange={e => setFormData({ ...formData, jumia_commission: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-amber-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-amber-300 dark:border-amber-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-amber-200/80 mb-1">🚚 شحن جوميا (جنيه)</label>
+                    <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-200/80 mb-1">🚚 شحن جوميا (جنيه)</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.jumia_shipping || ''}
                       onChange={e => setFormData({ ...formData, jumia_shipping: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-amber-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-amber-300 dark:border-amber-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                 </div>
@@ -1411,9 +1443,9 @@ export default function Inventory() {
                   const jumTotalCost = (formData.purchase_price || 0) * 1.14;
                   const jumNet = jumP - jumTotalCost - jumComm - jumShip - jumAd;
                   return (
-                    <div className="bg-amber-950/40 border border-amber-500/40 rounded-xl p-3 text-xs text-amber-200 text-center">
-                      <span className="text-[11px] font-bold text-amber-300">💵 صافي مكسب جوميا</span>
-                      <div className={`text-xl font-black ${jumNet >= 0 ? 'text-amber-400' : 'text-red-400'}`}>
+                    <div className="bg-amber-100/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/40 rounded-xl p-3 text-xs text-amber-900 dark:text-amber-200 text-center">
+                      <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300">💵 صافي مكسب جوميا</span>
+                      <div className={`text-xl font-black ${jumNet >= 0 ? 'text-amber-700 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
                         {jumNet.toFixed(2)} جنيه
                       </div>
                     </div>
@@ -1438,22 +1470,22 @@ export default function Inventory() {
                 const jumNet = jumP > 0 ? (jumP - totalCost - jumComm - (formData.jumia_shipping || 0) - (formData.jumia_ad_cost || 0)) : 0;
 
                 return (
-                  <div className="bg-sky-950/20 border border-sky-500/40 rounded-2xl p-3.5 space-y-2">
-                    <div className="text-xs font-black text-sky-300 flex items-center gap-1.5">
+                  <div className="bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-500/40 rounded-2xl p-3.5 space-y-2">
+                    <div className="text-xs font-black text-sky-800 dark:text-sky-300 flex items-center gap-1.5">
                       🛒 أسعار المنصات والخصومات
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block">💬 الموقع</span>
-                        <span className={`font-black ${webProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{webProfit.toFixed(2)}</span>
+                      <div className="bg-white dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">💬 الموقع</span>
+                        <span className={`font-black ${webProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{webProfit.toFixed(2)}</span>
                       </div>
-                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block">📦 نون</span>
-                        <span className={`font-black ${noonNet >= 0 ? 'text-sky-400' : 'text-red-400'}`}>{noonNet.toFixed(2)}</span>
+                      <div className="bg-white dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">📦 نون</span>
+                        <span className={`font-black ${noonNet >= 0 ? 'text-sky-600 dark:text-sky-400' : 'text-red-600 dark:text-red-400'}`}>{noonNet.toFixed(2)}</span>
                       </div>
-                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block">🛍️ جوميا</span>
-                        <span className={`font-black ${jumNet >= 0 ? 'text-amber-400' : 'text-red-400'}`}>{jumNet.toFixed(2)}</span>
+                      <div className="bg-white dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">🛍️ جوميا</span>
+                        <span className={`font-black ${jumNet >= 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{jumNet.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -1461,9 +1493,9 @@ export default function Inventory() {
               })()}
 
               {/* 6. Ads Expenses Section (Pink Box `📢 مصاريف الإعلانات`) */}
-              <div className="bg-pink-950/20 border border-pink-500/40 rounded-2xl p-4 space-y-3">
+              <div className="bg-pink-50/70 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-500/40 rounded-2xl p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-pink-300 flex items-center gap-1.5">
+                  <span className="text-xs font-black text-pink-800 dark:text-pink-300 flex items-center gap-1.5">
                     📢 مصاريف الإعلانات
                   </span>
                   <button
@@ -1476,37 +1508,37 @@ export default function Inventory() {
                         noon_ad_cost: 0,
                       }));
                     }}
-                    className="bg-pink-500/20 text-pink-300 hover:bg-pink-500/30 text-[11px] font-bold px-3 py-1 rounded-xl transition border border-pink-500/30 flex items-center gap-1"
+                    className="bg-pink-100 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-500/30 text-[11px] font-bold px-3 py-1 rounded-xl transition border border-pink-300 dark:border-pink-500/30 flex items-center gap-1"
                   >
                     🔄 إعادة تعيين الإعلانات
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-pink-200/80 mb-1">إعلانات الموقع (جنيه)</label>
+                    <label className="block text-[11px] font-bold text-pink-800 dark:text-pink-200/80 mb-1">إعلانات الموقع (جنيه)</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.website_ad_cost || ''}
                       onChange={e => setFormData({ ...formData, website_ad_cost: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-pink-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-pink-300 dark:border-pink-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-pink-200/80 mb-1">إعلانات جوميا (جنيه)</label>
+                    <label className="block text-[11px] font-bold text-pink-800 dark:text-pink-200/80 mb-1">إعلانات جوميا (جنيه)</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.jumia_ad_cost || ''}
                       onChange={e => setFormData({ ...formData, jumia_ad_cost: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-pink-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-pink-300 dark:border-pink-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-pink-200/80 mb-1">إعلانات نون (جنيه)</label>
+                    <label className="block text-[11px] font-bold text-pink-800 dark:text-pink-200/80 mb-1">إعلانات نون (جنيه)</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.noon_ad_cost || ''}
                       onChange={e => setFormData({ ...formData, noon_ad_cost: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-950 border border-pink-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                      className="w-full bg-white dark:bg-slate-950 border border-pink-300 dark:border-pink-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>
                 </div>
@@ -1523,7 +1555,7 @@ export default function Inventory() {
                 <button
                   type="button"
                   onClick={() => { setShowAddModal(false); setEditingProductId(null); }}
-                  className="px-6 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl border border-slate-700 transition text-sm"
+                  className="px-6 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 transition text-sm"
                 >
                   ❌ إلغاء
                 </button>
