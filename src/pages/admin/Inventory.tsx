@@ -91,6 +91,9 @@ export default function Inventory() {
     average_purchase_price: 0,
     sale_price: 0,
     discount_price: 0,
+    discount_percent: 0,
+    alert_limit: 5,
+    colors: [] as Array<{ name: string; code: string }>,
     wholesale_price: 0,
     half_wholesale_price: 0,
     season: 'summer',
@@ -1022,7 +1025,7 @@ export default function Inventory() {
                       onClick={() => {
                         const name = prompt('أدخل اسم المورد الجديد:');
                         if (name && name.trim()) {
-                          addSupplier({ name: name.trim() });
+                          addSupplier({ name: name.trim(), phone: '', address: '' });
                           setFormData(prev => ({ ...prev, supplier_name: name.trim() }));
                         }
                       }}
