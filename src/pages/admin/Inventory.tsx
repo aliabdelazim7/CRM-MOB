@@ -80,7 +80,21 @@ export default function Inventory() {
     stock_quantity: 0,
     display_quantity: 0,
     category_id: categories[0]?.id || '',
-    unit: 'قطعة'
+    unit: 'قطعة',
+
+    website_ad_cost: 0,
+    amazon_price: 0,
+    amazon_commission: 0,
+    amazon_ad_cost: 0,
+    noon_price: 0,
+    noon_commission: 0,
+    noon_shipping: 0,
+    noon_ad_cost: 0,
+    jumia_price: 0,
+    jumia_commission: 0,
+    jumia_shipping: 0,
+    jumia_ad_cost: 0,
+    custom_stores: [] as Array<{ id: string; name: string; price: number; commission: number; shipping: number; ad_cost: number }>
   });
 
   // الكمية حسب المخزن المختار: الكل = الإجمالي، المعرض = المعروض، المستودع = الباقي.
