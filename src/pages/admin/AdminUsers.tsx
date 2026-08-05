@@ -88,9 +88,9 @@ export default function AdminUsers() {
 
     setSavingCashier(true);
     if (editingCashier) {
-      await updateCashier(editingCashier.id, { name: cashierName.trim(), password: cashierPassword, phone: cashierPhone, full_access: cashierFullAccess });
+      await updateCashier(editingCashier.id, { name: cashierName.trim(), password: cashierPassword, phone: cashierPhone, photo_url: editingCashier.photo_url || '', full_access: cashierFullAccess });
     } else {
-      await addCashier({ name: cashierName.trim(), password: cashierPassword, phone: cashierPhone, full_access: cashierFullAccess });
+      await addCashier({ name: cashierName.trim(), password: cashierPassword, phone: cashierPhone, photo_url: '', full_access: cashierFullAccess });
     }
     setSavingCashier(false);
     setShowCashierForm(false);
