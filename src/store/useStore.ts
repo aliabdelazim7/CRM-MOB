@@ -1559,6 +1559,41 @@ const primaryMethodOf = (split: any): 'cash' | 'visa' | 'wallet' | 'instapay' | 
 
 
 // ─── Store ───────────────────────────────────────────────────
+/**
+ * حجز رقم فاتورة جديد — **ذرّي**.
+ *
+ * الطريقة القديمة كانت select ثم update في مكانين مختلفين (البيع، ومزامنة
+ * الأوفلاين) رغم إن التعليق كان مكتوب فيه "Atomic approach":
+ *   • كاشيرين بيدوسوا في نفس اللحظة → الاتنين بياخدوا نفس الرقم.
+ *   • في مسار الأوفلاين خطأ الـupdate ماكانش متشيّك عليه خالص، فمزامنة طابور
+ *     فيه كذا فاتورة كانت ممكن تديهم كلهم نفس الرقم.
+ *   • ولو الـupdate فشل، العدّاد بيفضل مكانه فكل بيعة بعد كده بتصطدم بنفس
+ *     الرقم — والكاشير بيقف عن البيع تماماً («رقم الفاتورة مستخدم حالياً»).
+ *
+ * دالة next_invoice_number في db/72 بتزوّد وترجّع في statement واحد، فمفيش
+ * نافذة يقدر عميل تاني يقرا فيها نفس القيمة.
+ */
+async function allocateInvoiceNumber(): Promise<string> {
+  const { data, error } = await supabase.rpc('next_invoice_number');
+  if (!error && data != null) return String(data);
+
+  // الدالة لسه مش متسطّبة على القاعدة دي — بنرجع للطريقة القديمة عشان السيستم
+  // يفضل شغّال، بس المرة دي بنفشل بصوت عالي لو العدّاد ما اتحرّكش.
+  console.warn(
+    'next_invoice_number RPC غير متاح — شغّل db/72_atomic_invoice_number.sql. الرجوع للطريقة القديمة.',
+    error?.message,
+  );
+  const { data: row, error: readErr } = await supabase
+    .from('invoice_counter').select('current_value').eq('id', 1).single();
+  if (readErr || !row) throw new Error('تعذّر قراءة عدّاد الفواتير.');
+
+  const current = (row as Record<string, unknown>).current_value as number;
+  const { error: bumpErr } = await supabase
+    .from('invoice_counter').update({ current_value: current + 1 }).eq('id', 1);
+  if (bumpErr) throw new Error(`تعذّر حجز رقم الفاتورة: ${bumpErr.message}`);
+  return String(current);
+}
+
 export const useStore = create<CashierStore>((set, get) => ({
   storeSettings: {
     name: 'ADRIA',
@@ -2213,23 +2248,9 @@ export const useStore = create<CashierStore>((set, get) => ({
           }
         }
 
-        const { data: counterData, error: counterError } = await supabase
-          .from('invoice_counter')
-          .select('current_value')
-          .eq('id', 1)
-          .single();
-
-        if (counterError || !counterData) {
-          throw new Error("Could not fetch counter");
-        }
-
-        const realInvoiceId = (counterData as any).current_value.toString();
-        const nextCounter = (counterData as any).current_value + 1;
-
-        await supabase
-          .from('invoice_counter')
-          .update({ current_value: nextCounter })
-          .eq('id', 1);
+        // كان select ثم update من غير ما يتشيّك على خطأ الـupdate — طابور فيه
+        // كذا فاتورة كان ممكن ياخدوا كلهم نفس الرقم.
+        const realInvoiceId = await allocateInvoiceNumber();
 
         let customerId: string | null = null;
         let finalCustomer = offlineOrder.customer;
@@ -2551,29 +2572,16 @@ export const useStore = create<CashierStore>((set, get) => ({
         throw new Error("No network connectivity");
       }
 
-      // 1. Get the LATEST counter value from DB right now (Atomic approach)
-      const { data: counterData, error: counterError } = await supabase
-        .from('invoice_counter')
-        .select('current_value')
-        .eq('id', 1)
-        .single();
-
-      if (counterError || !counterData) {
-        throw new Error("Counter Fetch Error");
-      }
-
-      const invoiceId = (counterData as any).current_value.toString();
-      const nextCounter = (counterData as any).current_value + 1;
-
-      // 2. Increment counter in DB immediately to "lock" this number
-      const { error: updateCounterError } = await supabase
-        .from('invoice_counter')
-        .update({ current_value: nextCounter })
-        .eq('id', 1);
-
-      if (updateCounterError) {
-        console.error("Counter Update Error:", updateCounterError);
-      }
+      // 1. حجز رقم الفاتورة.
+      //
+      // الطريقة القديمة كانت select ثم update — مش ذرّية رغم إن التعليق كان
+      // مكتوب فيه "Atomic approach". كاشيرين بيدوسوا في نفس اللحظة كانوا
+      // بياخدوا نفس الرقم، وأخطر من كده: خطأ الـupdate كان بيتسجّل في الكونسول
+      // وبس، فلو العدّاد ما اتحرّكش كل بيعة بعد كده بتصطدم بنفس الرقم والكاشير
+      // بيقف عن البيع خالص.
+      //
+      // دلوقتي بننادي دالة بتزوّد وترجّع في statement واحد (db/72).
+      let invoiceId = await allocateInvoiceNumber();
 
       let customerId: string | null = null;
       let finalCustomer: Customer | undefined;
@@ -2623,10 +2631,20 @@ export const useStore = create<CashierStore>((set, get) => ({
       }
 
       const splits = getSplits(splitPayments, paymentMethod, savedPaidAmount);
-      // Insert order
-      const { error: orderError } = await supabase.from('orders').insert({ 
-        id: invoiceId, 
-        total, 
+
+      /**
+       * تسجيل الفاتورة، مع إعادة المحاولة برقم جديد لو الرقم اتاخد.
+       *
+       * قبل كده كان بيطلع alert ويقف — والكاشير مايقدرش يبيع خالص لو العدّاد
+       * كان متأخّر عن الأوردرات (بيحصل بعد أي seed/reset). دلوقتي بياخد الرقم
+       * اللي بعده ويكمّل، فالبيعة بتعدّي والعميل مايستناش.
+       */
+      const isDuplicateKey = (e: { code?: string; message?: string } | null) =>
+        e?.code === '23505' || /duplicate key|already exists/i.test(e?.message || '');
+
+      const orderRow = () => ({
+        id: invoiceId,
+        total,
         paid_amount: savedPaidAmount,
         paid_cash: splits.cash,
         paid_visa: splits.visa,
@@ -2645,13 +2663,31 @@ export const useStore = create<CashierStore>((set, get) => ({
         discount_amount: discountAmount || 0,
         car_id: carId || null,
         created_at: orderCreatedAt,
-        client_ref: clientRef
+        client_ref: clientRef,
       });
 
+      let orderError: { code?: string; message?: string } | null = null;
+      for (let tries = 0; tries < 5; tries++) {
+        const { error } = await supabase.from('orders').insert(orderRow());
+        orderError = error;
+        if (!error) break;
+        if (!isDuplicateKey(error)) break;
+
+        // client_ref ليه فهرس فريد كمان (db/63) — لو هو اللي اتكرر يبقى
+        // الفاتورة دي اتسجّلت فعلاً قبل كده (النت فصل بعد الحفظ)، فمنعيدهاش.
+        if ((error.message || '').includes('client_ref')) break;
+
+        console.warn(`رقم الفاتورة ${invoiceId} متاخد — بنجرّب الرقم اللي بعده.`);
+        invoiceId = await allocateInvoiceNumber();
+      }
+
       if (orderError) {
-        console.error("Order Insert Error:", orderError);
-        // If duplicate key, it means another cashier took the number in that millisecond.
-        alert(`عذراً، رقم الفاتورة مستخدم حالياً (${invoiceId}). يرجى المحاولة مرة أخرى.`);
+        console.error('Order Insert Error:', orderError);
+        alert(
+          isDuplicateKey(orderError)
+            ? `تعذّر حجز رقم فاتورة متاح. شغّل db/72_atomic_invoice_number.sql على قاعدة البيانات.`
+            : `تعذّر حفظ الفاتورة: ${orderError.message}`,
+        );
         return invoiceId;
       }
 
@@ -2673,7 +2709,15 @@ export const useStore = create<CashierStore>((set, get) => ({
       }));
       const { error: itemsError } = await supabase.from('order_items').insert(itemsPayload);
       if (itemsError) {
-        console.error("Order Items Insert Error:", itemsError);
+        // كان بيتسجّل في الكونسول وبس — فالفاتورة بتتحفظ من غير أصنافها،
+        // والربح والمخزون والمرتجعات كلها بتتحسب غلط عليها بعد كده من غير
+        // ما حد ياخد باله. لازم المستخدم يعرف فوراً.
+        console.error('Order Items Insert Error:', itemsError);
+        alert(
+          `تحذير: الفاتورة رقم ${invoiceId} اتسجّلت لكن أصنافها مااتسجّلتش (${itemsError.message}).
+` +
+          `راجعها من صفحة الفواتير قبل ما تكمّل.`,
+        );
       }
 
       // Update stock (والمعروض ينزل معاه — البيع بيطلع من المحل أولاً)
@@ -2726,8 +2770,10 @@ export const useStore = create<CashierStore>((set, get) => ({
         salesperson: null,
         products: updatedProducts,
         customers: updatedCustomers,
-        invoiceCounter: nextCounter,
-        activeInvoiceId: nextCounter.toString(),
+        // الرقم اللي بعد اللي اتسجّل فعلاً — invoiceId ممكن يكون اتغيّر لو
+        // الرقم الأول كان متاخد وأعدنا المحاولة.
+        invoiceCounter: Number(invoiceId) + 1,
+        activeInvoiceId: String(Number(invoiceId) + 1),
       });
 
       new BroadcastChannel('cashier-sync').postMessage('sync_products');
