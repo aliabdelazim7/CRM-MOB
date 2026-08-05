@@ -387,8 +387,11 @@ export default function POS() {
       const split = { cash: debtMethod === 'cash' ? amount : 0, visa: debtMethod === 'visa' ? amount : 0, wallet: debtMethod === 'wallet' ? amount : 0, instapay: debtMethod === 'instapay' ? amount : 0 };
       const dateISO = timestampForBusinessDate(debtPayDate, storeSettings);
       const invId = await checkout(0, { name: c.name, phone: c.phone, custom_id: c.custom_id }, amount, 'payment', debtMethod as any, split, undefined, undefined, undefined, undefined, undefined, dateISO);
+      // null = السداد ماتسجّلش. من غير التشييك ده كنا بنطبع إيصال سداد
+      // لعملية مش موجودة في قاعدة البيانات.
+      if (invId === null) { setDebtSaving(false); return; }
       const methodLabel = debtMethod === 'cash' ? 'كاش' : debtMethod === 'visa' ? 'فيزا' : debtMethod === 'wallet' ? 'محفظة' : 'انستا باي';
-      printDebtReceipt(c.name, amount, Math.max(0, c.debt - amount), methodLabel, String(invId || ''));
+      printDebtReceipt(c.name, amount, Math.max(0, c.debt - amount), methodLabel, String(invId));
       setShowDebtModal(false); setDebtCustId(''); setDebtAmount(''); setDebtSearch('');
     } catch (e: any) { alert('خطأ في تسجيل السداد: ' + (e?.message || e)); }
     setDebtSaving(false);
@@ -1827,7 +1830,7 @@ export default function POS() {
       (currentCustomerPhone && c.phone === currentCustomerPhone) ||
       (currentCustomerCard && (c.card_number === currentCustomerCard || c.custom_id === currentCustomerCard))
     );
-    const currentCustomId = matchedCustomer?.custom_id || currentCustomerCard;
+    const currentCustomId = (matchedCustomer?.custom_id || currentCustomerCard || '') as string;
 
     // مبالغ كل طريقة دفع مفعّلة (+ العربون المحصّل مسبقاً لو الفاتورة كانت معلّقة).
     const splitPayments: Record<string, number> = {};
@@ -1875,6 +1878,8 @@ export default function POS() {
     const saleDateISO = workDateOverride ? timestampForBusinessDate(workDateOverride, storeSettings) : undefined;
     const invoiceId = await checkout(currentTotal, { name: currentCustomerName, phone: currentCustomerPhone, custom_id: currentCustomId }, effectivePaidAmount, 'sale', primaryMethod as any, finalSplit as any, undefined, deferredNote, currentCouponCode, currentCouponDiscount, undefined, saleDateISO);
 
+    if (invoiceId === null) return;
+
     // العربون كان دخل الخزنة وقت الحجز؛ الفاتورة سجّلته ضمن المدفوع، فنسجّل تحويله
     // (صرف بقيمة العربون) عشان ما يتحسبش مرتين.
     const depositForThis = activeDeposit;
@@ -1909,14 +1914,14 @@ export default function POS() {
     details.customerId = actualCustomer?.id || '';
     details.customId = actualCustomer?.card_number || actualCustomer?.custom_id || currentCustomerCard;
 
-    setLastInvoiceId(invoiceId);
+    setLastInvoiceId(String(invoiceId));
     setLastCustomerInfo({ name: currentCustomerName, phone: currentCustomerPhone });
     setLastOrderDetails(details);
     playSuccessSound();
     setShowSuccessModal(true);
 
     if (shouldPrint) {
-      printInvoice(invoiceId, details);
+      printInvoice(String(invoiceId), details);
     }
 
     setCustomerName('');
