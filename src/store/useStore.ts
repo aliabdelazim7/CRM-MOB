@@ -2733,13 +2733,7 @@ export const useStore = create<CashierStore>((set, get) => ({
       }
 
       if (droppedColumns.length > 0) {
-        alert(
-          `الفاتورة ${invoiceId} اتحفظت ✅
-
-بس الأعمدة دي مش موجودة في قاعدة البيانات فاتساب عليها: ${droppedColumns.join('، ')}.
-` +
-          `شغّل db/73_ensure_orders_columns.sql عشان تشتغل بكامل مميزاتها.`,
-        );
+        console.warn(`الفاتورة ${invoiceId} اتحفظت. الأعمدة التالية تم تجاوزها لعدم وجودها في DB: ${droppedColumns.join('، ')}`);
       }
 
       // تحصيل عام رايح للخزنة الرئيسية: نسجّل نظيره في دفتر الرئيسية (مربوط بالـ groupId).
