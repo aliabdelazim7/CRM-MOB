@@ -106,6 +106,7 @@ export interface Product {
   id: string;
   name: string;
   barcode: string;
+  image_url?: string; // صورة المنتج المعروضة في الجدول والكاشير
   purchase_price: number;
   average_purchase_price: number;
   sale_price: number;
@@ -119,22 +120,25 @@ export interface Product {
   category_id: string;
   unit: string; // وحدة المنتج: قطعة / كيلو / جرام / لتر ... (المخزون والسعر بهذه الوحدة)
   is_hidden?: boolean; // إخفاء المنتج من الكاشير دون حذفه
-  color?: string; // لون المنتج (للملابس)
+  color?: string; // لون المنتج (لملابس)
   supplier_name?: string; // اسم المورد الذي يُورّد هذا المنتج (نصّي، للربط عبر الاسم)
   // أسعار ومصاريف المتاجر والمنصات (Website, Amazon, Noon, Jumia, Custom)
   website_ad_cost?: number;
   amazon_price?: number;
+  amazon_discount_price?: number;
   amazon_commission?: number;
   amazon_ad_cost?: number;
   noon_price?: number;
+  noon_discount_price?: number;
   noon_commission?: number;
   noon_shipping?: number;
   noon_ad_cost?: number;
   jumia_price?: number;
+  jumia_discount_price?: number;
   jumia_commission?: number;
   jumia_shipping?: number;
   jumia_ad_cost?: number;
-  custom_stores?: Array<{ id: string; name: string; price: number; commission: number; shipping: number; ad_cost: number }>;
+  custom_stores?: Array<{ id: string; name: string; price: number; discount_price?: number; commission: number; shipping: number; ad_cost: number }>;
 }
 
 // ── التصنيع ──────────────────────────────────────────────────

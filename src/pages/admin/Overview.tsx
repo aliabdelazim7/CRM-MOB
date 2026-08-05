@@ -107,6 +107,19 @@ export default function Overview() {
   const purchasesOut = purchaseInvoices.filter(inv => !isMainTreasuryPurchase(inv)).reduce((sum, inv) => sum + inv.paid_amount, 0);
   
   const totalSafeBalance = initialBalance + ordersIn - returnsOut - expensesOut - purchasesOut;
+  
+  // ── ديون العملاء الآجل غير المحصلة (تُخصم من رأس المال الصافي المتاح) ──
+  const totalCustomerDebts = activeOrders.reduce((sum, o) => {
+    if (o.type === 'payment') return sum;
+    const itemSum = o.items?.reduce((s, i) => s + (i.sale_price * (i.quantity - (i.returned_quantity || 0))), 0) || 0;
+    const orderTotal = (typeof o.total === 'number' && o.total > 0) ? o.total : itemSum;
+    const paid = o.paid_amount || 0;
+    const unpaid = Math.max(0, orderTotal - paid);
+    return sum + unpaid;
+  }, 0);
+
+  const netCapitalAfterDebts = totalSafeBalance - totalCustomerDebts;
+
   const lowStockProducts = products.filter((p) => p.stock_quantity < 5).length;
   const averageOrderValue = validOrdersCount > 0 ? (totalNetRevenue / validOrdersCount) : 0;
 
@@ -125,25 +138,24 @@ export default function Overview() {
         </div>
 
         {/* Period Selector Tabs */}
-        <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl flex items-center gap-1 border border-slate-200 dark:border-slate-700 shadow-sm self-start sm:self-auto">
-          {([
-            { id: 'today', label: 'اليوم' },
-            { id: 'week', label: 'هذا الأسبوع' },
-            { id: 'month', label: 'هذا الشهر' },
-            { id: 'all', label: 'الكل' },
-          ] as const).map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setPeriod(t.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                period === t.id
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02]'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/50'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl flex items-center gap-1 border border-slate-200 dark:border-slate-700 shadow-sm self-start sm:self-auto overflow-x-auto max-w-full">
+          {(['today', 'week', 'month', 'all'] as PeriodFilter[]).map((p) => {
+            const labels: Record<PeriodFilter, string> = { today: 'اليوم', week: 'الأسبوع', month: 'الشهر', all: 'الكل' };
+            const active = period === p;
+            return (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                  active
+                    ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                {labels[p]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -189,10 +201,10 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* Card 2: Safe Balance */}
+        {/* Card 2: Safe Balance & Debts Deduction */}
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col justify-between gap-4 relative overflow-hidden group hover:shadow-md transition">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-400 uppercase">صافي رصيد الخزنة الحالية</span>
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-400 uppercase">رصيد الخزنة ورأس المال الصافي</span>
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <DollarSign size={24} />
             </div>
@@ -201,7 +213,20 @@ export default function Overview() {
             <h2 className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
               {totalSafeBalance.toFixed(2)} <span className="text-xs font-bold text-slate-400">{storeSettings.currency}</span>
             </h2>
-            <p className="text-[11px] font-bold text-slate-400 mt-1">الرصيد النقدي المتوفر بالدرج</p>
+            {totalCustomerDebts > 0 ? (
+              <div className="mt-2 space-y-0.5 border-t border-slate-100 dark:border-slate-700/60 pt-1.5">
+                <p className="text-[11px] font-bold text-red-600 dark:text-red-400 flex items-center justify-between">
+                  <span>📉 ديون عملاء غير محصلة:</span>
+                  <span>-{totalCustomerDebts.toFixed(2)} {storeSettings.currency}</span>
+                </p>
+                <p className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
+                  <span>💎 الصافي الفعلي بعد الديون:</span>
+                  <span>{netCapitalAfterDebts.toFixed(2)} {storeSettings.currency}</span>
+                </p>
+              </div>
+            ) : (
+              <p className="text-[11px] font-bold text-slate-400 mt-1">الرصيد النقدي المتوفر بالدرج</p>
+            )}
           </div>
         </div>
 

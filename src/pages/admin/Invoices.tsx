@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { ArrowRightLeft, Search, User, Printer, CreditCard, FileText, Table as TableIcon, TrendingUp, Calendar, X, Trash2, Archive, Edit2, Eye, Undo2 } from 'lucide-react';
+import { Plus, ArrowRightLeft, Search, User, Printer, CreditCard, FileText, Table as TableIcon, TrendingUp, Calendar, X, Trash2, Archive, Edit2, Eye, Undo2 } from 'lucide-react';
 import { normalizeArabic } from '../../utils/textUtils';
 import { calculateInvoiceProfit } from '../../utils/invoiceProfit';
 import { calculateOrderReturnValue } from '../../utils/returns';
@@ -493,16 +494,23 @@ export default function Invoices() {
           <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100">فواتير البيع والمرتجعات</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">مراجعة فواتير البيع وعمليات الاسترجاع مع الفلاتر المتقدمة</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap items-center">
+          <NavLink 
+            to="/admin/pos"
+            style={{ backgroundColor: storeSettings.themeColor }}
+            className="flex items-center gap-2 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg hover:opacity-90 text-sm"
+          >
+            <Plus size={18} /> إنشاء فاتورة جديدة
+          </NavLink>
           <button 
             onClick={exportExcel}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg"
+            className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg text-sm"
           >
             <TableIcon size={18} /> Excel
           </button>
           <button 
             onClick={exportPDF}
-            className="flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-red-700 transition shadow-lg disabled:opacity-50"
+            className="flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-red-700 transition shadow-lg disabled:opacity-50 text-sm"
             disabled={loading}
           >
             {loading ? '...جاري التصدير' : <><FileText size={18} /> PDF</>}

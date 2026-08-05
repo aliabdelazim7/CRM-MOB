@@ -69,6 +69,7 @@ export default function Inventory() {
   const [formData, setFormData] = useState({
     name: '',
     barcode: '',
+    image_url: '',
     purchase_price: 0,
     average_purchase_price: 0,
     sale_price: 0,
@@ -84,17 +85,20 @@ export default function Inventory() {
 
     website_ad_cost: 0,
     amazon_price: 0,
+    amazon_discount_price: 0,
     amazon_commission: 0,
     amazon_ad_cost: 0,
     noon_price: 0,
+    noon_discount_price: 0,
     noon_commission: 0,
     noon_shipping: 0,
     noon_ad_cost: 0,
     jumia_price: 0,
+    jumia_discount_price: 0,
     jumia_commission: 0,
     jumia_shipping: 0,
     jumia_ad_cost: 0,
-    custom_stores: [] as Array<{ id: string; name: string; price: number; commission: number; shipping: number; ad_cost: number }>
+    custom_stores: [] as Array<{ id: string; name: string; price: number; discount_price?: number; commission: number; shipping: number; ad_cost: number }>
   });
 
   // الكمية حسب المخزن المختار: الكل = الإجمالي، المعرض = المعروض، المستودع = الباقي.
@@ -969,22 +973,38 @@ export default function Inventory() {
 
                   {/* 2. Amazon Store */}
                   <div className="bg-amber-50/60 dark:bg-amber-950/20 border-2 border-amber-500 rounded-3xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="font-black text-amber-800 dark:text-amber-300 text-sm flex items-center gap-1.5">
                         📦 متجر أمازون (Amazon)
                       </span>
-                      <span className="bg-amber-700 text-white text-xs font-black px-3 py-1 rounded-full">
-                        صافي الربح: {((formData.amazon_price || 0) - (formData.purchase_price || 0) - ((formData.amazon_price || 0) * ((formData.amazon_commission || 0) / 100)) - (formData.amazon_ad_cost || 0)).toFixed(2)} ج.م
-                      </span>
+                      {(() => {
+                        const effPrice = formData.amazon_discount_price && formData.amazon_discount_price > 0 ? formData.amazon_discount_price : formData.amazon_price || 0;
+                        const comm = effPrice * ((formData.amazon_commission || 0) / 100);
+                        const net = effPrice - (formData.purchase_price || 0) - comm - (formData.amazon_ad_cost || 0);
+                        return (
+                          <span className="bg-amber-700 text-white text-xs font-black px-3 py-1 rounded-full">
+                            صافي الربح: {net.toFixed(2)} ج.م {formData.amazon_discount_price ? '(بعد الخصم الإضافي)' : ''}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر بيع أمازون (جنيه)</label>
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر أمازون (جنيه)</label>
                         <input
                           type="number" min="0" step="0.01" placeholder="مثال: 250"
                           value={formData.amazon_price}
                           onChange={e => setFormData({ ...formData, amazon_price: parseFloat(e.target.value) || 0 })}
                           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🔥 سعر خصم إضافي أمازون (جنيه)</label>
+                        <input
+                          type="number" min="0" step="0.01" placeholder="سعر بعد الخصم..."
+                          value={formData.amazon_discount_price}
+                          onChange={e => setFormData({ ...formData, amazon_discount_price: parseFloat(e.target.value) || 0 })}
+                          className="w-full bg-white dark:bg-slate-900 border border-amber-400 dark:border-amber-500 py-2 px-3 rounded-xl text-sm font-bold text-center text-amber-700 dark:text-amber-300"
                         />
                       </div>
                       <div>
@@ -996,7 +1016,7 @@ export default function Inventory() {
                           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
                         />
                       </div>
-                      <div className="sm:col-span-2">
+                      <div>
                         <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">📢 إعلانات أمازون (جنيه)</label>
                         <input
                           type="number" min="0" step="0.01"
@@ -1010,22 +1030,38 @@ export default function Inventory() {
 
                   {/* 3. Noon Store */}
                   <div className="bg-yellow-50/60 dark:bg-yellow-950/20 border-2 border-yellow-400 rounded-3xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="font-black text-yellow-800 dark:text-yellow-300 text-sm flex items-center gap-1.5">
                         🏪 متجر نون (Noon)
                       </span>
-                      <span className="bg-amber-700 text-white text-xs font-black px-3 py-1 rounded-full">
-                        صافي الربح: {((formData.noon_price || 0) - (formData.purchase_price || 0) - ((formData.noon_price || 0) * ((formData.noon_commission || 0) / 100)) - (formData.noon_shipping || 0) - (formData.noon_ad_cost || 0)).toFixed(2)} ج.م
-                      </span>
+                      {(() => {
+                        const effPrice = formData.noon_discount_price && formData.noon_discount_price > 0 ? formData.noon_discount_price : formData.noon_price || 0;
+                        const comm = effPrice * ((formData.noon_commission || 0) / 100);
+                        const net = effPrice - (formData.purchase_price || 0) - comm - (formData.noon_shipping || 0) - (formData.noon_ad_cost || 0);
+                        return (
+                          <span className="bg-amber-700 text-white text-xs font-black px-3 py-1 rounded-full">
+                            صافي الربح: {net.toFixed(2)} ج.م {formData.noon_discount_price ? '(بعد الخصم الإضافي)' : ''}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر نون (جنيه)</label>
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر نون الأصلي (جنيه)</label>
                         <input
                           type="number" min="0" step="0.01" placeholder="مثال: 240"
                           value={formData.noon_price}
                           onChange={e => setFormData({ ...formData, noon_price: parseFloat(e.target.value) || 0 })}
                           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🔥 سعر خصم إضافي نون (جنيه)</label>
+                        <input
+                          type="number" min="0" step="0.01" placeholder="سعر نون بعد الخصم..."
+                          value={formData.noon_discount_price}
+                          onChange={e => setFormData({ ...formData, noon_discount_price: parseFloat(e.target.value) || 0 })}
+                          className="w-full bg-white dark:bg-slate-900 border border-amber-400 dark:border-yellow-500 py-2 px-3 rounded-xl text-sm font-bold text-center text-amber-800 dark:text-yellow-300"
                         />
                       </div>
                       <div>
@@ -1046,7 +1082,7 @@ export default function Inventory() {
                           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
                         />
                       </div>
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">📢 إعلانات نون (جنيه)</label>
                         <input
                           type="number" min="0" step="0.01"
@@ -1060,22 +1096,38 @@ export default function Inventory() {
 
                   {/* 4. Jumia Store */}
                   <div className="bg-rose-50/60 dark:bg-rose-950/20 border-2 border-rose-400 rounded-3xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="font-black text-rose-800 dark:text-rose-300 text-sm flex items-center gap-1.5">
                         🛍️ متجر جوميا (Jumia)
                       </span>
-                      <span className="bg-rose-700 text-white text-xs font-black px-3 py-1 rounded-full">
-                        صافي الربح: {((formData.jumia_price || 0) - (formData.purchase_price || 0) - ((formData.jumia_price || 0) * ((formData.jumia_commission || 0) / 100)) - (formData.jumia_shipping || 0) - (formData.jumia_ad_cost || 0)).toFixed(2)} ج.م
-                      </span>
+                      {(() => {
+                        const effPrice = formData.jumia_discount_price && formData.jumia_discount_price > 0 ? formData.jumia_discount_price : formData.jumia_price || 0;
+                        const comm = effPrice * ((formData.jumia_commission || 0) / 100);
+                        const net = effPrice - (formData.purchase_price || 0) - comm - (formData.jumia_shipping || 0) - (formData.jumia_ad_cost || 0);
+                        return (
+                          <span className="bg-rose-700 text-white text-xs font-black px-3 py-1 rounded-full">
+                            صافي الربح: {net.toFixed(2)} ج.م {formData.jumia_discount_price ? '(بعد الخصم الإضافي)' : ''}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر جوميا (جنيه)</label>
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر جوميا الأصلي (جنيه)</label>
                         <input
                           type="number" min="0" step="0.01" placeholder="مثال: 230"
                           value={formData.jumia_price}
                           onChange={e => setFormData({ ...formData, jumia_price: parseFloat(e.target.value) || 0 })}
                           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🔥 سعر خصم إضافي جوميا (جنيه)</label>
+                        <input
+                          type="number" min="0" step="0.01" placeholder="سعر جوميا بعد الخصم..."
+                          value={formData.jumia_discount_price}
+                          onChange={e => setFormData({ ...formData, jumia_discount_price: parseFloat(e.target.value) || 0 })}
+                          className="w-full bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-500 py-2 px-3 rounded-xl text-sm font-bold text-center text-rose-800 dark:text-rose-300"
                         />
                       </div>
                       <div>
@@ -1096,7 +1148,7 @@ export default function Inventory() {
                           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
                         />
                       </div>
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">📢 إعلانات جوميا (جنيه)</label>
                         <input
                           type="number" min="0" step="0.01"
@@ -1697,6 +1749,7 @@ export default function Inventory() {
           <table className="w-full text-right text-sm">
             <thead className="bg-white dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 font-medium">
               <tr>
+                <th className="p-4 text-center">الصورة</th>
                 <th className="p-4">الباركود</th>
                 <th className="p-4">اسم المنتج</th>
                 <th className="p-4">التصنيف</th>
@@ -1716,6 +1769,19 @@ export default function Inventory() {
                 
                 return (
                   <tr key={product.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition ${product.is_hidden ? 'opacity-50 bg-slate-50/80 dark:bg-slate-900/40' : ''}`}>
+                    <td className="p-2.5 text-center">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm mx-auto bg-white dark:bg-slate-900 p-0.5"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center mx-auto text-slate-400">
+                          <Box size={20} />
+                        </div>
+                      )}
+                    </td>
                     <td className="p-4 font-mono text-slate-400">
                       {product.barcode}
                       {product.is_hidden && (
