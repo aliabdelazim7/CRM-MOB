@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import POS from './pages/POS';
 import FaviconSwitcher from './components/FaviconSwitcher';
 import Login from './pages/Login';
-import POSLogin from './pages/POSLogin';
 import AdminLayout from './pages/admin/AdminLayout';
 import Overview from './pages/admin/Overview';
 import Inventory from './pages/admin/Inventory';
