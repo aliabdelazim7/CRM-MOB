@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { unitMinQty, unitStep } from '../utils/units';
 import { priceForType } from '../utils/pricing';
+
+/** لوجو ADRIA الافتراضي — يظهر قبل تحميل إعدادات المحل، وبدله كان <img> بمصدر فاضي (صورة مكسورة). */
+export const DEFAULT_LOGO = '/logo.svg';
 import { payLabelOf, ALL_PAYMENT_KEYS } from '../utils/paymentMethods';
 // الربط بين صف الموظف وصف المصروف — دوال نقية في utils عشان تتغطّى بالتستات.
 import { findLinkedSalaryExpense, findLinkedEmployeeTx } from '../utils/salaryLink';
@@ -1140,7 +1143,7 @@ function mapSettings(row: Record<string, unknown>): StoreSettings {
   return {
     name: (row.name as string) ?? 'محلي',
     currency: (row.currency as string) ?? 'ج.م',
-    logo: (row.logo as string) ?? '',
+    logo: (row.logo as string) || DEFAULT_LOGO,
     taxRate: (row.tax_rate as number) ?? 0,
     themeColor: (row.theme_color as string) ?? '#4f46e5',
     address: (row.address as string) ?? '',
@@ -1498,7 +1501,7 @@ export const useStore = create<CashierStore>((set, get) => ({
   storeSettings: {
     name: 'ADRIA',
     currency: 'ج.م',
-    logo: '',
+    logo: DEFAULT_LOGO,
     taxRate: 0,
     themeColor: '#4f46e5',
     address: '',

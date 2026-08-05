@@ -250,7 +250,10 @@ export default function PublicInvoice() {
 
   if (loading) return (
     <div className="force-light min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      <div className="relative w-20 h-20" role="status" aria-label="جاري التحميل">
+        <img src="/logo.svg" alt="" className="absolute inset-2.5 w-15 h-15 rounded-xl shadow-sm" style={{ width: 60, height: 60 }} />
+        <div className="absolute inset-0 rounded-full border-2 border-slate-200 border-t-slate-900 animate-spin" />
+      </div>
     </div>
   );
 

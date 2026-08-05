@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "brand": "node scripts/build-brand-assets.mjs public"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.0",

@@ -46,7 +46,7 @@ import CategoryAnalytics from './pages/admin/CategoryAnalytics';
 import CategoryAnalyticsPage from './pages/admin/CategoryAnalyticsPage';
 import PublicInvoice from './pages/PublicInvoice';
 import Attendance from './pages/Attendance';
-import { useStore } from './store/useStore';
+import { useStore, DEFAULT_LOGO } from './store/useStore';
 
 function ThemeInjector() {
   const { storeSettings } = useStore();
@@ -134,7 +134,14 @@ function LoadingScreen() {
 
   return (
     <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 gap-4 p-8 text-center" dir="rtl">
-      <div className="w-12 h-12 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent dark:border-t-transparent rounded-full animate-spin" />
+      {/*
+        كان دايرة indigo بتلف — لون مش من البراند وشكل مجهول الهوية.
+        بقى لوجو ADRIA وحواليه حلقة رفيعة بتلف بألوان البراند.
+      */}
+      <div className="relative w-24 h-24" role="status" aria-label="جاري التحميل">
+        <img src={DEFAULT_LOGO} alt="" className="absolute inset-3 w-[72px] h-[72px] rounded-2xl shadow-sm" />
+        <div className="absolute inset-0 rounded-full border-2 border-slate-200 dark:border-slate-800 border-t-slate-900 dark:border-t-slate-100 animate-spin" />
+      </div>
       <p className="text-slate-500 dark:text-slate-400 font-bold text-lg">جاري تحميل البيانات...</p>
       {slow && (
         <div className="mt-4 space-y-3 max-w-sm">

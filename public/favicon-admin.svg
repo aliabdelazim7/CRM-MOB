@@ -1,10 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="72" fill="#0a0a0a"/>
-  <text x="256" y="250" text-anchor="middle"
-        font-family="Georgia, 'Times New Roman', serif" font-weight="700"
-        font-size="150" letter-spacing="4" fill="#ffffff">ADRIA</text>
-  <line x1="120" y1="292" x2="392" y2="292" stroke="#ffffff" stroke-width="6"/>
-  <text x="256" y="372" text-anchor="middle"
-        font-family="Georgia, 'Times New Roman', serif" font-weight="400"
-        font-size="72" letter-spacing="14" fill="#ffffff">admin</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="ADRIA">
+  <!--
+    مونوجرام ADRIA — تبويب لوحة التحكم — خلفية داكنة.
+
+    الحرف مرسوم كـ path مش <text> عن قصد: الأيقونات بتتعرض في سياقات الخطوط
+    فيها مش متحمّلة (تبويب المتصفح، الشاشة الرئيسية، معاينة الرابط). النسخة
+    القديمة كانت معتمدة على Georgia فكانت بتطلع بخط مختلف على أي جهاز مالوش
+    الخط ده.
+  -->
+  <rect width="512" height="512" rx="112" fill="#0D0D0D"/>
+  <path fill="#F8EEE2" fill-rule="evenodd"
+        d="M246 108 L266 108 L390 378 L414 378 L414 400 L306 400 L306 378 L330 378
+           L304 322 L208 322 L182 378 L206 378 L206 400 L98 400 L98 378 L122 378 Z
+           M256 176 L298 276 L214 276 Z"/>
 </svg>
