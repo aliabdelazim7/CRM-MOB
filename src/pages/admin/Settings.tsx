@@ -125,15 +125,15 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100">إعدادات النظام</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">تخصيص هوية المحل وإعدادات الفواتير</p>
+    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8" dir="rtl">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white">إعدادات النظام</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1.5 text-sm">تخصيص هوية المحل، الألوان، وإعدادات الفواتير والطباعة</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 p-4 md:p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700/80 space-y-8">
         <div className="flex items-center justify-center mb-6">
-          <img src={formData.logo} alt="Logo Preview" style={{ borderColor: formData.themeColor + '40' }} className="w-24 h-24 rounded-2xl border-2 border-dashed object-cover p-1 bg-slate-50 dark:bg-slate-900" />
+          <img src={formData.logo} alt="Logo Preview" style={{ borderColor: formData.themeColor + '40' }} className="w-24 h-24 rounded-2xl border-2 border-dashed object-cover p-1 bg-slate-50 dark:bg-slate-900 shadow-sm" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -143,27 +143,27 @@ export default function Settings() {
               type="text" 
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition font-bold"
               style={{ '--tw-ring-color': formData.themeColor + '40' } as any}
             />
           </div>
           
           <div className="sm:col-span-2">
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رابط أو صورة الشعار (Logo)</label>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
               <input 
                 type="text" 
                 dir="ltr"
                 value={formData.logo.startsWith('data:image') ? 'صورة مرفوعة (جارِ العرض)' : formData.logo}
                 onChange={(e) => setFormData({...formData, logo: e.target.value})}
-                className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition text-left disabled:opacity-50"
+                className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition text-left disabled:opacity-50 font-medium"
                 style={{ '--tw-ring-color': formData.themeColor + '40' } as any}
                 disabled={formData.logo.startsWith('data:image')}
                 placeholder="https://..."
               />
               <label 
                 style={{ borderColor: formData.themeColor + '40', color: formData.themeColor }}
-                className="cursor-pointer bg-white dark:bg-slate-800 border hover:bg-slate-50 dark:hover:bg-slate-800 px-5 py-3 rounded-xl font-bold transition whitespace-nowrap flex items-center justify-center"
+                className="cursor-pointer bg-slate-50 dark:bg-slate-900 border hover:bg-slate-100 dark:hover:bg-slate-800 px-5 py-3 rounded-xl font-bold transition whitespace-nowrap flex items-center justify-center shrink-0"
               >
                 رفع صورة
                 <input 
@@ -177,13 +177,13 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={() => setFormData({...formData, logo: ''})}
-                  className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl hover:bg-red-100 dark:hover:bg-red-500/25 font-bold transition"
+                  className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl hover:bg-red-100 dark:hover:bg-red-500/25 font-bold transition shrink-0"
                 >
                   حذف
                 </button>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-2">يمكنك نسخ رابط صورة، أو رفع صورة مباشرة من جهازك (يفضل أن تكون مربعة وبحجم أقل من 2MB).</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">يمكنك نسخ رابط صورة، أو رفع صورة مباشرة من جهازك (يفضل أن تكون مربعة وبحجم أقل من 2MB).</p>
           </div>
 
           <div>
@@ -192,7 +192,7 @@ export default function Settings() {
               type="text" 
               value={formData.currency}
               onChange={(e) => setFormData({...formData, currency: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition font-bold"
               style={{ '--tw-ring-color': formData.themeColor + '40' } as any}
               placeholder="مثال: ر.س , ج.م , $"
             />
@@ -205,7 +205,7 @@ export default function Settings() {
               dir="ltr"
               value={formData.phone}
               onChange={(e) => setFormData({...formData, phone: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left font-medium"
               placeholder="0500000000"
             />
           </div>
@@ -217,7 +217,7 @@ export default function Settings() {
               dir="ltr"
               value={formData.phone2}
               onChange={(e) => setFormData({...formData, phone2: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left font-medium"
               placeholder="اختياري..."
             />
           </div>
@@ -228,7 +228,7 @@ export default function Settings() {
               type="text" 
               value={formData.address}
               onChange={(e) => setFormData({...formData, address: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-medium"
               placeholder="المدينة، الشارع، المبنى..."
             />
           </div>
@@ -240,10 +240,10 @@ export default function Settings() {
               dir="ltr"
               value={formData.locationUrl || ''}
               onChange={(e) => setFormData({...formData, locationUrl: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left font-medium"
               placeholder="https://maps.app.goo.gl/..."
             />
-            <p className="text-[11px] text-slate-400 mt-1 text-right">سيظهر هذا الرابط كزر (المقر) في الفاتورة الإلكترونية، وفي رسائل الواتساب.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-right">سيظهر هذا الرابط كزر (المقر) في الفاتورة الإلكترونية، وفي رسائل الواتساب.</p>
           </div>
 
           <div className="sm:col-span-2">
@@ -254,18 +254,18 @@ export default function Settings() {
                 dir="ltr"
                 value={formData.pagesQrUrl || ''}
                 onChange={(e) => setFormData({...formData, pagesQrUrl: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left font-medium"
                 placeholder="https://www.facebook.com/..."
               />
               <input
                 type="text"
                 value={formData.pagesQrLabel || ''}
                 onChange={(e) => setFormData({...formData, pagesQrLabel: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-bold"
                 placeholder="تابعنا"
               />
             </div>
-            <p className="text-[11px] text-slate-400 mt-1 text-right">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-right">
               QR ثابت يظهر في كل فاتورة مطبوعة جنب QR الفاتورة نفسها. سيبه فاضي لو مش عايزاه.
             </p>
 
@@ -274,7 +274,7 @@ export default function Settings() {
                 <img
                   src={formData.pagesQrImage}
                   alt="QR الصفحات"
-                  className="w-20 h-20 rounded-xl border-2 border-slate-200 dark:border-slate-700 object-contain bg-white dark:bg-slate-800 p-1"
+                  className="w-20 h-20 rounded-xl border-2 border-slate-200 dark:border-slate-700 object-contain bg-white dark:bg-slate-900 p-1"
                 />
               ) : (
                 <div className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-400 text-center px-1 bg-slate-50 dark:bg-slate-900">
@@ -295,7 +295,7 @@ export default function Settings() {
                     حذف الصورة (ارجع للتوليد من الرابط)
                   </button>
                 )}
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   لو رفعتي صورة QR بتاعتك، هتتطبع هي بالظبط بدل الكود المولّد.
                 </p>
               </div>
@@ -310,25 +310,25 @@ export default function Settings() {
               max="100"
               value={formData.taxRate}
               onChange={(e) => setFormData({...formData, taxRate: parseFloat(e.target.value) || 0})}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-bold"
             />
           </div>
 
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">كود الدولة للواتساب (الدولي)</label>
             <div className="flex items-center gap-2">
-              <span className="bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl text-slate-500 dark:text-slate-400 font-bold" dir="ltr">+</span>
+              <span className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl text-slate-500 dark:text-slate-400 font-bold" dir="ltr">+</span>
               <input 
                 type="text" 
                 dir="ltr"
                 value={formData.whatsappCountryCode}
                 onChange={(e) => setFormData({...formData, whatsappCountryCode: e.target.value.replace(/\D/g, '')})}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition font-bold"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition font-bold"
                 style={{ '--tw-ring-color': formData.themeColor + '40' } as any}
                 placeholder="مثال: 966"
               />
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">يُستخدم لإضافة كود المراسلة الدولي تلقائياً (مصر 20، السعودية 966).</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">يُستخدم لإضافة كود المراسلة الدولي تلقائياً (مصر 20، السعودية 966).</p>
           </div>
 
           <div className="col-span-2 md:col-span-1">
@@ -343,7 +343,7 @@ export default function Settings() {
                 placeholder="0.00"
               />
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">يُستخدم كحجر أساس لحسابات الخزينة والميزانية اليومية.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">يُستخدم كحجر أساس لحسابات الخزينة والميزانية اليومية.</p>
           </div>
 
           <div className="col-span-2 md:col-span-1">
@@ -352,16 +352,16 @@ export default function Settings() {
               <select
                 value={formData.dayStartHour ?? 3}
                 onChange={(e) => setFormData({ ...formData, dayStartHour: parseInt(e.target.value, 10) })}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition font-bold"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:outline-none transition font-bold cursor-pointer"
                 style={{ '--tw-ring-color': formData.themeColor + '40' } as any}
               >
                 {Array.from({ length: 24 }, (_, h) => {
                   const label = h === 0 ? '12 ص (منتصف الليل)' : h < 12 ? `${h} ص` : h === 12 ? '12 م (الظهر)' : `${h - 12} م`;
-                  return <option key={h} value={h}>{label}</option>;
+                  return <option key={h} value={h} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">{label}</option>;
                 })}
               </select>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">اليوم يبدأ عند هذه الساعة. أي فاتورة قبلها تُحسب على اليوم السابق (مثال: 3 ص = التقفيل يفضل مفتوح لليوم السابق حتى 3 صباحاً).</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">اليوم يبدأ عند هذه الساعة. أي فاتورة قبلها تُحسب على اليوم السابق (مثال: 3 ص = التقفيل يفضل مفتوح لليوم السابق حتى 3 صباحاً).</p>
           </div>
 
           <div className="col-span-2 md:col-span-1">
@@ -373,16 +373,16 @@ export default function Settings() {
                 onChange={(e) => setFormData({...formData, themeColor: e.target.value})}
                 className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent"
               />
-              <span className="text-slate-500 dark:text-slate-400 text-sm font-mono" dir="ltr">{formData.themeColor || '#4f46e5'}</span>
+              <span className="text-slate-600 dark:text-slate-300 text-sm font-mono font-bold" dir="ltr">{formData.themeColor || '#4f46e5'}</span>
             </div>
           </div>
         </div>
 
         {/* ── صلاحيات الكاشير ── */}
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-1">صلاحيات الكاشير</h2>
+        <div className="pt-6 border-t border-slate-200/80 dark:border-slate-700/80">
+          <h2 className="text-lg font-black text-slate-800 dark:text-white mb-1">صلاحيات الكاشير</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">تحكّم في المميزات اللي تظهر للكاشير (إخفاء أي بند يخفيه من شاشة الكاشير).</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {([
               ['invoices', 'عرض الفواتير السابقة'],
               ['editDelete', 'تعديل / حذف / استبدال الفواتير'],
@@ -397,19 +397,19 @@ export default function Settings() {
               const perms = formData.cashierPermissions || {};
               const enabled = perms[k] !== false; // الافتراضي مسموح
               return (
-                <label key={k} className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 cursor-pointer">
+                <label key={k} className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 transition">
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{label}</span>
-                  <input type="checkbox" checked={enabled} onChange={(e) => setFormData({ ...formData, cashierPermissions: { ...perms, [k]: e.target.checked } })} className="w-5 h-5 accent-indigo-600" />
+                  <input type="checkbox" checked={enabled} onChange={(e) => setFormData({ ...formData, cashierPermissions: { ...perms, [k]: e.target.checked } })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer" />
                 </label>
               );
             })}
           </div>
-          <label className="mt-2 flex items-center justify-between gap-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/40 rounded-xl px-4 py-3 cursor-pointer">
-            <span className="text-sm font-bold text-amber-800 dark:text-amber-300">السماح للكاشير بصرف سلف للموظفين (تُخصم من راتب الشهر)</span>
-            <input type="checkbox" checked={!!formData.allowCashierEmployeeAdvance} onChange={(e) => setFormData({ ...formData, allowCashierEmployeeAdvance: e.target.checked })} className="w-5 h-5 accent-amber-600" />
+          <label className="mt-3 flex items-center justify-between gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl px-4 py-3.5 cursor-pointer">
+            <span className="text-sm font-bold text-amber-900 dark:text-amber-300">السماح للكاشير بصرف سلف للموظفين (تُخصم من راتب الشهر)</span>
+            <input type="checkbox" checked={!!formData.allowCashierEmployeeAdvance} onChange={(e) => setFormData({ ...formData, allowCashierEmployeeAdvance: e.target.checked })} className="w-5 h-5 accent-amber-600 rounded cursor-pointer" />
           </label>
-          <label className="mt-2 flex items-center justify-between gap-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/40 rounded-xl px-4 py-3 cursor-pointer">
-            <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">السماح للكاشير بعمل استبدال بدون OTP</span>
+          <label className="mt-2.5 flex items-center justify-between gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl px-4 py-3.5 cursor-pointer">
+            <span className="text-sm font-bold text-emerald-900 dark:text-emerald-300">السماح للكاشير بعمل استبدال بدون OTP</span>
             <input
               type="checkbox"
               checked={!!formData.cashierPermissions?.exchangeNoOtp}
@@ -417,23 +417,23 @@ export default function Settings() {
                 ...formData,
                 cashierPermissions: { ...(formData.cashierPermissions || {}), exchangeNoOtp: e.target.checked }
               })}
-              className="w-5 h-5 accent-emerald-600"
+              className="w-5 h-5 accent-emerald-600 rounded cursor-pointer"
             />
           </label>
         </div>
 
         {/* ── إعدادات العرض ── */}
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-3">إعدادات العرض</h2>
-          <label className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 cursor-pointer">
+        <div className="pt-6 border-t border-slate-200/80 dark:border-slate-700/80">
+          <h2 className="text-lg font-black text-slate-800 dark:text-white mb-3">إعدادات العرض</h2>
+          <label className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-3.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 transition">
             <span className="text-sm font-bold text-slate-700 dark:text-slate-200">إظهار «ربح الفاتورة» في شاشة الكاشير</span>
-            <input type="checkbox" checked={formData.showInvoiceProfit !== false} onChange={(e) => setFormData({ ...formData, showInvoiceProfit: e.target.checked })} className="w-5 h-5 accent-indigo-600" />
+            <input type="checkbox" checked={formData.showInvoiceProfit !== false} onChange={(e) => setFormData({ ...formData, showInvoiceProfit: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer" />
           </label>
         </div>
 
         {/* ── تسميات وسائل الدفع / المحافظ ── */}
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-1">تسميات وسائل الدفع (المحافظ)</h2>
+        <div className="pt-6 border-t border-slate-200/80 dark:border-slate-700/80">
+          <h2 className="text-lg font-black text-slate-800 dark:text-white mb-1">تسميات وسائل الدفع (المافظ)</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">سمِّ كل وسيلة بالاسم اللي تحبيه (مثلاً المحفظة → «فودافون كاش»). يظهر في الكاشير والإيصالات.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {([['cash', 'كاش'], ['visa', 'فيزا'], ['wallet', 'محفظة'], ['instapay', 'انستا باي']] as const).map(([k, def]) => {
@@ -441,7 +441,7 @@ export default function Settings() {
               return (
                 <div key={k}>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">{def}</label>
-                  <input value={labels[k] ?? ''} placeholder={def} onChange={(e) => setFormData({ ...formData, paymentLabels: { ...labels, [k]: e.target.value } })} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <input value={labels[k] ?? ''} placeholder={def} onChange={(e) => setFormData({ ...formData, paymentLabels: { ...labels, [k]: e.target.value } })} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
               );
             })}
@@ -456,17 +456,17 @@ export default function Settings() {
               const enabled = formData.paymentMethodsEnabled || {};
               const on = !!enabled[k];
               return (
-                <div key={k} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${on ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}>
+                <div key={k} className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 ${on ? 'bg-indigo-50/50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700/80'}`}>
                   <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                    <input type="checkbox" checked={on} onChange={(e) => setFormData({ ...formData, paymentMethodsEnabled: { ...enabled, [k]: e.target.checked } })} className="w-5 h-5 accent-indigo-600" />
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">تفعيل</span>
+                    <input type="checkbox" checked={on} onChange={(e) => setFormData({ ...formData, paymentMethodsEnabled: { ...enabled, [k]: e.target.checked } })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer" />
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">تفعيل</span>
                   </label>
                   <input
                     value={labels[k] ?? ''}
                     placeholder={def}
                     disabled={!on}
                     onChange={(e) => setFormData({ ...formData, paymentLabels: { ...labels, [k]: e.target.value } })}
-                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                   />
                 </div>
               );
@@ -475,20 +475,20 @@ export default function Settings() {
         </div>
 
         {/* ── الطباعة المباشرة (QZ Tray) ── */}
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-1">الطباعة المباشرة (QZ Tray)</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mb-2">طباعة الفواتير والباركود مباشرةً على الطابعة المحددة بدون نافذة طباعة. يتطلّب تثبيت برنامج <a href="https://qz.io/download/" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">QZ Tray</a> (مجاني) مرة واحدة على جهاز الكاشير وتشغيله.</p>
-          <p className="text-[12px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/40 rounded-lg px-3 py-2 mb-4">⚙️ هذا الإعداد خاص بهذا الجهاز فقط ويُحفظ تلقائياً عليه — اضبطه على كل جهاز كاشير على حدة باسم طابعته.</p>
+        <div className="pt-6 border-t border-slate-200/80 dark:border-slate-700/80">
+          <h2 className="text-lg font-black text-slate-800 dark:text-white mb-1">الطباعة المباشرة (QZ Tray)</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-2">طباعة الفواتير والباركود مباشرةً على الطابعة المحددة بدون نافذة طباعة. يتطلّب تثبيت برنامج <a href="https://qz.io/download/" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 font-bold underline">QZ Tray</a> (مجاني) مرة واحدة على جهاز الكاشير وتشغيله.</p>
+          <p className="text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl px-3.5 py-2.5 mb-4">⚙️ هذا الإعداد خاص بهذا الجهاز فقط ويُحفظ تلقائياً عليه — اضبطه على كل جهاز كاشير على حدة باسم طابعته.</p>
 
-          <label className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 cursor-pointer mb-3">
+          <label className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-3.5 cursor-pointer mb-3">
             <span className="text-sm font-bold text-slate-700 dark:text-slate-200">تفعيل الطباعة المباشرة عبر QZ Tray (هذا الجهاز)</span>
-            <input type="checkbox" checked={!!qz.enabled} onChange={(e) => updateQz({ enabled: e.target.checked })} className="w-5 h-5 accent-indigo-600" />
+            <input type="checkbox" checked={!!qz.enabled} onChange={(e) => updateQz({ enabled: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer" />
           </label>
 
           {qz.enabled && (
-            <div className="space-y-3">
+            <div className="space-y-3 mt-3">
               <div className="flex items-center gap-3 flex-wrap">
-                <button type="button" onClick={discoverPrinters} disabled={discovering} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-bold transition text-sm">
+                <button type="button" onClick={discoverPrinters} disabled={discovering} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-bold transition text-sm shadow-md">
                   {discovering ? 'جارٍ الاكتشاف...' : '🔍 اكتشاف الطابعات'}
                 </button>
                 {printerStatus && <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{printerStatus}</span>}
@@ -501,7 +501,7 @@ export default function Settings() {
                     list="qz-printers"
                     value={qz.invoicePrinter || ''}
                     onChange={(e) => updateQz({ invoicePrinter: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-bold"
                     placeholder="اختر أو اكتب اسم الطابعة"
                   />
                 </div>
@@ -511,7 +511,7 @@ export default function Settings() {
                     list="qz-printers"
                     value={qz.barcodePrinter || ''}
                     onChange={(e) => updateQz({ barcodePrinter: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-bold"
                     placeholder="اختر أو اكتب اسم الطابعة"
                   />
                 </div>
@@ -519,13 +519,13 @@ export default function Settings() {
               <datalist id="qz-printers">
                 {printers.map((p) => <option key={p} value={p} />)}
               </datalist>
-              <p className="text-[11px] text-slate-400">لو طابعة واحدة فقط، اتركي الخانة الثانية فارغة وسيتم استخدام نافذة الطباعة العادية لها. أول طباعة قد تطلب الضغط على «Allow / السماح» في QZ Tray — فعّلي «Remember» لعدم تكرار السؤال.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">لو طابعة واحدة فقط، اتركي الخانة الثانية فارغة وسيتم استخدام نافذة الطباعة العادية لها. أول طباعة قد تطلب الضغط على «Allow / السماح» في QZ Tray — فعّلي «Remember» لعدم تكرار السؤال.</p>
             </div>
           )}
         </div>
 
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-          <button type="submit" style={{ backgroundColor: formData.themeColor, boxShadow: `0 4px 12px ${formData.themeColor}40` }} className="text-white px-8 py-3 rounded-xl font-bold transition hover:opacity-90">
+        <div className="pt-6 border-t border-slate-200/80 dark:border-slate-700/80 flex justify-end">
+          <button type="submit" style={{ backgroundColor: formData.themeColor, boxShadow: `0 4px 14px ${formData.themeColor}50` }} className="text-white px-8 py-3.5 rounded-xl font-bold transition hover:opacity-90 shadow-lg">
             حفظ التغييرات
           </button>
         </div>
