@@ -137,6 +137,7 @@ create table if not exists purchase_items (
 -- 8. الفواتير والمبيعات (Orders)
 create table if not exists orders (
   id text primary key,
+  idempotency_key text unique,
   total numeric not null default 0,
   paid_amount numeric default 0,
   paid_cash numeric default 0,
@@ -156,6 +157,7 @@ create table if not exists orders (
   notes text,
   created_at timestamptz default now()
 );
+alter table orders add column if not exists idempotency_key text unique;
 create index if not exists idx_orders_is_deleted on orders(is_deleted);
 create index if not exists idx_orders_deleted_at on orders(deleted_at);
 
