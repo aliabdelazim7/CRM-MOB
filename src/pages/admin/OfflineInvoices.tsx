@@ -74,26 +74,26 @@ export default function OfflineInvoices() {
       )}
 
       {pendingCount === 0 ? (
-        <div className="bg-gradient-to-b from-white to-slate-50 rounded-[40px] p-16 text-center shadow-lg shadow-slate-200/40 border border-slate-100/60 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-[40px] p-16 text-center shadow-lg shadow-slate-200/40 dark:shadow-none border border-slate-100/60 dark:border-slate-700 flex flex-col items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]"></div>
           
           <div className="relative">
-            <div className="absolute -inset-4 bg-emerald-100 rounded-full animate-ping opacity-20"></div>
-            <div className="w-32 h-32 bg-gradient-to-br from-emerald-100 to-teal-50 rounded-full flex items-center justify-center mb-8 relative shadow-inner">
-              <CheckCircle2 className="text-emerald-500 drop-shadow-md" size={64} />
+            <div className="absolute -inset-4 bg-emerald-100 dark:bg-emerald-950/40 rounded-full animate-ping opacity-20"></div>
+            <div className="w-32 h-32 bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-950/40 dark:to-teal-900/30 rounded-full flex items-center justify-center mb-8 relative shadow-inner border border-emerald-200/50 dark:border-emerald-800/50">
+              <CheckCircle2 className="text-emerald-500 dark:text-emerald-400 drop-shadow-md" size={64} />
             </div>
           </div>
           
-          <h2 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">كل شيء متزامن!</h2>
-          <p className="text-slate-500 font-medium text-lg max-w-lg mx-auto leading-relaxed">
+          <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-3 tracking-tight">كل شيء متزامن!</h2>
+          <p className="text-slate-500 dark:text-slate-300 font-medium text-lg max-w-lg mx-auto leading-relaxed">
             جميع الفواتير والمرتجعات متزامنة مع السيرفر السحابي بشكل كامل. لا توجد أي عمليات تمت في وضع الأوفلاين تنتظر الرفع.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Offline Orders Queue */}
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-            <div className="bg-slate-50/50 p-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col">
+            <div className="bg-slate-50/50 dark:bg-slate-900/50 p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
               <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
                 <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
                   <ShoppingCart size={20} />

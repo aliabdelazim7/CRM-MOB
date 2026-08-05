@@ -865,11 +865,11 @@ export default function Suppliers() {
       {/* Header */}
       <div className="flex flex-wrap gap-3 justify-between items-end mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800 flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
             <Users style={{ color: tc }} size={32} />
             الموردين والمشتريات
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">إدارة الموردين وتسجيل فواتير الشراء</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">إدارة الموردين وتسجيل فواتير الشراء</p>
         </div>
         <button
           onClick={() => {
@@ -915,11 +915,11 @@ export default function Suppliers() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-slate-100 rounded-2xl p-1.5 w-fit">
+      <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-slate-800 rounded-2xl p-1.5 w-fit">
         <button
           onClick={() => setActiveTab('suppliers')}
           style={activeTab === 'suppliers' ? { backgroundColor: tc, color: 'white' } : {}}
-          className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${activeTab === 'suppliers' ? 'shadow-lg' : 'text-slate-500 hover:text-slate-800'}`}
+          className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${activeTab === 'suppliers' ? 'shadow-lg' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}
         >
           <Users size={18} />
           الموردين ({suppliers.length})
@@ -927,7 +927,7 @@ export default function Suppliers() {
         <button
           onClick={() => setActiveTab('invoices')}
           style={activeTab === 'invoices' ? { backgroundColor: tc, color: 'white' } : {}}
-          className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${activeTab === 'invoices' ? 'shadow-lg' : 'text-slate-500 hover:text-slate-800'}`}
+          className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${activeTab === 'invoices' ? 'shadow-lg' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}
         >
           <ShoppingCart size={18} />
           فواتير المشتريات ({purchaseInvoices.length})
@@ -937,13 +937,13 @@ export default function Suppliers() {
       {/* ── Suppliers Tab ── */}
       {activeTab === 'suppliers' && (
         <>
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 mb-6">
             <div className="relative">
               <Search className="absolute right-4 top-3.5 text-slate-400" size={20} />
               <input
                 type="text"
                 placeholder="ابحث باسم المورد أو رقم الهاتف..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-12 pl-4 focus:outline-none focus:ring-2 transition text-slate-700"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 pr-12 pl-4 focus:outline-none focus:ring-2 transition text-slate-700 dark:text-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -955,10 +955,10 @@ export default function Suppliers() {
               const supplierInvoices = purchaseInvoices.filter(inv => inv.supplier_id === supplier.id);
               const totalDebt = supplierInvoices.reduce((sum, inv) => sum + (inv.total - inv.paid_amount), 0);
               return (
-                <div key={supplier.id} className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all border border-slate-100 group relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-slate-100 to-transparent rounded-bl-full opacity-50 group-hover:scale-150 transition-transform duration-500" />
+                <div key={supplier.id} className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all border border-slate-100 dark:border-slate-700 group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-slate-100 dark:from-slate-700 to-transparent rounded-bl-full opacity-50 group-hover:scale-150 transition-transform duration-500" />
                   <div className="flex justify-between items-start mb-4">
-                    <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-700 shadow-inner">
                       <Users size={28} style={{ color: tc }} />
                     </div>
                     <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">

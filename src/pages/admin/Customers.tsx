@@ -331,15 +331,15 @@ export default function Customers() {
         </div>
       </div>
 
-      <div id="customers-table" className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-[500px]">
-        <div className="p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-3 items-center justify-between">
+      <div id="customers-table" className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col min-h-[500px]">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-wrap gap-3 items-center justify-between">
           <div className="relative w-full md:w-1/3 md:min-w-[350px]">
             <Search className="absolute right-4 top-3 text-slate-400" size={20} />
             <input
               type="text"
               placeholder="ابحث باسم العميل، رقم الهاتف، أو الـ ID..."
               style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-              className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 shadow-sm transition-all"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-xl py-2.5 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 shadow-sm transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -354,7 +354,7 @@ export default function Customers() {
 
         <div className="flex-1 overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
+            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 font-bold uppercase tracking-wider">
               <tr>
                 <th className="p-5">العميل</th>
                 <th className="p-5">رقم الهاتف</th>
@@ -366,12 +366,12 @@ export default function Customers() {
                 <th className="p-5 text-left">إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-20 text-center text-slate-400">
-                    <User size={64} className="mx-auto mb-4 opacity-20" />
-                    <p className="text-xl font-bold">لا يوجد عملاء مسجلين حالياً</p>
+                  <td colSpan={8} className="p-20 text-center text-slate-400 dark:text-slate-400">
+                    <User size={64} className="mx-auto mb-4 opacity-30" />
+                    <p className="text-xl font-bold text-slate-500 dark:text-slate-300">لا يوجد عملاء مسجلين حالياً</p>
                   </td>
                 </tr>
               ) : (

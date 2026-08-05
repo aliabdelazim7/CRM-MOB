@@ -655,9 +655,9 @@ export default function Invoices() {
                 </div>
                 <p className="text-2xl font-black mt-2" style={{ color: storeSettings.themeColor }}>{filteredOrders.length}</p>
               </div>
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-700">
+              <div className="rounded-2xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-emerald-700 dark:text-emerald-300">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-emerald-600">إجمالي الربح من الفواتير</p>
+                  <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">إجمالي الربح من الفواتير</p>
                   <TrendingUp size={18} />
                 </div>
                 <p className="text-2xl font-black mt-2">{totalInvoiceProfit.toFixed(2)} <span className="text-xs">{storeSettings.currency}</span></p>
@@ -667,13 +667,13 @@ export default function Invoices() {
                 onClick={() => setShowReturnsOnly((current) => !current)}
                 className={`rounded-2xl border p-4 text-right transition-all ${
                   showReturnsOnly
-                    ? 'border-orange-300 bg-orange-100 text-orange-800 shadow-sm ring-2 ring-orange-200'
-                    : 'border-orange-100 bg-orange-50 text-orange-700 hover:border-orange-200 hover:bg-orange-100/60'
+                    ? 'border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-200 shadow-sm ring-2 ring-orange-200 dark:ring-orange-900'
+                    : 'border-orange-100 dark:border-orange-900/40 bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 hover:border-orange-200 dark:hover:border-orange-800 hover:bg-orange-100/60'
                 }`}
                 title={showReturnsOnly ? 'عرض كل الفواتير' : 'إظهار الفواتير التي بها مرتجعات فقط'}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-orange-600">فواتير بها مرتجعات</p>
+                  <p className="text-[11px] font-black text-orange-600 dark:text-orange-400">فواتير بها مرتجعات</p>
                   <ArrowRightLeft size={18} />
                 </div>
                 <p className="text-2xl font-black mt-2">{returnedInvoicesCount}</p>
@@ -683,13 +683,13 @@ export default function Invoices() {
                 onClick={() => setShowExchangeOnly((current) => !current)}
                 className={`rounded-2xl border p-4 text-right transition-all ${
                   showExchangeOnly
-                    ? 'border-amber-300 bg-amber-100 text-amber-800 shadow-sm ring-2 ring-amber-200'
-                    : 'border-amber-100 bg-amber-50 text-amber-700 hover:border-amber-200 hover:bg-amber-100/60'
+                    ? 'border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 shadow-sm ring-2 ring-amber-200 dark:ring-amber-900'
+                    : 'border-amber-100 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:border-amber-200 dark:hover:border-amber-800 hover:bg-amber-100/60'
                 }`}
                 title={showExchangeOnly ? 'عرض كل الفواتير' : 'إظهار فواتير الاستبدال فقط'}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-amber-600">فواتير استبدال</p>
+                  <p className="text-[11px] font-black text-amber-600 dark:text-amber-400">فواتير استبدال</p>
                   <ArrowRightLeft size={18} />
                 </div>
                 <p className="text-2xl font-black mt-2">{exchangeInvoicesCount}</p>
@@ -699,13 +699,13 @@ export default function Invoices() {
                 onClick={() => setShowDeferredOnly((current) => !current)}
                 className={`rounded-2xl border p-4 text-right transition-all ${
                   showDeferredOnly
-                    ? 'border-rose-300 bg-rose-100 text-rose-800 shadow-sm ring-2 ring-rose-200'
-                    : 'border-rose-100 bg-rose-50 text-rose-700 hover:border-rose-200 hover:bg-rose-100/60'
+                    ? 'border-rose-300 dark:border-rose-700 bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 shadow-sm ring-2 ring-rose-200 dark:ring-rose-900'
+                    : 'border-rose-100 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 hover:border-rose-200 dark:hover:border-rose-800 hover:bg-rose-100/60'
                 }`}
                 title={showDeferredOnly ? 'عرض كل الفواتير' : 'إظهار الفواتير الآجلة (غير المسددة بالكامل) فقط'}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-rose-600">فواتير آجلة</p>
+                  <p className="text-[11px] font-black text-rose-600 dark:text-rose-400">فواتير آجلة</p>
                   <CreditCard size={18} />
                 </div>
                 <p className="text-2xl font-black mt-2">{deferredInvoicesCount}</p>
@@ -714,28 +714,28 @@ export default function Invoices() {
         </div>
 
         {salespersonReport.length > 0 && (
-          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm mb-6 overflow-hidden">
-            <div className="px-5 py-3 bg-purple-50 border-b border-purple-100 flex items-center gap-2">
-              <User size={18} className="text-purple-600" />
-              <h3 className="font-black text-purple-800">كشف مبيعات وأرباح مسؤولي المبيعات (الفترة المعروضة)</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-purple-100 dark:border-purple-900/50 shadow-sm mb-6 overflow-hidden">
+            <div className="px-5 py-3 bg-purple-50 dark:bg-purple-950/40 border-b border-purple-100 dark:border-purple-900/50 flex items-center gap-2">
+              <User size={18} className="text-purple-600 dark:text-purple-400" />
+              <h3 className="font-black text-purple-800 dark:text-purple-300">كشف مبيعات وأرباح مسؤولي المبيعات (الفترة المعروضة)</h3>
             </div>
             <div className="overflow-x-auto">
             <table className="w-full text-right text-sm">
-              <thead className="bg-slate-50 text-slate-400 font-bold">
+              <thead className="bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-400 font-bold">
                 <tr>
                   <th className="p-3">مسؤول المبيعات</th>
                   <th className="p-3 text-center">عدد الفواتير</th>
                   <th className="p-3 text-center">إجمالي المبيعات</th>
-                  <th className="p-3 text-center text-emerald-600">إجمالي الأرباح</th>
+                  <th className="p-3 text-center text-emerald-600 dark:text-emerald-400">إجمالي الأرباح</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
                 {salespersonReport.map((r) => (
-                  <tr key={r.name} className="hover:bg-slate-50">
-                    <td className="p-3 font-black text-slate-800">{r.name}</td>
-                    <td className="p-3 text-center font-bold text-slate-600">{r.count}</td>
-                    <td className="p-3 text-center font-black text-indigo-600">{r.sales.toFixed(2)} {storeSettings.currency}</td>
-                    <td className="p-3 text-center font-black text-emerald-600">{r.profit.toFixed(2)} {storeSettings.currency}</td>
+                  <tr key={r.name} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    <td className="p-3 font-black text-slate-800 dark:text-white">{r.name}</td>
+                    <td className="p-3 text-center font-bold text-slate-600 dark:text-slate-300">{r.count}</td>
+                    <td className="p-3 text-center font-black text-indigo-600 dark:text-indigo-400">{r.sales.toFixed(2)} {storeSettings.currency}</td>
+                    <td className="p-3 text-center font-black text-emerald-600 dark:text-emerald-400">{r.profit.toFixed(2)} {storeSettings.currency}</td>
                   </tr>
                 ))}
               </tbody>
@@ -746,7 +746,7 @@ export default function Invoices() {
 
         <div className="flex-1 overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100 text-slate-400 font-medium">
+            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 font-medium">
               <tr>
                 <th className="p-4">رقم الفاتورة</th>
                 <th className="p-4">بيانات العميل</th>
@@ -756,8 +756,8 @@ export default function Invoices() {
                 <th className="p-4 text-center">المسؤول</th>
                 <th className="p-4 text-center">مسؤول المبيعات</th>
                 <th className="p-4">تفاصيل المنتجات</th>
-                <th className="p-4 text-center border-x border-slate-100 bg-slate-100/50">الإجمالي</th>
-                <th className="p-4 text-center text-emerald-600 bg-emerald-50/50">الربح</th>
+                <th className="p-4 text-center border-x border-slate-100 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-900/50">الإجمالي</th>
+                <th className="p-4 text-center text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30">الربح</th>
                 <th className="p-4 text-center text-orange-600">قيمة المرتجع</th>
                 <th className="p-4 text-center text-green-600">المدفوع</th>
                 <th className="p-4 text-center text-red-500 font-black">الباقي عليه</th>
