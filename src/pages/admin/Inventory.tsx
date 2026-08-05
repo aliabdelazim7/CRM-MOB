@@ -309,6 +309,10 @@ export default function Inventory() {
 
   const openEditModal = (product: Product) => {
     setEditingProductId(product.id);
+    const saleP = product.sale_price || 0;
+    const discP = product.discount_price || 0;
+    const discPct = (saleP > 0 && discP > 0 && discP < saleP) ? Math.round(((saleP - discP) / saleP) * 100) : 0;
+
     setFormData({
       name: product.name,
       barcode: product.barcode || '',
@@ -317,6 +321,9 @@ export default function Inventory() {
       average_purchase_price: product.average_purchase_price || product.purchase_price,
       sale_price: product.sale_price,
       discount_price: product.discount_price || 0,
+      discount_percent: discPct,
+      alert_limit: (product as any).alert_limit || 5,
+      colors: Array.isArray((product as any).colors) ? (product as any).colors : [],
       wholesale_price: product.wholesale_price || 0,
       half_wholesale_price: product.half_wholesale_price || 0,
       season: product.season || 'summer',
@@ -356,6 +363,9 @@ export default function Inventory() {
       average_purchase_price: 0,
       sale_price: 0,
       discount_price: 0,
+      discount_percent: 0,
+      alert_limit: 5,
+      colors: [],
       wholesale_price: 0,
       half_wholesale_price: 0,
       season: 'summer',
@@ -845,27 +855,194 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* ADD PRODUCT MODAL */}
+      {/* ADD / EDIT PRODUCT MODAL (Matches user reference screenshot 100%) */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50 dark:bg-slate-900 shrink-0">
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{editingProductId ? 'تعديل بيانات المنتج' : 'إضافة منتج جديد'}</h2>
-              <button onClick={() => { setShowAddModal(false); setEditingProductId(null); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <X size={20} />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 text-white rounded-3xl shadow-2xl w-full max-w-2xl lg:max-w-3xl border border-slate-700/80 overflow-hidden flex flex-col max-h-[92vh]">
+            
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/80 shrink-0">
+              <div className="flex items-center gap-2 text-lg font-black text-white">
+                <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm border border-emerald-500/40">🟩</span>
+                {editingProductId ? 'تعديل بيانات المنتج' : 'إضافة منتج جديد'}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowAddModal(false); setEditingProductId(null); }}
+                className="text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 p-2 rounded-xl border border-slate-700 transition"
+              >
+                <X size={18} />
               </button>
             </div>
-            <form onSubmit={submitProduct} className="p-6 space-y-4 overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* ── البيانات الأساسية (الأسرع إدخالاً) ── */}
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">اسم المنتج <span className="text-red-500">*</span></label>
-                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none" />
+
+            {/* Scrollable Form Body */}
+            <form onSubmit={submitProduct} className="p-5 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar">
+              
+              {/* 1. Basic Information */}
+              <div className="space-y-4">
+                {/* Product Name */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    🏷️ اسم المنتج <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="أدخل اسم المنتج..."
+                    className="w-full bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
+                  />
                 </div>
-                <div className="sm:col-span-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200">رابط صورة المنتج (URL) <span className="text-[10px] text-slate-400">(تظهر بالمجدول والسيستم)</span></label>
-                    <label className="cursor-pointer px-3 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded-xl font-bold text-xs flex items-center gap-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition border border-indigo-200 dark:border-indigo-800 shrink-0">
+
+                {/* Product Barcode line + Generate Button */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-bold text-slate-300">
+                      🔢 باركود المنتج <span className="text-[10px] text-slate-400">(يتولّد تلقائياً تسلسلياً لو فاضي)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const existing = new Set(products.map(p => p.barcode).filter(Boolean) as string[]);
+                        const gen = generateBarcode(existing);
+                        setFormData(prev => ({ ...prev, barcode: gen }));
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm"
+                    >
+                      ⚡ توليد
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={formData.barcode}
+                    onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                    placeholder="امسح الباركود أو انقر على توليد..."
+                    className="w-full bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono font-bold text-sm text-left"
+                  />
+                </div>
+
+                {/* Colors & Codes Repeater Section */}
+                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-200 flex items-center gap-1.5">
+                      🎨 الألوان والأكواد
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = Array.isArray(formData.colors) ? [...formData.colors] : [];
+                        updated.push({ name: '', code: '' });
+                        setFormData({ ...formData, colors: updated });
+                      }}
+                      className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1"
+                    >
+                      + إضافة لون
+                    </button>
+                  </div>
+
+                  {(!formData.colors || formData.colors.length === 0) ? (
+                    <p className="text-center text-xs text-slate-500 py-1">اضغط على "+ إضافة لون" لربط أكواد الألوان بالمنتج</p>
+                  ) : (
+                    formData.colors.map((c: any, idx: number) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = formData.colors.filter((_: any, i: number) => i !== idx);
+                            setFormData({ ...formData, colors: updated });
+                          }}
+                          className="p-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition shrink-0"
+                          title="حذف اللون"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <input
+                          type="text"
+                          placeholder="اسم اللون (مثل: أسود)"
+                          value={c.name}
+                          onChange={e => {
+                            const updated = [...formData.colors];
+                            updated[idx].name = e.target.value;
+                            setFormData({ ...formData, colors: updated });
+                          }}
+                          className="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs font-bold text-white flex-1"
+                        />
+                        <input
+                          type="text"
+                          dir="ltr"
+                          placeholder="كود اللون..."
+                          value={c.code}
+                          onChange={e => {
+                            const updated = [...formData.colors];
+                            updated[idx].code = e.target.value;
+                            setFormData({ ...formData, colors: updated });
+                          }}
+                          className="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white text-left flex-1"
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Collection / Category Dropdown */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    📦 الكوليكشن / التصنيف
+                  </label>
+                  <select
+                    value={formData.category_id}
+                    onChange={e => setFormData({ ...formData, category_id: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
+                  >
+                    <option value="">-- اختر الكوليكشن --</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Supplier Dropdown + Add Supplier Button */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    🏭 اسم المورد
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      list="suppliers-datalist"
+                      value={formData.supplier_name}
+                      onChange={e => setFormData({ ...formData, supplier_name: e.target.value })}
+                      placeholder="-- اختر المورد أو اكتب اسماً جديداً --"
+                      className="flex-1 bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = prompt('أدخل اسم المورد الجديد:');
+                        if (name && name.trim()) {
+                          addSupplier({ name: name.trim() });
+                          setFormData(prev => ({ ...prev, supplier_name: name.trim() }));
+                        }
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-4 rounded-2xl transition shrink-0 flex items-center gap-1 shadow"
+                    >
+                      + إضافة مورد
+                    </button>
+                  </div>
+                  <datalist id="suppliers-datalist">
+                    {suppliers.map(s => <option key={s.id} value={s.name} />)}
+                  </datalist>
+                </div>
+
+                {/* Product Image URL & Device File Upload */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-bold text-slate-300">
+                      🖼️ صورة المنتج (URL) <span className="text-[10px] text-slate-400">(تظهر بالمجدول والسيستم)</span>
+                    </label>
+                    <label className="cursor-pointer px-3 py-1 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 rounded-xl font-bold text-xs flex items-center gap-1 transition border border-indigo-500/30 shrink-0">
                       <Upload size={13} /> رفع صورة من الجهاز
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageFileUpload} />
                     </label>
@@ -875,534 +1052,470 @@ export default function Inventory() {
                       type="text"
                       placeholder="ضع رابط الصورة هنا (مثلاً: https://...)"
                       value={formData.image_url}
-                      onChange={e => setFormData({...formData, image_url: e.target.value})}
-                      className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none text-left font-mono text-xs"
+                      onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                      className="flex-1 bg-slate-950 border border-slate-700/80 text-white py-3 px-4 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:outline-none text-left font-mono text-xs"
                       dir="ltr"
                     />
                     {formData.image_url ? (
-                      <img src={formatImageUrl(formData.image_url)} alt="Preview" className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm bg-white dark:bg-slate-900 p-0.5" onError={(e) => { (e.target as HTMLElement).style.opacity = '0.3'; }} />
+                      <img
+                        src={formatImageUrl(formData.image_url)}
+                        alt="Preview"
+                        className="w-12 h-12 rounded-2xl object-cover border border-slate-700 shrink-0 shadow bg-slate-950 p-0.5"
+                        onError={(e) => { (e.target as HTMLElement).style.opacity = '0.3'; }}
+                      />
                     ) : (
-                      <div className="w-11 h-11 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center shrink-0 text-slate-400">
-                        <ImageIcon size={18} />
+                      <div className="w-12 h-12 rounded-2xl border border-dashed border-slate-700 bg-slate-950 flex items-center justify-center shrink-0 text-slate-500">
+                        <ImageIcon size={20} />
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">المورد <span className="text-[10px] text-slate-400">(اختياري)</span></label>
-                  <input type="text" list="suppliers-datalist" value={formData.supplier_name} onChange={e => setFormData({...formData, supplier_name: e.target.value})} placeholder="اسم المورد الذي يورّد هذا المنتج..." className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-teal-500" />
-                  <datalist id="suppliers-datalist">
-                    {suppliers.map(s => <option key={s.id} value={s.name} />)}
-                  </datalist>
+
+                {/* Stock Quantities & Unit Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950/40 p-3 rounded-2xl border border-slate-800">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">وحدة البيع</label>
+                    <select
+                      value={formData.unit}
+                      onChange={e => setFormData({ ...formData, unit: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs"
+                    >
+                      {UNIT_OPTIONS.map(u => (
+                        <option key={u.value} value={u.value}>{u.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {!editingProductId ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">كمية المستودع</label>
+                        <input
+                          type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'}
+                          value={warehouseQty}
+                          onChange={e => setWarehouseQty(parseFloat(e.target.value) || 0)}
+                          className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">المعروض بالمحل</label>
+                        <input
+                          type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'}
+                          value={formData.display_quantity}
+                          onChange={e => setFormData({ ...formData, display_quantity: parseFloat(e.target.value) || 0 })}
+                          className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">إجمالي المخزون</label>
+                        <input
+                          type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'}
+                          value={formData.stock_quantity}
+                          onChange={e => setFormData({ ...formData, stock_quantity: parseFloat(e.target.value) || 0 })}
+                          className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">المعروض بالمحل</label>
+                        <input
+                          type="number" min="0" max={formData.stock_quantity} step={isFractionalUnit(formData.unit) ? '0.001' : '1'}
+                          value={formData.display_quantity}
+                          onChange={e => setFormData({ ...formData, display_quantity: Math.min(parseFloat(e.target.value) || 0, formData.stock_quantity) })}
+                          className="w-full bg-slate-950 border border-slate-700/80 text-white py-2 px-3 rounded-xl font-bold text-xs text-center"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">وحدة البيع <span className="text-red-500">*</span></label>
-                  <select value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold">
-                    {UNIT_OPTIONS.map(u => (
-                      <option key={u.value} value={u.value}>{u.label}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-slate-400 mt-1">{isFractionalUnit(formData.unit) ? '⚖️ يُباع بالوزن' : '🔢 يُباع بالعدد'}</p>
+
+              </div>
+
+              {/* 2. Pricing & Cost Breakdown Cards */}
+              <div className="pt-2 border-t border-slate-800 space-y-4">
+                
+                {/* Inputs Grid: Purchase Price, Sale Price, Discount % */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-amber-400 mb-1">
+                      💰 سعر الشراء [جنيه]
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.purchase_price || ''}
+                      onChange={e => {
+                        const v = parseFloat(e.target.value) || 0;
+                        setFormData({ ...formData, purchase_price: v, average_purchase_price: v });
+                      }}
+                      className="w-full bg-slate-950 border border-amber-500/40 text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-400 mb-1">
+                      🏷️ سعر البيع [جنيه] <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      required
+                      value={formData.sale_price || ''}
+                      onChange={e => setFormData({ ...formData, sale_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-emerald-500/40 text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-sky-400 mb-1">
+                      🏷️ الخصم (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={formData.discount_percent || 0}
+                      onChange={e => {
+                        const pct = parseFloat(e.target.value) || 0;
+                        const discVal = (formData.sale_price || 0) * (pct / 100);
+                        setFormData({
+                          ...formData,
+                          discount_percent: pct,
+                          discount_price: (formData.sale_price || 0) - discVal,
+                        });
+                      }}
+                      className="w-full bg-slate-950 border border-sky-500/40 text-white py-2.5 px-3 rounded-xl text-center font-bold text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
-                {!editingProductId ? (
-                  <>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">كمية المستودع</label>
-                      <input type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'} value={warehouseQty}
-                        onChange={e => setWarehouseQty(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-blue-500" />
+
+                {/* Wholesale & Half Wholesale optional prices */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-400 mb-1">سعر نص الجملة [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.half_wholesale_price || ''}
+                      onChange={e => setFormData({ ...formData, half_wholesale_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-slate-800 text-white py-2 px-3 rounded-xl text-center font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-400 mb-1">سعر الجملة [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.wholesale_price || ''}
+                      onChange={e => setFormData({ ...formData, wholesale_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-slate-800 text-white py-2 px-3 rounded-xl text-center font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Yellow Card: Purchase Price & VAT 14% */}
+                <div className="bg-amber-950/30 border border-amber-500/40 rounded-2xl p-3.5 text-xs space-y-1.5 text-amber-200">
+                  <div className="flex justify-between">
+                    <span>🛒 سعر الشراء:</span>
+                    <span className="font-bold">{(formData.purchase_price || 0).toFixed(2)} جنيه</span>
+                  </div>
+                  <div className="flex justify-between text-amber-300/80">
+                    <span>🛍️ الضريبة 14%:</span>
+                    <span className="font-bold">{((formData.purchase_price || 0) * 0.14).toFixed(2)} جنيه</span>
+                  </div>
+                  <div className="flex justify-between pt-1.5 border-t border-amber-500/30 font-black text-amber-400 text-sm">
+                    <span>⚖️ الإجمالي عند الشراء:</span>
+                    <span>{((formData.purchase_price || 0) * 1.14).toFixed(2)} جنيه</span>
+                  </div>
+                </div>
+
+                {/* Green Card: Sale Price & Discount Breakdown */}
+                {(() => {
+                  const sale = formData.sale_price || 0;
+                  const pct = formData.discount_percent || 0;
+                  const discAmt = sale * (pct / 100);
+                  const netSale = sale - discAmt;
+                  return (
+                    <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-2xl p-3.5 text-xs space-y-1.5 text-emerald-200">
+                      <div className="flex justify-between">
+                        <span>🏷️ سعر البيع:</span>
+                        <span className="font-bold">{sale.toFixed(2)} جنيه</span>
+                      </div>
+                      <div className="flex justify-between text-emerald-300/80">
+                        <span>🏷️ الخصم ({pct}%):</span>
+                        <span className="font-bold">{discAmt.toFixed(2)} جنيه</span>
+                      </div>
+                      <div className="flex justify-between pt-1.5 border-t border-emerald-500/30 font-black text-emerald-400 text-sm">
+                        <span>🎯 صافي سعر البيع:</span>
+                        <span>{netSale.toFixed(2)} جنيه</span>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">كمية المعروض (في المحل)</label>
-                      <input type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'} value={formData.display_quantity}
-                        onChange={e => setFormData({...formData, display_quantity: parseFloat(e.target.value) || 0})}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-emerald-500" />
-                      <p className="text-xs text-slate-400 mt-1">الإجمالي = {(Number(warehouseQty) || 0) + (Number(formData.display_quantity) || 0)} {getUnitConfig(formData.unit).label} · الافتراضي كله في المستودع.</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">الإجمالي في المخزون</label>
-                      <input type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'} value={formData.stock_quantity}
-                        onChange={e => setFormData({...formData, stock_quantity: parseFloat(e.target.value) || 0})}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">المعروض في المحل (النقل بين المستودع والمحل)</label>
-                      <input type="number" min="0" max={formData.stock_quantity} step={isFractionalUnit(formData.unit) ? '0.001' : '1'} value={formData.display_quantity}
-                        onChange={e => setFormData({...formData, display_quantity: Math.min(parseFloat(e.target.value) || 0, formData.stock_quantity)})}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-emerald-500" />
-                      <p className="text-xs text-slate-400 mt-1">المستودع: <b>{Math.max(0, (Number(formData.stock_quantity) || 0) - (Number(formData.display_quantity) || 0))}</b> · المعروض: <b>{Math.min(Number(formData.display_quantity) || 0, Number(formData.stock_quantity) || 0)}</b> · المُباع: <b>{soldMap.get(editingProductId) || 0}</b></p>
-                    </div>
-                  </>
-                )}
+                  );
+                })()}
+
+                {/* Low Stock Alert Threshold */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر الشراء لكل {getUnitConfig(formData.unit).label} <span className="text-[10px] text-slate-400">(اختياري)</span></label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    ⚖️ حد التنبيه (المحل)
+                  </label>
                   <input
-                    type="number" min="0" step="0.01"
-                    value={formData.purchase_price}
-                    onChange={e => { const v = parseFloat(e.target.value) || 0; setFormData({...formData, purchase_price: v, average_purchase_price: v}); }}
-                    style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-amber-500"
+                    type="number"
+                    min="1"
+                    value={formData.alert_limit || 5}
+                    onChange={e => setFormData({ ...formData, alert_limit: parseInt(e.target.value) || 5 })}
+                    className="w-full bg-slate-950 border border-slate-700/80 text-white py-2.5 px-3 rounded-xl font-bold text-xs text-center"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر البيع القطاعي لكل {getUnitConfig(formData.unit).label} <span className="text-red-500">*</span></label>
-                  <input type="number" min="0" step="0.01" required value={formData.sale_price} onChange={e => setFormData({...formData, sale_price: parseFloat(e.target.value) || 0})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-green-500" />
-                </div>
 
-                {/* ── أسعار وبيانات إضافية ── */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر البيع بعد الخصم <span className="text-[10px] text-slate-400">(اختياري)</span></label>
-                  <input type="number" min="0" step="0.01" value={formData.discount_price} onChange={e => setFormData({...formData, discount_price: parseFloat(e.target.value) || 0})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-amber-500" />
-                  <p className="text-xs text-slate-400 mt-1">لو دخلت قيمة هنا، هتبقى هي سعر البيع الفعلي على الكاشير.</p>
+                {/* Large Green Box: Website Net Profit */}
+                {(() => {
+                  const sale = formData.sale_price || 0;
+                  const pct = formData.discount_percent || 0;
+                  const discAmt = sale * (pct / 100);
+                  const netSale = sale - discAmt;
+                  const totalCost = (formData.purchase_price || 0) * 1.14;
+                  const webAd = formData.website_ad_cost || 0;
+                  const netProfit = netSale - totalCost - webAd;
+                  return (
+                    <div className="bg-emerald-950/50 border-2 border-emerald-500/80 rounded-2xl p-4 text-center space-y-1 shadow-lg">
+                      <div className="text-xs font-bold text-emerald-400 flex items-center justify-center gap-1">
+                        💵 صافي مكسب الموقع
+                      </div>
+                      <div className={`text-2xl sm:text-3xl font-black ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {netProfit.toFixed(2)} جنيه
+                      </div>
+                    </div>
+                  );
+                })()}
+
+              </div>
+
+              {/* 3. Noon Store Section (Light Blue Box) */}
+              <div className="bg-sky-950/20 border border-sky-500/50 rounded-2xl p-4 space-y-3">
+                <div className="text-xs font-black text-sky-300 flex items-center gap-1.5">
+                  🏪 متجر نون (Noon)
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر نص الجملة <span className="text-[10px] text-slate-400">(اختياري)</span></label>
-                  <input type="number" min="0" step="0.01" value={formData.half_wholesale_price} onChange={e => setFormData({...formData, half_wholesale_price: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-sky-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر الجملة <span className="text-[10px] text-slate-400">(اختياري)</span></label>
-                  <input type="number" min="0" step="0.01" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-purple-500" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">الموسم</label>
-                  <div className="flex gap-2">
-                    {([['summer','صيفي'],['winter','شتوي'],['annual','سنوي']] as const).map(([k,label]) => (
-                      <button type="button" key={k} onClick={() => setFormData({...formData, season: k})}
-                        className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition border ${formData.season === k ? 'bg-indigo-600 text-white border-transparent' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">التصنيف</label>
-                  <select value={formData.category_id} onChange={e => setFormData({...formData, category_id: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500">
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="sm:col-span-2 relative group">
-                  <div className="flex justify-between items-end mb-1">
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200">الباركود <span className="text-[10px] text-slate-400">(يتولّد تلقائياً تسلسلياً لو فاضي)</span></label>
-                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md flex items-center gap-1 opacity-0 group-focus-within:opacity-100 transition-opacity">
-                      <ScanLine size={12} />
-                      ضع المؤشر هنا واستخدم جهاز الـ POS للفحص
-                    </span>
-                  </div>
-                  <div className="relative">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-sky-200/80 mb-1">🛍️ سعر نون [جنيه]</label>
                     <input
-                      type="text"
-                      dir="ltr"
-                      value={formData.barcode}
-                      onChange={e => setFormData({...formData, barcode: e.target.value})}
-                      onKeyDown={handleBarcodeKeyDown}
-                      style={{ '--tw-ring-color': scanSuccess ? '#10b981' : storeSettings.themeColor + '40' } as any}
-                      className={`w-full bg-slate-50 border py-3 px-4 rounded-xl focus:ring-2 focus:outline-none text-left font-mono font-bold transition-colors ${scanSuccess ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-700'}`}
-                      placeholder="امسح الباركود أو اتركه فارغاً للترقيم التلقائي..."
+                      type="number" min="0" step="0.01"
+                      value={formData.noon_price || ''}
+                      onChange={e => setFormData({ ...formData, noon_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-sky-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
-                    {scanSuccess && (
-                      <CheckCircle2 className="absolute left-3 top-3.5 text-emerald-500 animate-in zoom-in" size={20} />
-                    )}
                   </div>
-                </div>
-                {/* ── أسعار ومصاريف المتاجر والمنصات (لكل ستور) ── */}
-                <div className="sm:col-span-2 space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                  <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-                    🏬 أسعار ومصاريف المتاجر والمنصات (لكل ستور)
-                  </h3>
-
-                  {/* 1. Website Store */}
-                  <div className="bg-emerald-50/60 dark:bg-emerald-950/20 border-2 border-emerald-500 rounded-3xl p-4 space-y-3 relative">
-                    <div className="flex items-center justify-between">
-                      <span className="font-black text-emerald-800 dark:text-emerald-300 text-sm flex items-center gap-1.5">
-                        🌐 متجر الموقع الرئيسي (Website)
-                      </span>
-                      <span className="bg-emerald-700 text-white text-xs font-black px-3 py-1 rounded-full">
-                        صافي الربح: {((formData.sale_price || 0) - (formData.purchase_price || 0) - (formData.website_ad_cost || 0)).toFixed(2)} ج.م
-                      </span>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">📢 إعلانات الموقع (جنيه)</label>
-                      <input
-                        type="number" min="0" step="0.01"
-                        value={formData.website_ad_cost}
-                        onChange={e => setFormData({ ...formData, website_ad_cost: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-sky-200/80 mb-1">📊 عمولة نون (%)</label>
+                    <input
+                      type="number" min="0" step="0.1"
+                      value={formData.noon_commission || ''}
+                      onChange={e => setFormData({ ...formData, noon_commission: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-sky-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
                   </div>
-
-                  {/* 2. Amazon Store */}
-                  <div className="bg-amber-50/60 dark:bg-amber-950/20 border-2 border-amber-500 rounded-3xl p-4 space-y-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="font-black text-amber-800 dark:text-amber-300 text-sm flex items-center gap-1.5">
-                        📦 متجر أمازون (Amazon)
-                      </span>
-                      {(() => {
-                        const effPrice = formData.amazon_discount_price && formData.amazon_discount_price > 0 ? formData.amazon_discount_price : formData.amazon_price || 0;
-                        const comm = effPrice * ((formData.amazon_commission || 0) / 100);
-                        const net = effPrice - (formData.purchase_price || 0) - comm - (formData.amazon_ad_cost || 0);
-                        return (
-                          <span className="bg-amber-700 text-white text-xs font-black px-3 py-1 rounded-full">
-                            صافي الربح: {net.toFixed(2)} ج.م {formData.amazon_discount_price ? '(بعد الخصم الإضافي)' : ''}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر أمازون (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01" placeholder="مثال: 250"
-                          value={formData.amazon_price}
-                          onChange={e => setFormData({ ...formData, amazon_price: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🔥 سعر خصم إضافي أمازون (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01" placeholder="سعر بعد الخصم..."
-                          value={formData.amazon_discount_price}
-                          onChange={e => setFormData({ ...formData, amazon_discount_price: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-amber-400 dark:border-amber-500 py-2 px-3 rounded-xl text-sm font-bold text-center text-amber-700 dark:text-amber-300"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">% عمولة أمازون (%)</label>
-                        <input
-                          type="number" min="0" step="0.1" placeholder="مثال: 10"
-                          value={formData.amazon_commission}
-                          onChange={e => setFormData({ ...formData, amazon_commission: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">📢 إعلانات أمازون (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={formData.amazon_ad_cost}
-                          onChange={e => setFormData({ ...formData, amazon_ad_cost: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                    </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-sky-200/80 mb-1">🏷️ سعر خصم نون [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.noon_discount_price || ''}
+                      onChange={e => setFormData({ ...formData, noon_discount_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-sky-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
                   </div>
-
-                  {/* 3. Noon Store */}
-                  <div className="bg-yellow-50/60 dark:bg-yellow-950/20 border-2 border-yellow-400 rounded-3xl p-4 space-y-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="font-black text-yellow-800 dark:text-yellow-300 text-sm flex items-center gap-1.5">
-                        🏪 متجر نون (Noon)
-                      </span>
-                      {(() => {
-                        const effPrice = formData.noon_discount_price && formData.noon_discount_price > 0 ? formData.noon_discount_price : formData.noon_price || 0;
-                        const comm = effPrice * ((formData.noon_commission || 0) / 100);
-                        const net = effPrice - (formData.purchase_price || 0) - comm - (formData.noon_shipping || 0) - (formData.noon_ad_cost || 0);
-                        return (
-                          <span className="bg-amber-700 text-white text-xs font-black px-3 py-1 rounded-full">
-                            صافي الربح: {net.toFixed(2)} ج.م {formData.noon_discount_price ? '(بعد الخصم الإضافي)' : ''}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر نون الأصلي (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01" placeholder="مثال: 240"
-                          value={formData.noon_price}
-                          onChange={e => setFormData({ ...formData, noon_price: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🔥 سعر خصم إضافي نون (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01" placeholder="سعر نون بعد الخصم..."
-                          value={formData.noon_discount_price}
-                          onChange={e => setFormData({ ...formData, noon_discount_price: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-amber-400 dark:border-yellow-500 py-2 px-3 rounded-xl text-sm font-bold text-center text-amber-800 dark:text-yellow-300"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">% عمولة نون (%)</label>
-                        <input
-                          type="number" min="0" step="0.1" placeholder="مثال: 12"
-                          value={formData.noon_commission}
-                          onChange={e => setFormData({ ...formData, noon_commission: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🚚 شحن نون (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={formData.noon_shipping}
-                          onChange={e => setFormData({ ...formData, noon_shipping: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">📢 إعلانات نون (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={formData.noon_ad_cost}
-                          onChange={e => setFormData({ ...formData, noon_ad_cost: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 4. Jumia Store */}
-                  <div className="bg-rose-50/60 dark:bg-rose-950/20 border-2 border-rose-400 rounded-3xl p-4 space-y-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="font-black text-rose-800 dark:text-rose-300 text-sm flex items-center gap-1.5">
-                        🛍️ متجر جوميا (Jumia)
-                      </span>
-                      {(() => {
-                        const effPrice = formData.jumia_discount_price && formData.jumia_discount_price > 0 ? formData.jumia_discount_price : formData.jumia_price || 0;
-                        const comm = effPrice * ((formData.jumia_commission || 0) / 100);
-                        const net = effPrice - (formData.purchase_price || 0) - comm - (formData.jumia_shipping || 0) - (formData.jumia_ad_cost || 0);
-                        return (
-                          <span className="bg-rose-700 text-white text-xs font-black px-3 py-1 rounded-full">
-                            صافي الربح: {net.toFixed(2)} ج.م {formData.jumia_discount_price ? '(بعد الخصم الإضافي)' : ''}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🏷️ سعر جوميا الأصلي (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01" placeholder="مثال: 230"
-                          value={formData.jumia_price}
-                          onChange={e => setFormData({ ...formData, jumia_price: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🔥 سعر خصم إضافي جوميا (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01" placeholder="سعر جوميا بعد الخصم..."
-                          value={formData.jumia_discount_price}
-                          onChange={e => setFormData({ ...formData, jumia_discount_price: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-500 py-2 px-3 rounded-xl text-sm font-bold text-center text-rose-800 dark:text-rose-300"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">% عمولة جوميا (%)</label>
-                        <input
-                          type="number" min="0" step="0.1" placeholder="مثال: 15"
-                          value={formData.jumia_commission}
-                          onChange={e => setFormData({ ...formData, jumia_commission: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">🚚 شحن جوميا (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={formData.jumia_shipping}
-                          onChange={e => setFormData({ ...formData, jumia_shipping: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">📢 إعلانات جوميا (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={formData.jumia_ad_cost}
-                          onChange={e => setFormData({ ...formData, jumia_ad_cost: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl text-sm font-bold text-center"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 5. Custom Added Stores (TikTok, Shopify, etc.) */}
-                  <div className="bg-purple-50/60 dark:bg-purple-950/20 border-2 border-dashed border-purple-400 rounded-3xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-black text-purple-900 dark:text-purple-300 text-sm">
-                        🟣 متاجر إضافية مخصصة (تيك توك، شوبيفاي، إلخ)
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newStore = { id: String(Date.now()), name: '', price: 0, commission: 0, shipping: 0, ad_cost: 0 };
-                          setFormData({ ...formData, custom_stores: [...formData.custom_stores, newStore] });
-                        }}
-                        className="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm"
-                      >
-                        + إضافة متجر جديد
-                      </button>
-                    </div>
-
-                    {formData.custom_stores.length === 0 ? (
-                      <p className="text-center text-xs font-bold text-slate-400 py-2">لا توجد متاجر مخصصة إضافية حتى الآن</p>
-                    ) : (
-                      formData.custom_stores.map((cs, idx) => {
-                        const csProfit = (cs.price || 0) - (formData.purchase_price || 0) - ((cs.price || 0) * ((cs.commission || 0) / 100)) - (cs.shipping || 0) - (cs.ad_cost || 0);
-                        return (
-                          <div key={cs.id} className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-2xl p-3 space-y-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <input
-                                type="text"
-                                placeholder="اسم المتجر (تيك توك، شوبيفاي...)"
-                                value={cs.name}
-                                onChange={e => {
-                                  const updated = [...formData.custom_stores];
-                                  updated[idx].name = e.target.value;
-                                  setFormData({ ...formData, custom_stores: updated });
-                                }}
-                                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold flex-1"
-                              />
-                              <span className="bg-purple-700 text-white text-[11px] font-black px-2.5 py-1 rounded-full">
-                                صافي الربح: {csProfit.toFixed(2)} ج.م
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = formData.custom_stores.filter(s => s.id !== cs.id);
-                                  setFormData({ ...formData, custom_stores: updated });
-                                }}
-                                className="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 p-1.5 rounded-lg"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">السعر (جنيه)</label>
-                                <input
-                                  type="number" min="0" step="0.01"
-                                  value={cs.price}
-                                  onChange={e => {
-                                    const updated = [...formData.custom_stores];
-                                    updated[idx].price = parseFloat(e.target.value) || 0;
-                                    setFormData({ ...formData, custom_stores: updated });
-                                  }}
-                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-1 px-2 rounded-lg text-center font-bold"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">% العمولة</label>
-                                <input
-                                  type="number" min="0" step="0.1"
-                                  value={cs.commission}
-                                  onChange={e => {
-                                    const updated = [...formData.custom_stores];
-                                    updated[idx].commission = parseFloat(e.target.value) || 0;
-                                    setFormData({ ...formData, custom_stores: updated });
-                                  }}
-                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-1 px-2 rounded-lg text-center font-bold"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">الشحن (جنيه)</label>
-                                <input
-                                  type="number" min="0" step="0.01"
-                                  value={cs.shipping}
-                                  onChange={e => {
-                                    const updated = [...formData.custom_stores];
-                                    updated[idx].shipping = parseFloat(e.target.value) || 0;
-                                    setFormData({ ...formData, custom_stores: updated });
-                                  }}
-                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-1 px-2 rounded-lg text-center font-bold"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">الإعلانات (جنيه)</label>
-                                <input
-                                  type="number" min="0" step="0.01"
-                                  value={cs.ad_cost}
-                                  onChange={e => {
-                                    const updated = [...formData.custom_stores];
-                                    updated[idx].ad_cost = parseFloat(e.target.value) || 0;
-                                    setFormData({ ...formData, custom_stores: updated });
-                                  }}
-                                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-1 px-2 rounded-lg text-center font-bold"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  {/* 6. Summary of Advertising Costs Box */}
-                  <div className="bg-pink-100/70 dark:bg-pink-950/30 border-2 border-pink-300 dark:border-pink-800 rounded-3xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-black text-pink-900 dark:text-pink-300 text-sm">
-                        📢 مصاريف الإعلانات
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({
-                            ...formData,
-                            website_ad_cost: 0,
-                            amazon_ad_cost: 0,
-                            noon_ad_cost: 0,
-                            jumia_ad_cost: 0,
-                            custom_stores: formData.custom_stores.map(s => ({ ...s, ad_cost: 0 }))
-                          });
-                        }}
-                        className="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-3 py-1 rounded-xl transition shadow-sm"
-                      >
-                        ↻ إعادة تعيين الإعلانات
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <label className="block font-bold text-slate-600 dark:text-slate-300 mb-1">🌐 إعلانات الموقع (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={formData.website_ad_cost}
-                          onChange={e => setFormData({ ...formData, website_ad_cost: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl font-bold text-center"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-600 dark:text-slate-300 mb-1">🛍️ إعلانات جوميا (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={formData.jumia_ad_cost}
-                          onChange={e => setFormData({ ...formData, jumia_ad_cost: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl font-bold text-center"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block font-bold text-slate-600 dark:text-slate-300 mb-1">🏪 إعلانات نون (جنيه)</label>
-                        <input
-                          type="number" min="0" step="0.01"
-                          value={formData.noon_ad_cost}
-                          onChange={e => setFormData({ ...formData, noon_ad_cost: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-2 px-3 rounded-xl font-bold text-center"
-                        />
-                      </div>
-                    </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-sky-200/80 mb-1">🚚 شحن نون [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.noon_shipping || ''}
+                      onChange={e => setFormData({ ...formData, noon_shipping: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-sky-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
                   </div>
                 </div>
 
-                <div className="sm:col-span-2">
-                  <p className="text-xs text-slate-400 -mt-1">ℹ️ الكمية والتكلفة هنا للمخزون الافتتاحي — بعدها يتم التحديث تلقائياً عبر فواتير المشتريات.</p>
+                {/* Noon Summary Card */}
+                {(() => {
+                  const noonP = formData.noon_discount_price && formData.noon_discount_price > 0 ? formData.noon_discount_price : formData.noon_price || 0;
+                  const noonVat = noonP * 0.14;
+                  const noonComm = noonP * ((formData.noon_commission || 0) / 100);
+                  const noonShip = formData.noon_shipping || 0;
+                  const noonAd = formData.noon_ad_cost || 0;
+                  const noonTotalCost = (formData.purchase_price || 0) * 1.14;
+                  const noonNet = noonP - noonTotalCost - noonComm - noonShip - noonAd;
+                  return (
+                    <div className="bg-sky-950/40 border border-sky-500/40 rounded-xl p-3 text-xs space-y-1.5 text-sky-200">
+                      <div className="text-center pb-1 border-b border-sky-500/30">
+                        <span className="text-[11px] font-bold text-sky-300">💵 صافي مكسب نون</span>
+                        <div className={`text-xl font-black ${noonNet >= 0 ? 'text-sky-300' : 'text-red-400'}`}>
+                          {noonNet.toFixed(2)} جنيه
+                        </div>
+                      </div>
+                      <div className="flex justify-between"><span>🏷️ سعر نون:</span><span className="font-bold">{noonP.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-sky-300/70"><span>🛍️ ضريبة 14%:</span><span className="font-bold">{noonVat.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-sky-300/70"><span>⚖️ الإجمالي بعد الضريبة:</span><span className="font-bold">{(noonP + noonVat).toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-sky-300/70"><span>⛔ العمولة:</span><span className="font-bold">{noonComm.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-sky-300/70"><span>🚚 الشحن:</span><span className="font-bold">{noonShip.toFixed(2)} جنيه</span></div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* 4. Jumia Store Section (Orange/Red Box) */}
+              <div className="bg-amber-950/20 border border-amber-500/50 rounded-2xl p-4 space-y-3">
+                <div className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                  🛍️ متجر جوميا (Jumia)
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-200/80 mb-1">📊 نسبة جوميا (%)</label>
+                    <input
+                      type="number" min="0" step="0.1"
+                      value={formData.jumia_commission || ''}
+                      onChange={e => setFormData({ ...formData, jumia_commission: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-amber-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-200/80 mb-1">🚚 شحن جوميا (جنيه)</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.jumia_shipping || ''}
+                      onChange={e => setFormData({ ...formData, jumia_shipping: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-amber-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Jumia Summary Card */}
+                {(() => {
+                  const jumP = formData.jumia_discount_price && formData.jumia_discount_price > 0 ? formData.jumia_discount_price : formData.jumia_price || formData.sale_price || 0;
+                  const jumComm = jumP * ((formData.jumia_commission || 0) / 100);
+                  const jumShip = formData.jumia_shipping || 0;
+                  const jumAd = formData.jumia_ad_cost || 0;
+                  const jumTotalCost = (formData.purchase_price || 0) * 1.14;
+                  const jumNet = jumP - jumTotalCost - jumComm - jumShip - jumAd;
+                  return (
+                    <div className="bg-amber-950/40 border border-amber-500/40 rounded-xl p-3 text-xs text-amber-200 text-center">
+                      <span className="text-[11px] font-bold text-amber-300">💵 صافي مكسب جوميا</span>
+                      <div className={`text-xl font-black ${jumNet >= 0 ? 'text-amber-400' : 'text-red-400'}`}>
+                        {jumNet.toFixed(2)} جنيه
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* 5. Platforms Net Profit Summary Card Grid (`🛒 أسعار المنصات والخصومات`) */}
+              {(() => {
+                const sale = formData.sale_price || 0;
+                const pct = formData.discount_percent || 0;
+                const netSale = sale - (sale * (pct / 100));
+                const totalCost = (formData.purchase_price || 0) * 1.14;
+                const webProfit = netSale - totalCost - (formData.website_ad_cost || 0);
+
+                const noonP = formData.noon_discount_price && formData.noon_discount_price > 0 ? formData.noon_discount_price : formData.noon_price || 0;
+                const noonComm = noonP * ((formData.noon_commission || 0) / 100);
+                const noonNet = noonP > 0 ? (noonP - totalCost - noonComm - (formData.noon_shipping || 0) - (formData.noon_ad_cost || 0)) : 0;
+
+                const jumP = formData.jumia_discount_price && formData.jumia_discount_price > 0 ? formData.jumia_discount_price : formData.jumia_price || 0;
+                const jumComm = jumP * ((formData.jumia_commission || 0) / 100);
+                const jumNet = jumP > 0 ? (jumP - totalCost - jumComm - (formData.jumia_shipping || 0) - (formData.jumia_ad_cost || 0)) : 0;
+
+                return (
+                  <div className="bg-sky-950/20 border border-sky-500/40 rounded-2xl p-3.5 space-y-2">
+                    <div className="text-xs font-black text-sky-300 flex items-center gap-1.5">
+                      🛒 أسعار المنصات والخصومات
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block">💬 الموقع</span>
+                        <span className={`font-black ${webProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{webProfit.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block">📦 نون</span>
+                        <span className={`font-black ${noonNet >= 0 ? 'text-sky-400' : 'text-red-400'}`}>{noonNet.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block">🛍️ جوميا</span>
+                        <span className={`font-black ${jumNet >= 0 ? 'text-amber-400' : 'text-red-400'}`}>{jumNet.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 6. Ads Expenses Section (Pink Box `📢 مصاريف الإعلانات`) */}
+              <div className="bg-pink-950/20 border border-pink-500/40 rounded-2xl p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black text-pink-300 flex items-center gap-1.5">
+                    📢 مصاريف الإعلانات
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        website_ad_cost: 0,
+                        jumia_ad_cost: 0,
+                        noon_ad_cost: 0,
+                      }));
+                    }}
+                    className="bg-pink-500/20 text-pink-300 hover:bg-pink-500/30 text-[11px] font-bold px-3 py-1 rounded-xl transition border border-pink-500/30 flex items-center gap-1"
+                  >
+                    🔄 إعادة تعيين الإعلانات
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-pink-200/80 mb-1">إعلانات الموقع (جنيه)</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.website_ad_cost || ''}
+                      onChange={e => setFormData({ ...formData, website_ad_cost: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-pink-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-pink-200/80 mb-1">إعلانات جوميا (جنيه)</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.jumia_ad_cost || ''}
+                      onChange={e => setFormData({ ...formData, jumia_ad_cost: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-pink-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-pink-200/80 mb-1">إعلانات نون (جنيه)</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.noon_ad_cost || ''}
+                      onChange={e => setFormData({ ...formData, noon_ad_cost: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-pink-500/30 text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="pt-4 mt-2 border-t">
-                <button type="submit" style={{ backgroundColor: storeSettings.themeColor }} className="w-full text-white py-4 rounded-xl font-bold transition shadow-lg shrink-0 flex items-center justify-center gap-2">
-                  <Plus size={20} />
-                  {editingProductId ? 'تحديث بيانات المنتج' : 'حفظ المنتج في قاعدة البيانات'}
+
+              {/* 7. Action Footer Buttons */}
+              <div className="pt-3 flex gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-sm"
+                >
+                  💾 حفظ المنتج
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddModal(false); setEditingProductId(null); }}
+                  className="px-6 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-2xl border border-slate-700 transition text-sm"
+                >
+                  ❌ إلغاء
                 </button>
               </div>
+
             </form>
           </div>
         </div>
