@@ -4007,14 +4007,14 @@ export default function POS() {
           </div>
 
           {/* Customer Inputs Grid */}
-          <div className="relative flex gap-1.5 text-sm h-11">
+          <div className="relative flex flex-col sm:flex-row gap-2 text-sm h-auto sm:h-11">
             <div className="flex-1 relative group">
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:scale-110 transition-transform"><CreditCard size={14} /></span>
               <input
                 id="pos-cust-card"
                 type="text" dir="ltr" value={customerId} onChange={handleIdChange}
                 onKeyDown={(e) => keyNext(e, 'pos-salesperson')}
-                className="w-full bg-white/95 text-indigo-600 dark:text-indigo-400 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-black shadow-inner text-xs h-full"
+                className="w-full bg-white/95 text-indigo-600 dark:text-indigo-400 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-black shadow-inner text-xs h-10 sm:h-full"
                 placeholder="رقم الكارت"
               />
             </div>
@@ -4024,7 +4024,7 @@ export default function POS() {
                 id="pos-cust-phone"
                 type="text" dir="ltr" value={customerPhone} onChange={handlePhoneChange}
                 onKeyDown={(e) => keyNext(e, 'pos-cust-card')}
-                className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-full"
+                className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-10 sm:h-full"
                 placeholder="الموبايل"
               />
             </div>
@@ -4036,7 +4036,7 @@ export default function POS() {
                 onChange={e => { setCustomerName(e.target.value); setShowCustomerSuggestions(true); }}
                 onFocus={() => setShowCustomerSuggestions(true)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setShowCustomerSuggestions(false); focusById('pos-cust-phone'); } }}
-                className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-full"
+                className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-10 sm:h-full"
                 placeholder="الاسم"
               />
               {showCustomerSuggestions && filteredCustomers.length > 0 && (
