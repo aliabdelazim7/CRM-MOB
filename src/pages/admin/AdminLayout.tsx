@@ -129,19 +129,6 @@ export default function AdminLayout() {
               );
             }
 
-            if (item.isExternal) {
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => { setSidebarOpen(false); navigate(item.path); }}
-                  className="flex items-center gap-3 w-full px-4 py-3 lg:py-2.5 rounded-xl transition text-sm hover:bg-slate-800 hover:text-white text-slate-300 font-bold"
-                >
-                  <item.icon size={18} />
-                  {item.name}
-                </button>
-              );
-            }
-
             return (
               <NavLink
                 key={item.name}
