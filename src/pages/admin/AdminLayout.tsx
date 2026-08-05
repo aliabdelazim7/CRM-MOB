@@ -10,7 +10,12 @@ export default function AdminLayout() {
   const canSee = (path: string) => isOwner || (adminPermissions || []).includes(path);
   const [hasCheckedReminders, setHasCheckedReminders] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
 
   const toggleDarkMode = () => {
     const next = !isDarkMode;
@@ -23,6 +28,17 @@ export default function AdminLayout() {
       localStorage.setItem('theme', 'light');
     }
   };
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    } else {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (hasCheckedReminders || maintenanceAppointments.length === 0 || carSubscriptions.length === 0) return;
@@ -87,7 +103,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden" dir="rtl">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden" dir="rtl">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -172,7 +188,7 @@ export default function AdminLayout() {
           <span className="font-bold text-sm truncate flex-1">{storeSettings.name}</span>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50 relative">
+        <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 relative">
           <div
             style={{ backgroundColor: storeSettings.themeColor + '10' }}
             className="absolute top-0 left-0 w-full h-64 -z-10"

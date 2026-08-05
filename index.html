@@ -5,6 +5,13 @@
     <link id="app-favicon" rel="icon" type="image/svg+xml" href="/favicon-cashier.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>ADRIA — الكاشير</title>
+    <script>
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
 
     <!-- أيقونة الشاشة الرئيسية للآيفون (iOS بياخد الأيقونة من هنا مش من الـ manifest) -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
