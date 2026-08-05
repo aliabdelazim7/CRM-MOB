@@ -642,9 +642,15 @@ export default function POS() {
   const paidTotal = activePayKeys.reduce((s, k) => s + paidVal(k), 0);
   const [discountStr, setDiscountStr] = useState('');
   const [couponInput, setCouponInput] = useState('');
-  const [customerDebt, setCustomerDebt] = useState<number>(0);
-
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof document !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark') return true;
+      if (saved === 'light') return false;
+      return document.documentElement.classList.contains('dark') || true;
+    }
+    return true;
+  });
   const [showReturnsModal, setShowReturnsModal] = useState(false);
   const [returnSearchQuery, setReturnSearchQuery] = useState('');
   const [showHistory, setShowHistory] = useState(false);
@@ -1509,8 +1515,10 @@ export default function POS() {
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
 

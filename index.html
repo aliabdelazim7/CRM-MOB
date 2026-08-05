@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>ADRIA — الكاشير</title>
     <script>
-      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-      } else {
+      if (localStorage.getItem('theme') === 'light') {
         document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
       }
     </script>
 

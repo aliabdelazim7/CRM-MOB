@@ -12,9 +12,9 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof document !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
+      return localStorage.getItem('theme') !== 'light';
     }
-    return false;
+    return true;
   });
 
   const toggleDarkMode = () => {
@@ -31,12 +31,12 @@ export default function AdminLayout() {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    } else {
+    if (savedTheme === 'light') {
       document.documentElement.classList.remove('dark');
       setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
     }
   }, []);
 
