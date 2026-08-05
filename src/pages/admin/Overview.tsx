@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { Banknote, ShoppingBag, ReceiptText, DollarSign, CreditCard, Wallet, Smartphone, Zap, Clock, AlertTriangle, TrendingUp, Calendar, CheckCircle2 } from 'lucide-react';
+import { Banknote, ShoppingBag, ReceiptText, DollarSign, CreditCard, Wallet, Smartphone, Zap, Clock, TrendingUp } from 'lucide-react';
 import { calculateCashRefunded } from '../../utils/returns';
 import { totalOpeningBalance } from '../../utils/paymentMethods';
 import { isMainTreasuryExpense, isMainTreasuryPurchase } from '../../utils/treasury';
@@ -30,8 +30,7 @@ export default function Overview() {
   };
 
   const periodOrders = activeOrders.filter(o => isWithinPeriod(o.date));
-  const periodExpenses = expenses.filter(e => isWithinPeriod(e.created_at || (e as any).date || ''));
-  const periodPurchases = purchaseInvoices.filter(p => isWithinPeriod(p.created_at || (p as any).date || ''));
+  const periodExpenses = expenses.filter(e => isWithinPeriod((e as any).created_at || e.date || ''));
 
   // Revenue & Order Aggregations
   let totalNetRevenue = 0;
