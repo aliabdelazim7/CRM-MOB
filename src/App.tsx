@@ -176,14 +176,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function ProtectedRoutePOS({ children }: { children: React.ReactNode }) {
-  const { isPOSAuthenticated, isAdminAuthenticated } = useStore();
-  if (!isPOSAuthenticated && !isAdminAuthenticated) {
-    return <Navigate to="/pos-login" replace />;
-  }
-  return <>{children}</>;
-}
-
 function App() {
   const { loadAll, loadSettingsOnly, loadProductsOnly, isLoading, dbError } = useStore();
   const isPublicInvoiceRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/view-invoice/');
@@ -257,15 +249,9 @@ function App() {
       <Router>
         <FaviconSwitcher />
         <Routes>
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoutePOS>
-                <POS />
-              </ProtectedRoutePOS>
-            } 
-          />
-          <Route path="/pos-login" element={<POSLogin />} />
+          <Route path="/" element={<Navigate to="/admin/pos" replace />} />
+          <Route path="/pos" element={<Navigate to="/admin/pos" replace />} />
+          <Route path="/pos-login" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route 
             path="/admin" 
@@ -275,7 +261,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="overview" replace />} />
+            <Route index element={<Navigate to="pos" replace />} />
             <Route path="overview" element={<Overview />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="inventory" element={<Inventory />} />
@@ -318,7 +304,6 @@ function App() {
             <Route path="category-analytics-page" element={<CategoryAnalyticsPage />} />
             <Route path="pos" element={<POS />} />
           </Route>
-          <Route path="/pos" element={<ProtectedRoutePOS><POS /></ProtectedRoutePOS>} />
           <Route path="/view-invoice/:id" element={<PublicInvoice />} />
           <Route path="/attendance" element={<Attendance />} />
         </Routes>
