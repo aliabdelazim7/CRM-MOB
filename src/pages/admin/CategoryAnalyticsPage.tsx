@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layers, Plus, Edit, Trash2, Image as ImageIcon, Package, TrendingUp, DollarSign } from 'lucide-react';
+import { Layers, Plus, Edit, Trash2, Image as ImageIcon, Package, TrendingUp } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import type { Category } from '../../store/useStore';
 
