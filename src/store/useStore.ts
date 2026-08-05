@@ -124,6 +124,7 @@ export interface WriteOff {
 export interface Category {
   id: string;
   name: string;
+  image_url?: string;
 }
 
 export interface OrderItem extends Product {
@@ -815,6 +816,10 @@ interface CashierStore {
 
   addAdvPurchaseInvoice: (inv: Partial<AdvPurchaseInvoice>, items: AdvPurchaseInvoiceItem[]) => Promise<boolean>;
   approveAdvPurchaseInvoice: (id: string) => Promise<boolean>;
+
+  addCategory: (name: string, image_url?: string) => Promise<boolean>;
+  updateCategory: (id: string, name: string, image_url?: string) => Promise<boolean>;
+  deleteCategory: (id: string) => Promise<boolean>;
 
   // Data loading
   loadAll: (silent?: boolean) => Promise<void>;
@@ -7731,6 +7736,35 @@ setupRealtime: () => {
       set((s) => ({
         advPurchaseInvoices: s.advPurchaseInvoices.map((i) => (i.id === id ? { ...i, status: 'approved' } : i)),
       }));
+      return true;
+    } catch (e) { console.error(e); return false; }
+  },
+
+  addCategory: async (name, image_url) => {
+    try {
+      const { data, error } = await supabase.from('categories').insert({ name, image_url }).select().single();
+      if (error) { console.error(error); return false; }
+      if (data) set((s) => ({ categories: [data as Category, ...s.categories] }));
+      return true;
+    } catch (e) { console.error(e); return false; }
+  },
+
+  updateCategory: async (id, name, image_url) => {
+    try {
+      const updateData: any = { name };
+      if (image_url !== undefined) updateData.image_url = image_url;
+      const { error } = await supabase.from('categories').update(updateData).eq('id', id);
+      if (error) { console.error(error); return false; }
+      set((s) => ({ categories: s.categories.map((c) => (c.id === id ? { ...c, ...updateData } : c)) }));
+      return true;
+    } catch (e) { console.error(e); return false; }
+  },
+
+  deleteCategory: async (id) => {
+    try {
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (error) { console.error(error); return false; }
+      set((s) => ({ categories: s.categories.filter((c) => c.id !== id) }));
       return true;
     } catch (e) { console.error(e); return false; }
   },

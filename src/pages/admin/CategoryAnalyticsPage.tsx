@@ -1,24 +1,22 @@
-import { PieChart, TrendingUp, Package, DollarSign, BarChart2, Award, AlertTriangle, Gem } from 'lucide-react';
+import { useState } from 'react';
+import { Layers, Plus, Edit, Trash2, Image as ImageIcon, Package, TrendingUp, DollarSign } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import type { Category } from '../../store/useStore';
 
 export default function CategoryAnalyticsPage() {
-  const { categories, products, orders } = useStore();
+  const { categories, products, orders, addCategory, updateCategory, deleteCategory } = useStore();
+  const [showModal, setShowModal] = useState(false);
+  const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const [name, setName] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
 
-  // Aggregate category analytics dynamically from orders and products
+  // Calculate statistics per category
   const categoryStats = categories.map((cat) => {
     const catProducts = products.filter((p) => p.category_id === cat.id);
     const productIds = new Set(catProducts.map((p) => p.id));
 
-    // Valuation
-    const stockPurchaseValue = catProducts.reduce((sum, p) => sum + (p.stock_quantity || 0) * (p.purchase_price || 0), 0);
-    const stockRetailValue = catProducts.reduce((sum, p) => sum + (p.stock_quantity || 0) * (p.sale_price || 0), 0);
-    const totalQty = catProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-    const lowStockCount = catProducts.filter((p) => (p.stock_quantity || 0) <= 5).length;
-
-    // Sales calculation from completed orders
-    let totalSalesRevenue = 0;
-    let totalCostOfGoodsSold = 0;
-    let totalItemsSold = 0;
+    let totalSales = 0;
+    let totalCost = 0;
 
     orders.forEach((ord) => {
       if (ord.items) {
@@ -27,162 +25,238 @@ export default function CategoryAnalyticsPage() {
             const qty = item.quantity || 1;
             const price = item.sale_price || item.discount_price || 0;
             const cost = item.purchase_price || 0;
-            totalSalesRevenue += qty * price;
-            totalCostOfGoodsSold += qty * cost;
-            totalItemsSold += qty;
+            totalSales += qty * price;
+            totalCost += qty * cost;
           }
         });
       }
     });
 
-    const netProfit = totalSalesRevenue - totalCostOfGoodsSold;
-    const profitMargin = totalSalesRevenue > 0 ? (netProfit / totalSalesRevenue) * 100 : 0;
+    const netProfit = totalSales - totalCost;
 
     return {
-      id: cat.id,
-      name: cat.name,
+      ...cat,
       productCount: catProducts.length,
-      totalQty,
-      lowStockCount,
-      stockPurchaseValue,
-      stockRetailValue,
-      totalSalesRevenue,
+      totalSales,
       netProfit,
-      profitMargin: Math.round(profitMargin * 10) / 10,
-      totalItemsSold,
     };
   });
 
-  // Calculate highest revenue & highest margin for badges
-  const maxRevenue = Math.max(...categoryStats.map((c) => c.totalSalesRevenue), 1);
-  const maxMargin = Math.max(...categoryStats.map((c) => c.profitMargin), 1);
+  const totalCollections = categories.length;
+  const totalProducts = products.length;
+  const grandTotalSales = categoryStats.reduce((sum, c) => sum + c.totalSales, 0);
 
-  const grandTotalSales = categoryStats.reduce((sum, c) => sum + c.totalSalesRevenue, 0);
-  const grandTotalProfit = categoryStats.reduce((sum, c) => sum + c.netProfit, 0);
-  const grandInventoryCost = categoryStats.reduce((sum, c) => sum + c.stockPurchaseValue, 0);
-  const grandInventoryRetail = categoryStats.reduce((sum, c) => sum + c.stockRetailValue, 0);
+  const openAdd = () => {
+    setEditingCat(null);
+    setName('');
+    setImageUrl('');
+    setShowModal(true);
+  };
+
+  const openEdit = (cat: Category) => {
+    setEditingCat(cat);
+    setName(cat.name);
+    setImageUrl(cat.image_url || '');
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    if (editingCat) {
+      await updateCategory(editingCat.id, name, imageUrl);
+    } else {
+      await addCategory(name, imageUrl);
+    }
+    setShowModal(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('هل أنت تأكد من رغبتك في حذف هذا الكوليكشن؟')) {
+      await deleteCategory(id);
+    }
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
-            <PieChart className="text-indigo-600 dark:text-indigo-400" size={28} />
-            تحليلات أداء ومبيعات التصنيفات (Category Earnings Analytics)
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            بطاقات أداء التصنيفات والشارات التنافسية (الأعلى مبيعاً 🏆، الأعلى ربحية 💎، ونواقص المخزون ⚠️)
-          </p>
+      {/* Header Bar matching UI screenshot */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
+        <button
+          onClick={openAdd}
+          className="flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-sm text-sm"
+        >
+          <Plus size={18} />
+          إضافة كوليكشن
+        </button>
+
+        <h1 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+          إدارة الكوليكشن
+          <Layers className="text-emerald-700 dark:text-emerald-400" size={26} />
+        </h1>
+      </div>
+
+      {/* Top 3 Summary Cards matching screenshot */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Card 1: Total Collections */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-purple-500 shadow-sm text-center relative overflow-hidden">
+          <span className="text-slate-500 dark:text-slate-400 text-base font-bold flex items-center justify-center gap-2 mb-3">
+            <Layers className="text-purple-600" size={22} />
+            إجمالي الكوليكشن
+          </span>
+          <span className="text-4xl font-black text-slate-800 dark:text-white">{totalCollections}</span>
+        </div>
+
+        {/* Card 2: Total Products */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-teal-500 shadow-sm text-center relative overflow-hidden">
+          <span className="text-slate-500 dark:text-slate-400 text-base font-bold flex items-center justify-center gap-2 mb-3">
+            <Package className="text-teal-600" size={22} />
+            إجمالي المنتجات
+          </span>
+          <span className="text-4xl font-black text-slate-800 dark:text-white">{totalProducts}</span>
+        </div>
+
+        {/* Card 3: Total Sales */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-emerald-500 shadow-sm text-center relative overflow-hidden">
+          <span className="text-slate-500 dark:text-slate-400 text-base font-bold flex items-center justify-center gap-2 mb-3">
+            <TrendingUp className="text-emerald-600" size={22} />
+            إجمالي المبيعات
+          </span>
+          <span className="text-4xl font-black text-slate-800 dark:text-white">
+            {grandTotalSales.toFixed(2)} جنيه
+          </span>
         </div>
       </div>
 
-      {/* KPI Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
-            <DollarSign size={24} />
-          </div>
-          <div>
-            <span className="text-xs font-bold text-slate-400 block">إجمالي إيرادات التصنيفات</span>
-            <span className="text-2xl font-black text-slate-800 dark:text-white">{grandTotalSales.toLocaleString()} ج.م</span>
-          </div>
-        </div>
+      {/* Main Table matching exact UI screenshot */}
+      <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-right border-collapse">
+            <thead>
+              <tr className="bg-slate-700 text-white text-xs font-bold border-b border-slate-600">
+                <th className="p-4 text-center">الصورة</th>
+                <th className="p-4">اسم الكوليكشن</th>
+                <th className="p-4 text-center">عدد المنتجات</th>
+                <th className="p-4 text-center">إجمالي المبيعات</th>
+                <th className="p-4 text-center">صافي الربح</th>
+                <th className="p-4 text-center">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-sm font-bold text-slate-700 dark:text-slate-200">
+              {categoryStats.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center p-8 text-slate-400">
+                    لا توجد كوليكشن مضافة حالياً
+                  </td>
+                </tr>
+              ) : (
+                categoryStats.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                    {/* Image Thumbnail */}
+                    <td className="p-4 text-center">
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 mx-auto flex items-center justify-center overflow-hidden">
+                        {c.image_url ? (
+                          <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="text-slate-400" size={20} />
+                        )}
+                      </div>
+                    </td>
 
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-            <TrendingUp size={24} />
-          </div>
-          <div>
-            <span className="text-xs font-bold text-slate-400 block">صافي الأرباح الربحية</span>
-            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{grandTotalProfit.toLocaleString()} ج.م</span>
-          </div>
-        </div>
+                    {/* Collection Name */}
+                    <td className="p-4 text-base font-black text-slate-800 dark:text-white">
+                      {c.name}
+                    </td>
 
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
-            <Package size={24} />
-          </div>
-          <div>
-            <span className="text-xs font-bold text-slate-400 block">قيمة البضاعة بالمخزن (شراء)</span>
-            <span className="text-2xl font-black text-slate-800 dark:text-white">{grandInventoryCost.toLocaleString()} ج.م</span>
-          </div>
-        </div>
+                    {/* Product Count Badge */}
+                    <td className="p-4 text-center">
+                      <span className="inline-block bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 px-3 py-1 rounded-full text-xs font-bold">
+                        {c.productCount} منتج
+                      </span>
+                    </td>
 
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-            <BarChart2 size={24} />
-          </div>
-          <div>
-            <span className="text-xs font-bold text-slate-400 block">قيمة البضاعة بالمخزن (بيع)</span>
-            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{grandInventoryRetail.toLocaleString()} ج.م</span>
-          </div>
+                    {/* Total Sales */}
+                    <td className="p-4 text-center text-cyan-600 dark:text-cyan-400 font-mono">
+                      {c.totalSales.toFixed(2)} جنيه
+                    </td>
+
+                    {/* Net Profit */}
+                    <td className="p-4 text-center text-indigo-600 dark:text-indigo-400 font-mono">
+                      {c.netProfit.toFixed(2)} جنيه
+                    </td>
+
+                    {/* Action Buttons matching screenshot */}
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => openEdit(c)}
+                          className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                        >
+                          تعديل <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                        >
+                          حذف <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Category Performance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categoryStats.map((c) => {
-          const isTopSelling = c.totalSalesRevenue > 0 && c.totalSalesRevenue === maxRevenue;
-          const isHighMargin = c.profitMargin > 0 && c.profitMargin === maxMargin;
-          const hasLowStock = c.lowStockCount > 0;
+      {/* Add / Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-slate-100 dark:border-slate-700">
+            <h3 className="text-lg font-black text-slate-800 dark:text-white">
+              {editingCat ? 'تعديل بيانات الكوليكشن' : 'إضافة كوليكشن جديد'}
+            </h3>
 
-          return (
-            <div
-              key={c.id}
-              className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between gap-4"
-            >
+            <form onSubmit={handleSubmit} className="space-y-4 text-sm">
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xl font-black text-slate-800 dark:text-white">{c.name}</h3>
-                  <span className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full">
-                    {c.productCount} أصناف
-                  </span>
-                </div>
-
-                {/* Performance Badges */}
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {isTopSelling && (
-                    <span className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-black px-2.5 py-1 rounded-xl">
-                      <Award size={14} /> الأعلى مبيعاً (Top Selling)
-                    </span>
-                  )}
-                  {isHighMargin && (
-                    <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs font-black px-2.5 py-1 rounded-xl">
-                      <Gem size={14} /> الأعلى ربحية (High Margin)
-                    </span>
-                  )}
-                  {hasLowStock && (
-                    <span className="flex items-center gap-1 bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300 text-xs font-black px-2.5 py-1 rounded-xl">
-                      <AlertTriangle size={14} /> {c.lowStockCount} أصناف منخفضة
-                    </span>
-                  )}
-                </div>
-
-                {/* Metrics Breakdown */}
-                <div className="space-y-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-                  <div className="flex justify-between p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                    <span>إجمالي الإيرادات:</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-mono text-sm">{c.totalSalesRevenue.toLocaleString()} ج.م</span>
-                  </div>
-                  <div className="flex justify-between p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                    <span>صافي الربح:</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">{c.netProfit.toLocaleString()} ج.م</span>
-                  </div>
-                  <div className="flex justify-between p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                    <span>هامش الربح %:</span>
-                    <span className="font-mono text-sm">{c.profitMargin}%</span>
-                  </div>
-                  <div className="flex justify-between p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                    <span>تقييم مخزون التصنيف (شراء):</span>
-                    <span className="font-mono text-sm">{c.stockPurchaseValue.toLocaleString()} ج.م</span>
-                  </div>
-                </div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">اسم الكوليكشن (مثل: ساعات، سلاسل، أساور، شنط) *</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 font-bold"
+                />
               </div>
-            </div>
-          );
-        })}
-      </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">رابط صورة الكوليكشن (اختياري)</label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/image.jpg"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 font-bold text-xs"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-xl">
+                  حفظ البيانات
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
