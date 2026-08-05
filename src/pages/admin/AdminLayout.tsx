@@ -74,7 +74,7 @@ export default function AdminLayout() {
     { name: 'الحسابات البنكية', path: '/admin/payment-accounts', icon: Landmark },
     { name: 'فلوس المتجر', path: '/admin/savings', icon: PiggyBank },
     { name: 'تحصيل المنصات', path: '/admin/carriers', icon: DollarSign },
-    { name: 'نقطة البيع', path: '/pos', icon: Printer, isExternal: true },
+    { name: 'نقطة البيع', path: '/admin/pos', icon: Printer },
     { name: 'النسخ الاحتياطي', path: '/admin/offline-invoices', icon: Database },
     ...(isOwner ? [{ name: 'المستخدمين', path: '/admin/users', icon: Users }] : []),
     { name: 'الوضع الداكن', path: '#dark-mode', icon: Moon, isAction: true },

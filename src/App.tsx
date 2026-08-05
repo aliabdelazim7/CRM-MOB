@@ -177,8 +177,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function ProtectedRoutePOS({ children }: { children: React.ReactNode }) {
-  const { isPOSAuthenticated } = useStore();
-  if (!isPOSAuthenticated) {
+  const { isPOSAuthenticated, isAdminAuthenticated } = useStore();
+  if (!isPOSAuthenticated && !isAdminAuthenticated) {
     return <Navigate to="/pos-login" replace />;
   }
   return <>{children}</>;
@@ -316,7 +316,9 @@ function App() {
             <Route path="purchase-invoices-page" element={<PurchaseInvoicesPage />} />
             <Route path="category-analytics" element={<CategoryAnalytics />} />
             <Route path="category-analytics-page" element={<CategoryAnalyticsPage />} />
+            <Route path="pos" element={<POS />} />
           </Route>
+          <Route path="/pos" element={<ProtectedRoutePOS><POS /></ProtectedRoutePOS>} />
           <Route path="/view-invoice/:id" element={<PublicInvoice />} />
           <Route path="/attendance" element={<Attendance />} />
         </Routes>
