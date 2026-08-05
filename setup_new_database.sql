@@ -449,7 +449,7 @@ end $$;
 
 -- 1. إعدادات المتجر
 insert into store_settings (name, currency, tax_rate, theme_color, initial_balance)
-select 'محل قطع غيار السيارات', 'ج.م', 0, '#4f46e5', 0
+select 'متجر الفخامة للساعات والإكسسوارات والشنط', 'ج.م', 0, '#4f46e5', 0
 where not exists (select 1 from store_settings);
 
 -- 2. شركات الشحن الافتراضية
@@ -475,105 +475,78 @@ select 'المخزن الرئيسي', 'المقر الرئيسي', 'active'
 where not exists (select 1 from warehouses where name = 'المخزن الرئيسي');
 
 insert into warehouses (name, location, status)
-select 'مخزن الفرع الثاني', 'الفرع الثاني', 'active'
-where not exists (select 1 from warehouses where name = 'مخزن الفرع الثاني');
+select 'مخزن المعرض والفرع الثاني', 'معرض المنتجات', 'active'
+where not exists (select 1 from warehouses where name = 'مخزن المعرض والفرع الثاني');
 
--- 4. التصنيفات (8 تصنيفات)
+-- 4. التصنيفات (8 تصنيفات متخصصة)
 insert into categories (name) values
-  ('فلاتر وزيوت'),
-  ('فرامل'),
-  ('نظام التعليق والعفشة'),
-  ('كهرباء وبطاريات'),
-  ('المحرك والتبريد'),
-  ('الإطارات والجنوط'),
-  ('الإضاءة والكشافات'),
-  ('إكسسوارات وكماليات')
+  ('ساعات نسائية ورجالية'),
+  ('سلاسل ونسبيات'),
+  ('أساور وبراسلين'),
+  ('شنط وحقائب يد'),
+  ('خواتم ودلايات'),
+  ('محافظ جلدية وإكسسوارات'),
+  ('نظارات شمسية فاخرة'),
+  ('طقم هدايا وتغليف')
 on conflict do nothing;
 
--- 5. المنتجات (72 منتج متكامل)
+-- 5. تشكيلة المنتجات والكوليكشن المتكامل
 insert into products (name, barcode, purchase_price, average_purchase_price, sale_price, stock_quantity, category_id) values
--- 1) فلاتر وزيوت
-('فلتر زيت تويوتا أصلي',            '1001', 90,  90,  150,  60, (select id from categories where name='فلاتر وزيوت')),
-('فلتر هواء هيونداي',               '1002', 120, 120, 200,  40, (select id from categories where name='فلاتر وزيوت')),
-('فلتر بنزين بوش',                  '1003', 80,  80,  140,  50, (select id from categories where name='فلاتر وزيوت')),
-('فلتر تكييف كابين',                '1004', 110, 110, 190,  45, (select id from categories where name='فلاتر وزيوت')),
-('زيت محرك توتال 5W-30 (4 لتر)',    '1005', 850, 850, 1150, 30, (select id from categories where name='فلاتر وزيوت')),
-('زيت محرك موبيل 1 10W-40 (4 لتر)', '1006', 950, 950, 1300, 25, (select id from categories where name='فلاتر وزيوت')),
-('زيت فتيس أوتوماتيك ATF',          '1007', 220, 220, 340,  35, (select id from categories where name='فلاتر وزيوت')),
-('زيت فرامل DOT4',                  '1008', 70,  70,  120,  50, (select id from categories where name='فلاتر وزيوت')),
-('شحم تشحيم متعدد الأغراض',         '1009', 60,  60,  110,  40, (select id from categories where name='فلاتر وزيوت')),
--- 2) فرامل
-('تيل فرامل أمامي كوري',            '2001', 350, 350, 520,  30, (select id from categories where name='فرامل')),
-('تيل فرامل خلفي',                  '2002', 300, 300, 460,  25, (select id from categories where name='فرامل')),
-('هوب فرامل خلفي (طقم)',            '2003', 280, 280, 430,  20, (select id from categories where name='فرامل')),
-('اسطوانة فرامل ماستر',            '2004', 650, 650, 950,  10, (select id from categories where name='فرامل')),
-('ديسك فرامل أمامي (حلة)',          '2005', 700, 700, 1050, 15, (select id from categories where name='فرامل')),
-('طقم خراطيم فرامل',                '2006', 180, 180, 300,  25, (select id from categories where name='فرامل')),
-('علبة زيت فرامل ATE',              '2007', 90,  90,  150,  40, (select id from categories where name='فرامل')),
-('حساس ABS',                        '2008', 420, 420, 650,  12, (select id from categories where name='فرامل')),
-('كرتيرة فرامل اليد',               '2009', 130, 130, 220,  18, (select id from categories where name='فرامل')),
--- 3) نظام التعليق والعفشة
-('مساعد أمامي KYB',                 '3001', 750,  750,  1050, 16, (select id from categories where name='نظام التعليق والعفشة')),
-('مساعد خلفي KYB',                  '3002', 700,  700,  1000, 16, (select id from categories where name='نظام التعليق والعفشة')),
-('طقم مقصات أمامي',                 '3003', 1300, 1300, 1850, 8,  (select id from categories where name='نظام التعليق والعفشة')),
-('كاوتش مقص (جلبة)',                '3004', 90,   90,   160,  50, (select id from categories where name='نظام التعليق والعفشة')),
-('عمود إكسل CV',                    '3005', 950,  950,  1400, 10, (select id from categories where name='نظام التعليق والعفشة')),
-('رمان بلي عجل أمامي',              '3006', 280,  280,  450,  22, (select id from categories where name='نظام التعليق والعفشة')),
-('كرة إيد (بول جوينت)',             '3007', 150,  150,  260,  30, (select id from categories where name='نظام التعليق والعفشة')),
-('طقم جلب مساعد',                   '3008', 120,  120,  210,  28, (select id from categories where name='نظام التعليق والعفشة')),
-('قاعدة محرك (كرسي ماكينة)',        '3009', 320,  320,  500,  14, (select id from categories where name='نظام التعليق والعفشة')),
--- 4) كهرباء وبطاريات
-('بطارية كلورايد 70 أمبير',         '4001', 1900, 1900, 2400, 20, (select id from categories where name='كهرباء وبطاريات')),
-('بطارية AC ديلكو 60 أمبير',        '4002', 1700, 1700, 2150, 18, (select id from categories where name='كهرباء وبطاريات')),
-('طقم بوجيهات NGK',                 '4003', 320,  320,  470,  30, (select id from categories where name='كهرباء وبطاريات')),
-('موبينة كهرباء (كويل)',            '4004', 520,  520,  760,  15, (select id from categories where name='كهرباء وبطاريات')),
-('مارش (ستارتر) مجدد',              '4005', 1200, 1200, 1750, 8,  (select id from categories where name='كهرباء وبطاريات')),
-('دينامو شحن',                      '4006', 1500, 1500, 2100, 6,  (select id from categories where name='كهرباء وبطاريات')),
-('حساس أكسجين (بلاجة)',             '4007', 600,  600,  900,  12, (select id from categories where name='كهرباء وبطاريات')),
-('منظم جهد (ريجيليتر)',             '4008', 280,  280,  440,  16, (select id from categories where name='كهرباء وبطاريات')),
-('أسلاك بوجيهات (طقم)',             '4009', 180,  180,  300,  25, (select id from categories where name='كهرباء وبطاريات')),
--- 5) المحرك والتبريد
-('سير كاتينة (تيمنج) دايكو',        '5001', 250, 250, 400,  20, (select id from categories where name='المحرك والتبريد')),
-('سير مكنة (سير دينامو)',           '5002', 120, 120, 210,  35, (select id from categories where name='المحرك والتبريد')),
-('طلمبة مياه',                      '5003', 380, 380, 580,  18, (select id from categories where name='المحرك والتبريد')),
-('ترموستات',                        '5004', 110, 110, 190,  30, (select id from categories where name='المحرك والتبريد')),
-('رادياتير ألومنيوم',               '5005', 950, 950, 1400, 10, (select id from categories where name='المحرك والتبريد')),
-('طلمبة بنزين بوش',                 '5006', 600, 600, 900,  12, (select id from categories where name='المحرك والتبريد')),
-('جوان وش سلندر',                   '5007', 280, 280, 450,  20, (select id from categories where name='المحرك والتبريد')),
-('طلمبة زيت',                       '5008', 420, 420, 650,  14, (select id from categories where name='المحرك والتبريد')),
-('مروحة تبريد كهربائية',            '5009', 700, 700, 1050, 8,  (select id from categories where name='المحرك والتبريد')),
--- 6) الإطارات والجنوط
-('إطار 175/70 R13',                 '6001', 1200, 1200, 1650, 24, (select id from categories where name='الإطارات والجنوط')),
-('إطار 185/65 R15',                 '6002', 1600, 1600, 2150, 20, (select id from categories where name='الإطارات والجنوط')),
-('إطار 195/55 R16',                 '6003', 1900, 1900, 2500, 16, (select id from categories where name='الإطارات والجنوط')),
-('جنط حديد 14 بوصة',                '6004', 600,  600,  900,  18, (select id from categories where name='الإطارات والجنوط')),
-('جنط سبور 15 بوصة',                '6005', 1400, 1400, 2000, 12, (select id from categories where name='الإطارات والجنوط')),
-('غطاء جنط (طاسة) طقم',             '6006', 220,  220,  360,  25, (select id from categories where name='الإطارات والجنوط')),
-('صمام هواء (بلف) طقم',             '6007', 25,   25,   50,   80, (select id from categories where name='الإطارات والجنوط')),
-('طقم صواميل عجل',                  '6008', 90,   90,   160,  40, (select id from categories where name='الإطارات والجنوط')),
-('عجلة احتياطي (ستبني)',            '6009', 1100, 1100, 1550, 10, (select id from categories where name='الإطارات والجنوط')),
--- 7) الإضاءة والكشافات
-('فانوس أمامي LED',                 '7001', 1100, 1100, 1600, 10, (select id from categories where name='الإضاءة والكشافات')),
-('لمبة هالوجين H4',                 '7002', 60,   60,   110,  60, (select id from categories where name='الإضاءة والكشافات')),
-('لمبة LED بيضاء H7',               '7003', 180,  180,  300,  40, (select id from categories where name='الإضاءة والكشافات')),
-('كشاف ضباب أمامي',                 '7004', 320,  320,  500,  18, (select id from categories where name='الإضاءة والكشافات')),
-('فانوس خلفي (ستوب)',               '7005', 450,  450,  700,  14, (select id from categories where name='الإضاءة والكشافات')),
-('لمبة إشارة (فلاشر)',              '7006', 30,   30,   60,   70, (select id from categories where name='الإضاءة والكشافات')),
-('كشاف داخلي LED',                  '7007', 70,   70,   130,  45, (select id from categories where name='الإضاءة والكشافات')),
-('ريليه فلاشر',                     '7008', 80,   80,   140,  30, (select id from categories where name='الإضاءة والكشافات')),
-('شريط LED مرن للديكور',            '7009', 120,  120,  220,  35, (select id from categories where name='الإضاءة والكشافات')),
--- 8) إكسسوارات وكماليات
-('مساحات زجاج أمامي (طقم)',         '8001', 130,  130,  230,  50,  (select id from categories where name='إكسسوارات وكماليات')),
-('فرش أرضية مطاط (طقم)',            '8002', 250,  250,  420,  30,  (select id from categories where name='إكسسوارات وكماليات')),
-('كفر تابلوه جلد',                  '8003', 180,  180,  320,  25,  (select id from categories where name='إكسسوارات وكماليات')),
-('شاحن موبايل للسيارة USB',         '8004', 90,   90,   170,  60,  (select id from categories where name='إكسسوارات وكماليات')),
-('حامل موبايل مغناطيسي',            '8005', 70,   70,   140,  55,  (select id from categories where name='إكسسوارات وكماليات')),
-('معطر جو للسيارة',                 '8006', 25,   25,   55,   100, (select id from categories where name='إكسسوارات وكماليات')),
-('كاميرا خلفية للرجوع',             '8007', 350,  350,  580,  16,  (select id from categories where name='إكسسوارات وكماليات')),
-('شاشة أندرويد 9 بوصة',             '8008', 2200, 2200, 3200, 8,   (select id from categories where name='إكسسوارات وكماليات')),
-('طفاية حريق صغيرة للسيارة',        '8009', 150,  150,  270,  20,  (select id from categories where name='إكسسوارات وكماليات'))
+-- 1) ساعات نسائية ورجالية
+('ساعة رولكس ستيل مينا سوداء',              '1001', 1500, 1500, 2400, 15, (select id from categories where name='ساعات نسائية ورجالية')),
+('ساعة كاسيو إيديفيس رجالي سبورت',           '1002', 650,  650,  1100, 25, (select id from categories where name='ساعات نسائية ورجالية')),
+('ساعة كارتييه سانتوس جلد بني',              '1003', 1800, 1800, 2900, 10, (select id from categories where name='ساعات نسائية ورجالية')),
+('ساعة أوميغا سيمستر استيل',                '1004', 2100, 2100, 3400, 8,  (select id from categories where name='ساعات نسائية ورجالية')),
+('ساعة نسائية روز جولد فصوص كريستال',        '1005', 450,  450,  850,  30, (select id from categories where name='ساعات نسائية ورجالية')),
+('ساعة ذكية سمارت ووتش الترا',               '1006', 550,  550,  950,  40, (select id from categories where name='ساعات نسائية ورجالية')),
+('ساعة هوبلوت مطاط أسود رجالي',              '1007', 1400, 1400, 2200, 12, (select id from categories where name='ساعات نسائية ورجالية')),
+
+-- 2) سلاسل ونسبيات
+('سلسلة فضة عيار 925 دلاية قلب',             '2001', 280,  280,  480,  35, (select id from categories where name='سلاسل ونسبيات')),
+('سلسلة ذهب صيني لون ثابت دلاية فراشة',      '2002', 120,  120,  240,  50, (select id from categories where name='سلاسل ونسبيات')),
+('عقد لؤلؤ طبيعي كلاسيك',                  '2003', 450,  450,  850,  20, (select id from categories where name='سلاسل ونسبيات')),
+('سلسلة رجالي كارتييه ستيل ذهبي',             '2004', 190,  190,  360,  30, (select id from categories where name='سلاسل ونسبيات')),
+('سلسلة نسائية متعددة الطبقات Layered',     '2005', 160,  160,  310,  25, (select id from categories where name='سلاسل ونسبيات')),
+('كوليه سهرة فصوص زيركون براقة',             '2006', 380,  380,  720,  15, (select id from categories where name='سلاسل ونسبيات')),
+
+-- 3) أساور وبراسلين
+('إسوارة كارتييه لوف ستيل ذهبي مع مفك',       '3001', 320,  320,  580,  30, (select id from categories where name='أساور وبراسلين')),
+('إسوارة فان كليف أربيلس 5 وردات',          '3002', 290,  290,  540,  35, (select id from categories where name='أساور وبراسلين')),
+('بوشرون إسوارة عريضة جولد',                '3003', 350,  350,  650,  20, (select id from categories where name='أساور وبراسلين')),
+('أسوارة جلد رجالي مع قفل استيل',             '3004', 140,  140,  270,  40, (select id from categories where name='أساور وبراسلين')),
+('طقم أساور تنس فصوص زيركون',               '3005', 260,  260,  490,  25, (select id from categories where name='أساور وبراسلين')),
+('إسوارة فضة حريمي أحجار زرقاء',             '3006', 310,  310,  590,  18, (select id from categories where name='أساور وبراسلين')),
+
+-- 4) شنط وحقائب يد
+('شنطة يد كوتش جلد طبيعي بيج',              '4001', 850,  850,  1450, 15, (select id from categories where name='شنط وحقائب يد')),
+('شنطة كروس شانيل غطاء حزام سلسلة',         '4002', 950,  950,  1650, 12, (select id from categories where name='شنط وحقائب يد')),
+('شنطة ظهر لويس فيتون مونوغرام',             '4003', 1100, 1100, 1850, 10, (select id from categories where name='شنط وحقائب يد')),
+('شنطة يد حريمي كلاسيك برادا سوداء',          '4004', 900,  900,  1550, 14, (select id from categories where name='شنط وحقائب يد')),
+('شنطة يد وسط مايكل كورس جولد',             '4005', 780,  780,  1350, 18, (select id from categories where name='شنط وحقائب يد')),
+('حقيبة يد نسائية للمناسبات والسهرة',         '4006', 420,  420,  780,  22, (select id from categories where name='شنط وحقائب يد')),
+
+-- 5) خواتم ودلايات
+('خاتم توينز فضة فصوص زيركون',              '5001', 210,  210,  390,  30, (select id from categories where name='خواتم ودلايات')),
+('خاتم سوليتير أنيق لون فضي',               '5002', 180,  180,  340,  35, (select id from categories where name='خواتم ودلايات')),
+('دبلة رجالي تيتانيوم أسود',                '5003', 130,  130,  250,  40, (select id from categories where name='خواتم ودلايات')),
+('دلاية فضة عيار 925 شكل ما شاء الله',        '5004', 150,  150,  290,  25, (select id from categories where name='خواتم ودلايات')),
+
+-- 6) محافظ جلدية وإكسسوارات
+('محفظة رجالي جلد طبيعي تومي',               '6001', 180,  180,  340,  40, (select id from categories where name='محافظ جلدية وإكسسوارات')),
+('محفظة كروت ذكية ألومنيوم ضد السرقة',        '6002', 90,   90,   190,  50, (select id from categories where name='محافظ جلدية وإكسسوارات')),
+('بورتفيه نسائي سواريه جلد طبيعي',           '6003', 290,  290,  520,  25, (select id from categories where name='محافظ جلدية وإكسسوارات')),
+('حزام رجالي جلد طبيعي قفل اتوماتيك',        '6004', 170,  170,  320,  30, (select id from categories where name='محافظ جلدية وإكسسوارات')),
+
+-- 7) نظارات شمسية فاخرة
+('نظارة شمسية راي بان أفياتور كلاسيك',        '7001', 420,  420,  780,  20, (select id from categories where name='نظارات شمسية فاخرة')),
+('نظارة شمسية كارتييه فريم جولد',             '7002', 580,  580,  990,  15, (select id from categories where name='نظارات شمسية فاخرة')),
+('نظارة شمسية حريمي كات آي ديور',            '7003', 480,  480,  850,  18, (select id from categories where name='نظارات شمسية فاخرة')),
+
+-- 8) طقم هدايا وتغليف
+('علبة هدايا قطيفة فاخرة للساعات والأسورة',    '8001', 45,   45,   95,   80, (select id from categories where name='طقم هدايا وتغليف')),
+('بوكس هدايا VIP مجمع (ساعة + سلسلة + قلم + محفظة)', '8002', 750, 750, 1350, 15, (select id from categories where name='طقم هدايا وتغليف'))
 on conflict (barcode) do nothing;
 
 -- ============================================================
--- تم الإعداد بنجاح! قاعدة البيانات وجداول النظام وموديولات HANCES PRO جاهزة.
+-- تم الإعداد بنجاح! قاعدة البيانات وتشكيلة الساعات والإكسسوارات والشنط جاهزة.
 -- ============================================================
