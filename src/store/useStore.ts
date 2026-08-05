@@ -5254,7 +5254,7 @@ setupRealtime: () => {
     if (error || !data) {
       console.warn("Supabase product insert failed, keeping product in local state:", error?.message);
       data = {
-        id: product.id || `PROD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        id: (product as any).id || `PROD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         ...product,
         created_at: new Date().toISOString(),
       };
