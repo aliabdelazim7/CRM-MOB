@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useStore, type Product } from '../../store/useStore';
-import { Plus, Edit2, EyeOff, Eye, Search, X, Tag, FileText, Table as TableIcon, Box, AlertTriangle, TrendingUp, ScanLine, CheckCircle2, Printer, Upload, Download, ArrowLeftRight, Layers, Trash2 } from 'lucide-react';
+import { Plus, Edit2, EyeOff, Eye, Search, X, Tag, FileText, Table as TableIcon, Box, AlertTriangle, TrendingUp, ScanLine, CheckCircle2, Printer, Upload, Download, ArrowLeftRight, Layers, Trash2, Image as ImageIcon } from 'lucide-react';
 import { normalizeArabic } from '../../utils/textUtils';
 import { splitStockValueBySource, totalIntakeValue, intakeSourceLabel } from '../../utils/stockIntake';
 import { UNIT_OPTIONS, getUnitConfig, isFractionalUnit, formatQty } from '../../utils/units';
@@ -295,6 +295,7 @@ export default function Inventory() {
     setFormData({
       name: product.name,
       barcode: product.barcode || '',
+      image_url: product.image_url || '',
       purchase_price: product.purchase_price,
       average_purchase_price: product.average_purchase_price || product.purchase_price,
       sale_price: product.sale_price,
@@ -310,13 +311,16 @@ export default function Inventory() {
 
       website_ad_cost: product.website_ad_cost || 0,
       amazon_price: product.amazon_price || 0,
+      amazon_discount_price: product.amazon_discount_price || 0,
       amazon_commission: product.amazon_commission || 0,
       amazon_ad_cost: product.amazon_ad_cost || 0,
       noon_price: product.noon_price || 0,
+      noon_discount_price: product.noon_discount_price || 0,
       noon_commission: product.noon_commission || 0,
       noon_shipping: product.noon_shipping || 0,
       noon_ad_cost: product.noon_ad_cost || 0,
       jumia_price: product.jumia_price || 0,
+      jumia_discount_price: product.jumia_discount_price || 0,
       jumia_commission: product.jumia_commission || 0,
       jumia_shipping: product.jumia_shipping || 0,
       jumia_ad_cost: product.jumia_ad_cost || 0,
@@ -330,6 +334,7 @@ export default function Inventory() {
     setFormData({
       name: '',
       barcode: '',
+      image_url: '',
       purchase_price: 0,
       average_purchase_price: 0,
       sale_price: 0,
@@ -345,13 +350,16 @@ export default function Inventory() {
 
       website_ad_cost: 0,
       amazon_price: 0,
+      amazon_discount_price: 0,
       amazon_commission: 0,
       amazon_ad_cost: 0,
       noon_price: 0,
+      noon_discount_price: 0,
       noon_commission: 0,
       noon_shipping: 0,
       noon_ad_cost: 0,
       jumia_price: 0,
+      jumia_discount_price: 0,
       jumia_commission: 0,
       jumia_shipping: 0,
       jumia_ad_cost: 0,
@@ -422,6 +430,7 @@ export default function Inventory() {
     setFormData({
       name: '',
       barcode: '',
+      image_url: '',
       purchase_price: 0,
       average_purchase_price: 0,
       sale_price: 0,
@@ -437,13 +446,16 @@ export default function Inventory() {
 
       website_ad_cost: 0,
       amazon_price: 0,
+      amazon_discount_price: 0,
       amazon_commission: 0,
       amazon_ad_cost: 0,
       noon_price: 0,
+      noon_discount_price: 0,
       noon_commission: 0,
       noon_shipping: 0,
       noon_ad_cost: 0,
       jumia_price: 0,
+      jumia_discount_price: 0,
       jumia_commission: 0,
       jumia_shipping: 0,
       jumia_ad_cost: 0,
@@ -822,6 +834,26 @@ export default function Inventory() {
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">اسم المنتج <span className="text-red-500">*</span></label>
                   <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">رابط صورة المنتج (URL) <span className="text-[10px] text-slate-400">(تظهر بالمجدول والسيستم)</span></label>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      value={formData.image_url}
+                      onChange={e => setFormData({...formData, image_url: e.target.value})}
+                      className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none text-left font-mono text-xs"
+                      dir="ltr"
+                    />
+                    {formData.image_url ? (
+                      <img src={formData.image_url} alt="Preview" className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm bg-white dark:bg-slate-900 p-0.5" />
+                    ) : (
+                      <div className="w-11 h-11 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center shrink-0 text-slate-400">
+                        <ImageIcon size={18} />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">المورد <span className="text-[10px] text-slate-400">(اختياري)</span></label>
