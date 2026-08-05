@@ -10,3 +10,14 @@ export const normalizeArabic = (text: string): string => {
     .trim();
 };
 
+export const formatImageUrl = (url?: string): string => {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('data:')) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+};
+

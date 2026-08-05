@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useStore, type Product } from '../../store/useStore';
 import { Plus, Edit2, EyeOff, Eye, Search, X, Tag, FileText, Table as TableIcon, Box, AlertTriangle, TrendingUp, ScanLine, CheckCircle2, Printer, Upload, Download, ArrowLeftRight, Layers, Trash2, Image as ImageIcon } from 'lucide-react';
-import { normalizeArabic } from '../../utils/textUtils';
+import { normalizeArabic, formatImageUrl } from '../../utils/textUtils';
 import { splitStockValueBySource, totalIntakeValue, intakeSourceLabel } from '../../utils/stockIntake';
 import { UNIT_OPTIONS, getUnitConfig, isFractionalUnit, formatQty } from '../../utils/units';
 import { generateBarcode, printBarcodeLabels, printBarcodeLabelsBatch } from '../../utils/printBarcodeLabels';
@@ -13,6 +13,23 @@ import html2canvas from 'html2canvas-pro';
 export default function Inventory() {
   const { products, categories, storeSettings, addProduct, updateProduct, orders, suppliers, addSupplier,
     stockIntakes, purchaseInvoices, logStockIntake, deleteStockIntake } = useStore();
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('حجم الصورة كبير جداً (أكبر من 4 ميجابايت). يرجى اختيار صورة أصغر.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setFormData(prev => ({ ...prev, image_url: base64 }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [stockLocation, setStockLocation] = useState<'all' | 'warehouse' | 'display'>('all');
   const [seasonFilter, setSeasonFilter] = useState<'all' | 'summer' | 'winter' | 'annual'>('all');
@@ -401,7 +418,8 @@ export default function Inventory() {
       return;
     }
 
-    let payload = { ...formData, barcode, supplier_name: supplierName };
+    const formattedImage = formatImageUrl(formData.image_url);
+    let payload = { ...formData, image_url: formattedImage, barcode, supplier_name: supplierName };
     try {
       if (editingProductId) {
         // المعروض لا يتجاوز الإجمالي
@@ -845,18 +863,24 @@ export default function Inventory() {
                   <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">رابط صورة المنتج (URL) <span className="text-[10px] text-slate-400">(تظهر بالمجدول والسيستم)</span></label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200">رابط صورة المنتج (URL) <span className="text-[10px] text-slate-400">(تظهر بالمجدول والسيستم)</span></label>
+                    <label className="cursor-pointer px-3 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 rounded-xl font-bold text-xs flex items-center gap-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition border border-indigo-200 dark:border-indigo-800 shrink-0">
+                      <Upload size={13} /> رفع صورة من الجهاز
+                      <input type="file" accept="image/*" className="hidden" onChange={handleImageFileUpload} />
+                    </label>
+                  </div>
                   <div className="flex gap-3 items-center">
                     <input
-                      type="url"
-                      placeholder="https://example.com/image.jpg"
+                      type="text"
+                      placeholder="ضع رابط الصورة هنا (مثلاً: https://...)"
                       value={formData.image_url}
                       onChange={e => setFormData({...formData, image_url: e.target.value})}
                       className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none text-left font-mono text-xs"
                       dir="ltr"
                     />
                     {formData.image_url ? (
-                      <img src={formData.image_url} alt="Preview" className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm bg-white dark:bg-slate-900 p-0.5" />
+                      <img src={formatImageUrl(formData.image_url)} alt="Preview" className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm bg-white dark:bg-slate-900 p-0.5" onError={(e) => { (e.target as HTMLElement).style.opacity = '0.3'; }} />
                     ) : (
                       <div className="w-11 h-11 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center shrink-0 text-slate-400">
                         <ImageIcon size={18} />
@@ -1813,9 +1837,10 @@ export default function Inventory() {
                     <td className="p-2.5 text-center">
                       {product.image_url ? (
                         <img
-                          src={product.image_url}
+                          src={formatImageUrl(product.image_url)}
                           alt={product.name}
                           className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm mx-auto bg-white dark:bg-slate-900 p-0.5"
+                          onError={(e) => { (e.target as HTMLElement).style.opacity = '0.3'; }}
                         />
                       ) : (
                         <div className="w-11 h-11 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center mx-auto text-slate-400">

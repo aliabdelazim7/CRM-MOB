@@ -10,7 +10,7 @@ import { HeldReturnModal } from '../components/HeldReturnModal';
 import { EditInvoiceModal } from '../components/EditInvoiceModal';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Banknote, RefreshCcw, Moon, Sun, ArrowRightLeft, X, Printer, CreditCard, Smartphone, Zap, ScanLine, Camera, Box, Check, ChevronRight, ChevronLeft, FileText, MessageSquare, Send, Wallet, Edit2, Eye, HandCoins, UserMinus, Clock, PauseCircle, Undo2, Truck, Hourglass, Play } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { normalizeArabic } from '../utils/textUtils';
+import { normalizeArabic, formatImageUrl } from '../utils/textUtils';
 import { printBarcodeLabelsBatch, generateBarcode } from '../utils/printBarcodeLabels';
 import { ALL_PAYMENT_KEYS, activePaymentKeys, payLabelOf, openingBalanceOf, totalOpeningBalance } from '../utils/paymentMethods';
 import { getUnitConfig, isFractionalUnit, formatQty } from '../utils/units';
@@ -3907,7 +3907,7 @@ export default function POS() {
                   <div className="w-full h-32 sm:h-36 md:h-40 mb-3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60 flex items-center justify-center shrink-0 relative group-hover:scale-[1.02] transition-transform">
                     {product.image_url ? (
                       <img
-                        src={product.image_url}
+                        src={formatImageUrl(product.image_url)}
                         alt={product.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
