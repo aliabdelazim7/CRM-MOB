@@ -642,6 +642,7 @@ export default function POS() {
   const paidTotal = activePayKeys.reduce((s, k) => s + paidVal(k), 0);
   const [discountStr, setDiscountStr] = useState('');
   const [couponInput, setCouponInput] = useState('');
+  const [customerDebt, setCustomerDebt] = useState<number>(0);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof document !== 'undefined') {
       const saved = localStorage.getItem('theme');
