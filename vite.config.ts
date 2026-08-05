@@ -12,7 +12,7 @@ import { VitePWA } from 'vite-plugin-pwa';
  * FaviconSwitcher — دول للعنوان والأيقونة داخل التطبيق.
  */
 function branding(env: Record<string, string>): Plugin {
-  const name = env.VITE_APP_NAME || 'ADRIA';
+  const name = env.VITE_APP_NAME || 'HANCES System';
   const description = env.VITE_APP_DESCRIPTION || 'نظام لإدارة المبيعات والمخزون والكاشير.';
   const siteUrl = (env.VITE_SITE_URL || 'https://cashier-branch3.vercel.app').replace(/\/+$/, '');
 
@@ -29,7 +29,7 @@ function branding(env: Record<string, string>): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const appName = env.VITE_APP_NAME || 'ADRIA';
+  const appName = env.VITE_APP_NAME || 'HANCES System';
   const appDescription = env.VITE_APP_DESCRIPTION || 'نظام لإدارة المبيعات والمخزون والكاشير.';
 
   return {

@@ -16,7 +16,7 @@ export default function FaviconSwitcher() {
   const location = useLocation();
   const { storeSettings } = useStore();
 
-  const name = storeSettings.name?.trim() || 'ADRIA';
+  const name = storeSettings.name?.trim() || 'HANCES System';
   const logo = storeSettings.logo?.trim() || '';
 
   useEffect(() => {

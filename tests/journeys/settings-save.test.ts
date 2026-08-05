@@ -69,9 +69,9 @@ beforeEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('قاعدة بيانات محدَّثة — كل الأعمدة موجودة', () => {
   it('الحفظ بينجح ومفيش حاجة اتخطّت', async () => {
-    const r = await useStore.getState().updateSettings({ logo: 'data:image/png;base64,AAA', name: 'ADRIA' });
+    const r = await useStore.getState().updateSettings({ logo: 'data:image/png;base64,AAA', name: 'HANCES System' });
     expect(r.skipped).toEqual([]);
-    expect(lastSaved).toEqual({ logo: 'data:image/png;base64,AAA', name: 'ADRIA' });
+    expect(lastSaved).toEqual({ logo: 'data:image/png;base64,AAA', name: 'HANCES System' });
     expect(attempts).toBe(1);
   });
 

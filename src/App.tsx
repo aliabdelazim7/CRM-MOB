@@ -136,7 +136,7 @@ function LoadingScreen() {
     <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 gap-4 p-8 text-center" dir="rtl">
       {/*
         كان دايرة indigo بتلف — لون مش من البراند وشكل مجهول الهوية.
-        بقى لوجو ADRIA وحواليه حلقة رفيعة بتلف بألوان البراند.
+        بقى لوجو HANCES System وحواليه حلقة رفيعة بتلف بألوان البراند.
       */}
       <div className="relative w-24 h-24" role="status" aria-label="جاري التحميل">
         <img src={DEFAULT_LOGO} alt="" className="absolute inset-3 w-[72px] h-[72px] rounded-2xl shadow-sm" />
