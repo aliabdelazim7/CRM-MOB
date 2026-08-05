@@ -39,6 +39,8 @@ where not exists (select 1 from store_settings);
 update store_settings set name = 'HANCES PRO — للساعات والإكسسوارات والشنط' where true;
 
 -- 3. إضافة الكوليكشنات والتصنيفات الأساسية
+alter table categories add column if not exists image_url text;
+
 insert into categories (name, image_url) values
   ('ساعات', 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60'),
   ('سلاسل', 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500&auto=format&fit=crop&q=60'),

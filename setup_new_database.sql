@@ -32,8 +32,10 @@ create table if not exists store_settings (
 create table if not exists categories (
   id uuid default gen_random_uuid() primary key,
   name text not null,
+  image_url text,
   created_at timestamptz default now()
 );
+alter table categories add column if not exists image_url text;
 
 -- 3. المنتجات
 create table if not exists products (
