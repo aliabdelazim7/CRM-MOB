@@ -715,26 +715,26 @@ export default function DeferredAccounts() {
    };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans text-slate-800">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans text-slate-800 dark:text-slate-100">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-slate-50 flex items-center gap-3">
             <BookUser style={{ color: storeSettings.themeColor }} size={32} />
             حسابات الآجل
           </h1>
-          <p className="text-slate-500 mt-2">إدارة مديونية العملاء وتحصيلها، ومستحقات الموردين وسدادها</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">إدارة مديونية العملاء وتحصيلها، ومستحقات الموردين وسدادها</p>
         </div>
         <div className="flex flex-col gap-3">
           <div className="flex bg-slate-200/50 p-1 rounded-xl self-end">
             <button
               onClick={() => setActiveTab('customers')}
-              className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'customers' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'customers' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
             >
               مديونية العملاء
             </button>
             <button
               onClick={() => setActiveTab('suppliers')}
-              className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'suppliers' ? 'bg-white text-slate-500 hover:text-slate-700' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'suppliers' ? 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
             >
               مستحقات الموردين
             </button>
@@ -773,7 +773,7 @@ export default function DeferredAccounts() {
               <input
                 type="text"
                 placeholder={`ابحث برقم الهاتف أو اسم ${activeTab === 'customers' ? 'العميل' : 'المورد'}...`}
-                className="w-full bg-white border border-slate-200 rounded-2xl py-3 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -782,10 +782,10 @@ export default function DeferredAccounts() {
         </div>
       </div>
 
-      <div id="deferred-table" className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+      <div id="deferred-table" className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right" dir="rtl">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm">
               <tr>
                 <th className="py-4 px-6 font-bold">{activeTab === 'customers' ? 'اسم العميل' : 'اسم المورد'}</th>
                 <th className="py-4 px-6 font-bold">رقم الهاتف</th>
@@ -794,16 +794,16 @@ export default function DeferredAccounts() {
                 <th className="py-4 px-6 font-bold text-left">إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {displayList.length > 0 ? (
                 displayList.map((entity: any) => (
-                  <tr key={entity.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-4 px-6 font-bold text-slate-800">{entity.name}</td>
-                    <td className="py-4 px-6 font-mono text-slate-600" dir="ltr">{entity.phone || '—'}</td>
+                  <tr key={entity.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <td className="py-4 px-6 font-bold text-slate-800 dark:text-slate-100">{entity.name}</td>
+                    <td className="py-4 px-6 font-mono text-slate-600 dark:text-slate-300" dir="ltr">{entity.phone || '—'}</td>
                     <td className="py-4 px-6">
                       <div className="flex flex-wrap gap-2">
                         {(entity.orders || entity.invoices).slice(0, 3).map((o: any) => (
-                          <span key={o.id} className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-md font-mono">
+                          <span key={o.id} className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs px-2 py-1 rounded-md font-mono">
                             #{o.id || o.invoice_number}
                           </span>
                         ))}
@@ -813,7 +813,7 @@ export default function DeferredAccounts() {
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-red-600 font-black text-lg bg-red-50 px-3 py-1 rounded-xl block w-max">
+                      <span className="text-red-600 dark:text-red-400 font-black text-lg bg-red-50 dark:bg-red-500/10 px-3 py-1 rounded-xl block w-max">
                         {entity.totalDebt.toFixed(2)} <span className="text-xs">{storeSettings.currency}</span>
                       </span>
                     </td>
@@ -825,7 +825,7 @@ export default function DeferredAccounts() {
                               setProfileCustomer(entity);
                               setIsProfileOpen(true);
                             }}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all text-xs"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-all text-xs"
                           >
                             <BookUser size={14} /> بروفايل الأجل
                           </button>
@@ -857,7 +857,7 @@ export default function DeferredAccounts() {
       {/* Payment Modal */}
       {isModalOpen && selectedEntity && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div 
               style={{ background: `linear-gradient(160deg, ${storeSettings.themeColor} 0%, ${storeSettings.themeColor}dd 100%)` }}
               className="p-6 text-white flex justify-between items-center shrink-0"
@@ -871,15 +871,15 @@ export default function DeferredAccounts() {
             </div>
             
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
-              <div className="flex flex-col items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 shrink-0">
-                <div className="text-sm font-bold text-slate-500 mb-1">{activeTab === 'customers' ? 'مديونية العميل' : 'مستحقات المورد'}</div>
-                <div className="text-3xl font-black text-red-600">{selectedInvoice ? selectedInvoice.current_debt.toFixed(2) : selectedEntity.totalDebt.toFixed(2)} <span className="text-lg">{storeSettings.currency}</span></div>
+              <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shrink-0">
+                <div className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">{activeTab === 'customers' ? 'مديونية العميل' : 'مستحقات المورد'}</div>
+                <div className="text-3xl font-black text-red-600 dark:text-red-400">{selectedInvoice ? selectedInvoice.current_debt.toFixed(2) : selectedEntity.totalDebt.toFixed(2)} <span className="text-lg">{storeSettings.currency}</span></div>
                 <div className="mt-2 text-sm font-semibold">{selectedEntity.name} - <span dir="ltr">{selectedEntity.phone || '—'}</span></div>
               </div>
 
               {activeTab === 'customers' && selectedEntity.orders?.length > 0 && (
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shrink-0 flex flex-col max-h-[35vh]">
-                  <div className="text-xs font-bold text-slate-500 mb-3 flex justify-between shrink-0">
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 shrink-0 flex flex-col max-h-[35vh]">
+                  <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 flex justify-between shrink-0">
                     <span>الفواتير المستحقة ({selectedEntity.orders.length})</span>
                     {selectedInvoice && (
                       <button 
@@ -895,14 +895,14 @@ export default function DeferredAccounts() {
                       <div 
                         key={o.id} 
                         onClick={() => setSelectedInvoice(o)}
-                        className={`flex justify-between items-center p-3 rounded-xl border cursor-pointer transition ${selectedInvoice?.id === o.id ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-white hover:border-indigo-300'}`}
+                        className={`flex justify-between items-center p-3 rounded-xl border cursor-pointer transition ${selectedInvoice?.id === o.id ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300'}`}
                       >
                         <div>
-                          <div className="font-bold text-sm text-slate-800">فاتورة #{o.id}</div>
-                          <div className="text-xs text-slate-500">{new Date(o.created_at || o.date || new Date()).toLocaleDateString('ar-EG')}</div>
+                          <div className="font-bold text-sm text-slate-800 dark:text-slate-100">فاتورة #{o.id}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{new Date(o.created_at || o.date || new Date()).toLocaleDateString('ar-EG')}</div>
                         </div>
                         <div className="text-left">
-                          <div className="font-black text-red-600">{o.current_debt.toFixed(2)} {storeSettings.currency}</div>
+                          <div className="font-black text-red-600 dark:text-red-400">{o.current_debt.toFixed(2)} {storeSettings.currency}</div>
                           {o.notes && <div className="text-[10px] text-slate-400 max-w-[120px] truncate" title={o.notes}>{o.notes}</div>}
                         </div>
                       </div>
@@ -920,43 +920,43 @@ export default function DeferredAccounts() {
                     value={paymentForm}
                     onChange={(k, v) => setPaymentForm({ ...paymentForm, [k]: v })}
                     labelClassName="block text-[10px] font-bold text-slate-400 mb-1 uppercase text-right"
-                    inputClassName="w-full border border-slate-200 rounded-xl py-3 px-3 text-lg font-black text-center focus:ring-2 focus:ring-indigo-500"
+                    inputClassName="w-full border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-3 text-lg font-black text-center focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
                 {/* مصدر السداد: الكاشير (الافتراضي) أو الخزنة الرئيسية.
                     «الرئيسية» بيخلّي التحصيل ميظهرش في درج الكاشير — زي تحصيل بيع الجملة. */}
-                <div className="sm:col-span-2 border-t border-dashed border-slate-200 pt-3">
+                <div className="sm:col-span-2 border-t border-dashed border-slate-200 dark:border-slate-700 pt-3">
                   <label className="block text-[11px] font-bold text-slate-400 mb-1.5 text-right">تروح لأي خزنة؟</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setToMain(false)}
-                      className={`py-2.5 rounded-xl text-xs font-bold border transition ${!toMain ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-indigo-200'}`}
+                      className={`py-2.5 rounded-xl text-xs font-bold border transition ${!toMain ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-200'}`}
                     >
                       🧾 خزنة الكاشير
                     </button>
                     <button
                       type="button"
                       onClick={() => setToMain(true)}
-                      className={`py-2.5 rounded-xl text-xs font-bold border transition ${toMain ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-indigo-200'}`}
+                      className={`py-2.5 rounded-xl text-xs font-bold border transition ${toMain ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-200'}`}
                     >
                       🏦 الخزنة الرئيسية
                     </button>
                   </div>
                   {toMain && (
-                    <p className="text-[10px] text-amber-600 font-bold mt-1.5 text-right">
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mt-1.5 text-right">
                       مش هيظهر في درج الكاشير ولا في تقفيل اليوم — هيتسجّل في الخزنة الرئيسية.
                     </p>
                   )}
                 </div>
                 {activeTab === 'customers' && (
-                  <div className="sm:col-span-2 border-t border-dashed border-slate-200 pt-3">
-                    <label className="block text-xs font-bold text-emerald-600 mb-1 text-right">🎁 خصم / إكرامية (سماح)</label>
+                  <div className="sm:col-span-2 border-t border-dashed border-slate-200 dark:border-slate-700 pt-3">
+                    <label className="block text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1 text-right">🎁 خصم / إكرامية (سماح)</label>
                     <input
                       type="number" dir="ltr"
                       placeholder="0"
-                      className="w-full border border-emerald-200 bg-emerald-50/20 rounded-xl py-3 px-3 text-lg font-black text-center text-emerald-700 focus:ring-2 focus:ring-emerald-500"
+                      className="w-full border border-emerald-200 dark:border-emerald-500/40 bg-emerald-50/20 rounded-xl py-3 px-3 text-lg font-black text-center text-emerald-700 dark:text-emerald-300 focus:ring-2 focus:ring-emerald-500"
                       value={paymentForm.discount}
                       onChange={(e) => setPaymentForm({...paymentForm, discount: e.target.value})}
                     />
@@ -964,7 +964,7 @@ export default function DeferredAccounts() {
                 )}
               </div>
 
-              <div className="bg-slate-900 p-4 rounded-2xl text-center space-y-2">
+              <div className="bg-slate-900 dark:bg-slate-700 p-4 rounded-2xl text-center space-y-2">
                 <div className="flex justify-between items-center text-xs font-bold text-slate-400 px-2">
                   <span>{activeTab === 'customers' ? 'المبلغ المحصل فعلياً:' : 'المبلغ المدفوع فعلياً:'}</span>
                   <span className="text-white text-sm">
@@ -997,7 +997,7 @@ export default function DeferredAccounts() {
                 </button>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 border border-slate-200 hover:bg-slate-50 text-slate-600 py-3.5 rounded-xl font-bold transition"
+                  className="px-6 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 py-3.5 rounded-xl font-bold transition"
                 >
                   إلغاء
                 </button>
@@ -1010,7 +1010,7 @@ export default function DeferredAccounts() {
       {/* Add Debt Modal */}
       {isAddDebtOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
             <div
               style={{ background: `linear-gradient(160deg, ${storeSettings.themeColor} 0%, ${storeSettings.themeColor}dd 100%)` }}
               className="p-6 text-white flex justify-between items-center"
@@ -1026,16 +1026,16 @@ export default function DeferredAccounts() {
             <div className="p-6 space-y-5">
               {/* Entity selection */}
               <div className="relative">
-                <label className="block text-sm font-bold text-slate-700 mb-2">اختر {activeTab === 'customers' ? 'العميل' : 'المورد'}</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">اختر {activeTab === 'customers' ? 'العميل' : 'المورد'}</label>
                 {selectedAddDebtEntity ? (
-                  <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
                     <div className="flex flex-col">
-                      <span className="font-bold text-slate-800">{selectedAddDebtEntity.name}</span>
-                      <span className="text-xs text-slate-500 font-mono" dir="ltr">{selectedAddDebtEntity.phone || '—'}</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100">{selectedAddDebtEntity.name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono" dir="ltr">{selectedAddDebtEntity.phone || '—'}</span>
                     </div>
                     <button 
                       onClick={() => setSelectedAddDebtEntity(null)}
-                      className="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition"
+                      className="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/25 px-3 py-1.5 rounded-lg transition"
                     >
                       تغيير
                     </button>
@@ -1046,7 +1046,7 @@ export default function DeferredAccounts() {
                       <input
                         type="text"
                         placeholder={`ابحث باسم ${activeTab === 'customers' ? 'العميل' : 'المورد'} أو رقم الموبايل...`}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-4 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 pr-4 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                         value={addDebtSearch}
                         onChange={e => {
                           setAddDebtSearch(e.target.value);
@@ -1056,7 +1056,7 @@ export default function DeferredAccounts() {
                       />
                     </div>
                     {showSuggestions && addDebtSearch.trim() && (
-                      <div className="absolute right-0 left-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-[60] animate-in slide-in-from-top-2 duration-150 max-h-56 overflow-y-auto">
+                      <div className="absolute right-0 left-0 mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-[60] animate-in slide-in-from-top-2 duration-150 max-h-56 overflow-y-auto">
                         {(activeTab === 'customers' ? filteredSearchCustomers : filteredSearchSuppliers).length > 0 ? (
                           (activeTab === 'customers' ? filteredSearchCustomers : filteredSearchSuppliers).map((item: any) => (
                             <button
@@ -1065,11 +1065,11 @@ export default function DeferredAccounts() {
                                 setSelectedAddDebtEntity(item);
                                 setShowSuggestions(false);
                               }}
-                              className="w-full p-3 text-right hover:bg-indigo-50 flex items-center justify-between border-b border-slate-100 last:border-0"
+                              className="w-full p-3 text-right hover:bg-indigo-50 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 last:border-0"
                             >
                               <div className="flex flex-col items-start text-right">
-                                <span className="font-bold text-slate-800 text-sm">{item.name}</span>
-                                <span className="text-xs text-slate-500 font-mono">{item.phone || '—'}</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">{item.name}</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{item.phone || '—'}</span>
                               </div>
                               {activeTab === 'customers' ? <User size={16} className="text-slate-400" /> : <Truck size={16} className="text-slate-400" />}
                             </button>
@@ -1099,12 +1099,12 @@ export default function DeferredAccounts() {
 
               {/* Debt amount */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{activeTab === 'customers' ? 'رصيد مديونية العميل القديم' : 'رصيد مستحقات المورد القديم'}</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">{activeTab === 'customers' ? 'رصيد مديونية العميل القديم' : 'رصيد مستحقات المورد القديم'}</label>
                 <div className="relative">
                   <input
                     type="number"
                     dir="ltr"
-                    className="w-full border border-slate-200 rounded-xl py-4 px-4 text-xl font-black text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-xl py-4 px-4 text-xl font-black text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
                     value={addDebtAmount}
                     onChange={(e) => setAddDebtAmount(e.target.value)}
                     placeholder="0.00"
@@ -1116,11 +1116,11 @@ export default function DeferredAccounts() {
               
               {/* Debt Notes */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">الوصف / البيان (اختياري)</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">الوصف / البيان (اختياري)</label>
                 <div className="relative">
                   <input
                     type="text"
-                    className="w-full border border-slate-200 rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
                     value={addDebtNotes}
                     onChange={(e) => setAddDebtNotes(e.target.value)}
                     placeholder="مثال: رصيد مرحل من الدفتر القديم..."
@@ -1139,7 +1139,7 @@ export default function DeferredAccounts() {
                 </button>
                 <button
                   onClick={() => setIsAddDebtOpen(false)}
-                  className="px-6 border border-slate-200 hover:bg-slate-50 text-slate-600 py-3.5 rounded-xl font-bold transition"
+                  className="px-6 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 py-3.5 rounded-xl font-bold transition"
                 >
                   إلغاء
                 </button>
@@ -1152,7 +1152,7 @@ export default function DeferredAccounts() {
       {/* Customer Profile Modal */}
       {isProfileOpen && profileCustomer && profileData && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div 
               style={{ background: `linear-gradient(160deg, ${storeSettings.themeColor} 0%, ${storeSettings.themeColor}dd 100%)` }}
               className="p-6 text-white flex justify-between items-center shrink-0"
@@ -1171,27 +1171,27 @@ export default function DeferredAccounts() {
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-red-50 border border-red-100 p-4 rounded-2xl text-center">
+                <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/30 p-4 rounded-2xl text-center">
                   <div className="text-xs font-bold text-red-500 mb-1">المديونية الحالية المتبقية</div>
-                  <div className="text-2xl font-black text-red-600">
+                  <div className="text-2xl font-black text-red-600 dark:text-red-400">
                     {profileData.totalCurrentDebt.toFixed(2)} <span className="text-sm font-bold">{storeSettings.currency}</span>
                   </div>
                 </div>
-                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl text-center">
+                <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/30 p-4 rounded-2xl text-center">
                   <div className="text-xs font-bold text-emerald-500 mb-1">إجمالي المبالغ المسددة</div>
-                  <div className="text-2xl font-black text-emerald-600">
+                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                     {profileData.totalPaidDebt.toFixed(2)} <span className="text-sm font-bold">{storeSettings.currency}</span>
                   </div>
                 </div>
-                <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-center">
+                <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/30 p-4 rounded-2xl text-center">
                   <div className="text-xs font-bold text-blue-500 mb-1">إجمالي الخصومات والسماح</div>
-                  <div className="text-2xl font-black text-blue-600">
+                  <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
                     {profileData.totalDiscounts.toFixed(2)} <span className="text-sm font-bold">{storeSettings.currency}</span>
                   </div>
                 </div>
-                <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
-                  <div className="text-xs font-bold text-slate-500 mb-1">إجمالي الدين التاريخي</div>
-                  <div className="text-2xl font-black text-slate-700">
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl text-center">
+                  <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">إجمالي الدين التاريخي</div>
+                  <div className="text-2xl font-black text-slate-700 dark:text-slate-200">
                     {profileData.totalHistoricalDebt.toFixed(2)} <span className="text-sm font-bold">{storeSettings.currency}</span>
                   </div>
                 </div>
@@ -1199,14 +1199,14 @@ export default function DeferredAccounts() {
 
               {/* Tabs / Content */}
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
                   <FileText className="text-indigo-600" size={20} />
                   سجل الفواتير والمديونيات
                 </h3>
-                <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800">
                   <div className="overflow-x-auto">
                     <table className="w-full text-right text-sm" dir="rtl">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                      <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
                         <tr>
                           <th className="py-3 px-4 font-bold">رقم الفاتورة</th>
                           <th className="py-3 px-4 font-bold">النوع</th>
@@ -1218,31 +1218,31 @@ export default function DeferredAccounts() {
                           <th className="py-3 px-4 font-bold text-left">إجراءات</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 font-bold">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-bold">
                         {profileData.invoices.length > 0 ? (
                           profileData.invoices.map((inv) => (
                             <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
                               <td className="py-3 px-4 font-mono text-indigo-600">#{inv.id}</td>
                               <td className="py-3 px-4">
                                 {inv.type === 'previous_debt' ? (
-                                  <span className="text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg text-xs font-bold">مديونية سابقة</span>
+                                  <span className="text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-lg text-xs font-bold">مديونية سابقة</span>
                                 ) : (
-                                  <span className="text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-bold">فاتورة صيانة/بيع</span>
+                                  <span className="text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold">فاتورة صيانة/بيع</span>
                                 )}
                               </td>
-                              <td className="py-3 px-4 text-slate-500">
+                              <td className="py-3 px-4 text-slate-500 dark:text-slate-400">
                                 {new Date(inv.date || new Date()).toLocaleDateString('ar-EG', {
                                   year: 'numeric', month: 'short', day: 'numeric'
                                 })}
                               </td>
                               <td className="py-3 px-4">{inv.effectiveTotal.toFixed(2)} {storeSettings.currency}</td>
-                              <td className="py-3 px-4 text-emerald-600">{(inv.paid_amount || 0).toFixed(2)} {storeSettings.currency}</td>
-                              <td className="py-3 px-4 text-blue-600">{(inv.discount_amount || 0).toFixed(2)} {storeSettings.currency}</td>
+                              <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400">{(inv.paid_amount || 0).toFixed(2)} {storeSettings.currency}</td>
+                              <td className="py-3 px-4 text-blue-600 dark:text-blue-400">{(inv.discount_amount || 0).toFixed(2)} {storeSettings.currency}</td>
                               <td className="py-3 px-4">
                                 {inv.currentDebt > 0.009 ? (
-                                  <span className="text-red-600 font-black bg-red-50 px-2.5 py-1 rounded-lg">{inv.currentDebt.toFixed(2)} {storeSettings.currency}</span>
+                                  <span className="text-red-600 dark:text-red-400 font-black bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-lg">{inv.currentDebt.toFixed(2)} {storeSettings.currency}</span>
                                 ) : (
-                                  <span className="text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg">مسددة بالكامل</span>
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg">مسددة بالكامل</span>
                                 )}
                               </td>
                               <td className="py-3 px-4 text-left">
@@ -1250,7 +1250,7 @@ export default function DeferredAccounts() {
                                   <button
                                     type="button"
                                     onClick={() => handlePrintInvoice(inv)}
-                                    className="p-1.5 text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-lg transition"
+                                    className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-indigo-600 bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 rounded-lg transition"
                                     title="عرض وطباعة الفاتورة"
                                   >
                                     <Eye size={16} />
@@ -1296,14 +1296,14 @@ export default function DeferredAccounts() {
 
               {/* Payments History */}
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
-                  <Banknote className="text-emerald-600" size={20} />
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                  <Banknote className="text-emerald-600 dark:text-emerald-400" size={20} />
                   سجل الدفعات وعمليات السداد
                 </h3>
-                <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800">
                   <div className="overflow-x-auto">
                     <table className="w-full text-right text-sm" dir="rtl">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                      <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
                         <tr>
                           <th className="py-3 px-4 font-bold">رقم الحركة</th>
                           <th className="py-3 px-4 font-bold">التاريخ</th>
@@ -1312,25 +1312,25 @@ export default function DeferredAccounts() {
                           <th className="py-3 px-4 font-bold">البيان / الملاحظات</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 font-bold">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-bold">
                         {profileData.payments.length > 0 ? (
                           profileData.payments.map((pay) => (
                             <tr key={pay.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="py-3 px-4 font-mono text-slate-500">#{pay.id}</td>
-                              <td className="py-3 px-4 text-slate-500">
+                              <td className="py-3 px-4 font-mono text-slate-500 dark:text-slate-400">#{pay.id}</td>
+                              <td className="py-3 px-4 text-slate-500 dark:text-slate-400">
                                 {new Date(pay.date || new Date()).toLocaleDateString('ar-EG', {
                                   year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                                 })}
                               </td>
-                              <td className="py-3 px-4 font-bold text-emerald-600">{(pay.paid_amount || 0).toFixed(2)} {storeSettings.currency}</td>
+                              <td className="py-3 px-4 font-bold text-emerald-600 dark:text-emerald-400">{(pay.paid_amount || 0).toFixed(2)} {storeSettings.currency}</td>
                               <td className="py-3 px-4">
-                                <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold">
+                                <span className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold">
                                   {pay.payment_method === 'cash' ? '💵 كاش' :
                                    pay.payment_method === 'visa' ? '💳 فيزا' :
                                    pay.payment_method === 'wallet' ? '📱 محفظة' : '⚡ انستا باي'}
                                 </span>
                               </td>
-                              <td className="py-3 px-4 text-slate-600 text-xs max-w-[280px] truncate" title={pay.notes || undefined}>
+                              <td className="py-3 px-4 text-slate-600 dark:text-slate-300 text-xs max-w-[280px] truncate" title={pay.notes || undefined}>
                                 {pay.notes || '—'}
                               </td>
                             </tr>
@@ -1349,10 +1349,10 @@ export default function DeferredAccounts() {
               </div>
             </div>
             
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0">
               <button 
                 onClick={() => { setIsProfileOpen(false); setProfileCustomer(null); }}
-                className="px-6 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-2.5 rounded-xl font-bold transition"
+                className="px-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 py-2.5 rounded-xl font-bold transition"
               >
                 إغلاق البروفايل
               </button>

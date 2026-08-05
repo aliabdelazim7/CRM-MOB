@@ -70,11 +70,11 @@ export default function Accounting() {
     return (
       <div key={acc.code}>
         <div
-          className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl ${depth === 0 ? 'bg-slate-100 font-black mt-3' : depth === 1 ? 'bg-slate-50 font-bold' : ''}`}
+          className={`flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl ${depth === 0 ? 'bg-slate-100 dark:bg-slate-700 font-black mt-3' : depth === 1 ? 'bg-slate-50 font-bold' : ''}`}
           style={{ paddingInlineStart: `${12 + depth * 18}px` }}
         >
           <div className="min-w-0">
-            <span className={`${depth === 0 ? 'text-base' : 'text-sm'} text-slate-800`}>
+            <span className={`${depth === 0 ? 'text-base' : 'text-sm'} text-slate-800 dark:text-slate-100`}>
               <span className="text-slate-400 font-mono text-[11px] ml-2">{acc.code}</span>
               {acc.name}
             </span>
@@ -82,12 +82,12 @@ export default function Accounting() {
               <p className="text-[10px] text-slate-400 font-bold mt-0.5">{acc.source}</p>
             )}
             {parts && (
-              <p className="text-[10px] text-slate-500 font-bold mt-0.5">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
                 {payKeys.map((k) => `${payLabelOf(storeSettings as any, k)}: ${money(parts[k] || 0)}`).join(' · ')}
               </p>
             )}
           </div>
-          <span className={`font-black whitespace-nowrap ${bal < -0.004 ? 'text-red-600' : depth === 0 ? 'text-slate-900' : 'text-slate-700'}`}>
+          <span className={`font-black whitespace-nowrap ${bal < -0.004 ? 'text-red-600' : depth === 0 ? 'text-slate-900 dark:text-slate-50' : 'text-slate-700'}`}>
             {money(bal)} <span className="text-[10px] text-slate-400">{cur}</span>
           </span>
         </div>
@@ -110,36 +110,36 @@ export default function Accounting() {
         <div className="flex items-center gap-3">
           <div className="bg-indigo-600 p-3 rounded-2xl text-white shadow-lg shadow-indigo-200"><Network size={26} /></div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800">شجرة الحسابات</h1>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100">شجرة الحسابات</h1>
             <p className="text-sm text-slate-400 font-bold">عرض محاسبي موحّد — أصول، خصوم، حقوق ملكية، إيرادات، مصروفات</p>
           </div>
         </div>
         <button onClick={load} disabled={loading}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 font-bold text-sm hover:bg-slate-50 disabled:opacity-50">
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50">
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> تحديث
         </button>
       </div>
 
       {/* معادلة الميزانية */}
-      <div className={`rounded-2xl p-5 border ${Math.abs(tb.imbalance) < 0.5 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+      <div className={`rounded-2xl p-5 border ${Math.abs(tb.imbalance) < 0.5 ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/40' : 'bg-amber-50 border-amber-200'}`}>
         <div className="flex items-center gap-2 mb-2">
-          <Scale size={18} className={Math.abs(tb.imbalance) < 0.5 ? 'text-emerald-600' : 'text-amber-600'} />
-          <span className={`font-black ${Math.abs(tb.imbalance) < 0.5 ? 'text-emerald-700' : 'text-amber-700'}`}>
+          <Scale size={18} className={Math.abs(tb.imbalance) < 0.5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'} />
+          <span className={`font-black ${Math.abs(tb.imbalance) < 0.5 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700'}`}>
             {Math.abs(tb.imbalance) < 0.5 ? 'الميزانية متوازنة' : `فرق غير مفسّر: ${money(tb.imbalance)} ${cur}`}
           </span>
         </div>
-        <p className="text-xs font-bold text-slate-600">
+        <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
           الأصول {money(tb.assets)} = الخصوم {money(tb.liabilities)} + حقوق الملكية {money(tb.equity)} + أرباح الفترة {money(tb.profit)}
         </p>
         {Math.abs(tb.imbalance) >= 0.5 && (
-          <div className="mt-3 pt-3 border-t border-amber-200">
-            <p className="text-[11px] font-black text-amber-800 mb-1">الفرق ده مش دليل على خطأ في البيانات لوحده.</p>
-            <p className="text-[11px] font-bold text-slate-600 leading-relaxed">
+          <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-500/40">
+            <p className="text-[11px] font-black text-amber-800 dark:text-amber-300 mb-1">الفرق ده مش دليل على خطأ في البيانات لوحده.</p>
+            <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">
               المخزون ({money(tb.inventory)} {cur}) بيتقرا كـ«لقطة» من كميات المنتجات، لكن مصادر تانية
               بتحرّكه والموديول لسه مابيسجّلهاش كقيود: <b>إدخال مخزون بدون فاتورة، الديڤو والتوالف،
               تسويات الجرد، والتصنيع</b>. الفرق بيستوعبهم كلهم.
             </p>
-            <p className="text-[11px] font-black text-slate-700 mt-1.5">
+            <p className="text-[11px] font-black text-slate-700 dark:text-slate-200 mt-1.5">
               الكشف الموثوق للحركات الناقصة طرف هو تبويب «فحص السلامة» تحت — مش الرقم ده.
             </p>
           </div>
@@ -176,23 +176,23 @@ export default function Accounting() {
       ) : (
         <div className="space-y-3">
           {issues.length === 0 ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center">
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/40 rounded-2xl p-8 text-center">
               <CheckCircle2 size={40} className="mx-auto text-emerald-500 mb-2" />
-              <p className="font-black text-emerald-700">كل الفحوصات عدّت</p>
-              <p className="text-xs font-bold text-emerald-600 mt-1">مفيش حركات ناقصة طرف ولا أرقام متعارضة.</p>
+              <p className="font-black text-emerald-700 dark:text-emerald-300">كل الفحوصات عدّت</p>
+              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">مفيش حركات ناقصة طرف ولا أرقام متعارضة.</p>
             </div>
           ) : issues.map((issue) => (
-            <div key={issue.id} className={`rounded-2xl border p-4 ${issue.severity === 'error' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+            <div key={issue.id} className={`rounded-2xl border p-4 ${issue.severity === 'error' ? 'bg-red-50 border-red-200' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/40'}`}>
               <div className="flex items-start gap-2">
                 <AlertTriangle size={18} className={issue.severity === 'error' ? 'text-red-500 mt-0.5' : 'text-amber-500 mt-0.5'} />
                 <div className="min-w-0 flex-1">
-                  <p className={`font-black ${issue.severity === 'error' ? 'text-red-700' : 'text-amber-700'}`}>{issue.title}</p>
-                  <p className="text-xs font-bold text-slate-600 mt-1 leading-relaxed">{issue.detail}</p>
-                  <p className="text-xs font-black text-slate-700 mt-2">الحل: <span className="font-bold">{issue.fix}</span></p>
+                  <p className={`font-black ${issue.severity === 'error' ? 'text-red-700' : 'text-amber-700 dark:text-amber-300'}`}>{issue.title}</p>
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">{issue.detail}</p>
+                  <p className="text-xs font-black text-slate-700 dark:text-slate-200 mt-2">الحل: <span className="font-bold">{issue.fix}</span></p>
                   {issue.rows.length > 0 && (
                     <div className="mt-2 bg-white/70 rounded-xl p-2 space-y-1 max-h-52 overflow-y-auto">
                       {issue.rows.map((r, i) => (
-                        <div key={`${r.id}-${i}`} className="flex justify-between gap-2 text-[11px] font-bold text-slate-600">
+                        <div key={`${r.id}-${i}`} className="flex justify-between gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300">
                           <span className="truncate">{r.label}</span>
                           <span className="font-mono text-slate-400 shrink-0">{r.id.slice(0, 8)}</span>
                         </div>

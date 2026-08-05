@@ -17,12 +17,75 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+
+  /* نفس الحكاية في الوضع الداكن: الحدود بدون لون كانت بتاخد لون النص. */
+  .dark *,
+  .dark ::after,
+  .dark ::before,
+  .dark ::backdrop,
+  .dark ::file-selector-button {
+    border-color: var(--color-slate-700, currentColor);
+  }
 }
 
 @layer base {
+  /*
+   * color-scheme بيخلي المتصفح يرسم عناصره الأصلية (سكرول بار، checkbox،
+   * date picker، الـ autofill) بالوضع الصح. من غيره بتفضل فيه عناصر بيضا
+   * وسط الواجهة الداكنة.
+   */
+  :root {
+    color-scheme: light;
+  }
+  :root.dark {
+    color-scheme: dark;
+  }
+
+  /*
+   * ده كان أهم سبب لإحساس «مفيش تزامن»: الـ body كان مثبت على
+   * bg-gray-50/text-gray-900 من غير نسخة داكنة، فأي مساحة فاضية أو
+   * صفحة قصيرة كانت بتفضل بيضا حتى والوضع الداكن شغّال.
+   */
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-slate-50 text-slate-900 antialiased;
     font-family: 'Tajawal', 'Cairo', sans-serif;
+    /* التبديل بين الوضعين يبقى ناعم بدل الوميض المفاجئ. */
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  :root.dark body {
+    @apply bg-slate-950 text-slate-100;
+  }
+
+  /* حلقة التركيز لازم تفضل واضحة في الوضعين (وصولية). */
+  :focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+  }
+  .dark :focus-visible {
+    outline-color: #818cf8;
+  }
+
+  /* الـ autofill بتاع كروم بيفرض خلفية صفرا فاتحة جوه الـ inputs الداكنة. */
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark textarea:-webkit-autofill,
+  .dark select:-webkit-autofill {
+    -webkit-text-fill-color: #f1f5f9;
+    -webkit-box-shadow: 0 0 0 1000px #1e293b inset;
+    caret-color: #f1f5f9;
+  }
+
+  /* الـ placeholder كان بيبقى شبه غير مقروء على الخلفية الداكنة. */
+  .dark ::placeholder {
+    color: #64748b;
+    opacity: 1;
+  }
+
+  .dark ::selection {
+    background: #334155;
+    color: #f8fafc;
   }
 }
 
@@ -42,6 +105,47 @@
   background: #94a3b8;
 }
 
+/* السكرول بار كان بيفضل فاتح جوه الوضع الداكن. */
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * مناطق لازم تفضل فاتحة في الوضعين: معاينة الفاتورة والإيصال وأي حاجة
+ * بتتطبع — الطباعة بتخرج على ورق أبيض فالوضع الداكن هيطلع غلط.
+ */
+.force-light {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* احترام تفضيل تقليل الحركة عند المستخدم. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

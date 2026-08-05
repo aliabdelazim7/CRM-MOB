@@ -20,7 +20,7 @@ export default function PersonalSavings() {
   const { storeSettings, recordMainTreasuryIn, recordMainTreasuryOut } = useStore();
   const cur = storeSettings.currency;
   const keys = activePaymentKeys(storeSettings as any);
-  const input = 'w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none';
+  const input = 'w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none';
 
   const [vaults, setVaults] = useState<any[]>([]);
   const [vaultTxs, setVaultTxs] = useState<any[]>([]);
@@ -245,8 +245,8 @@ export default function PersonalSavings() {
     <div className="p-6 md:p-8 space-y-6" dir="rtl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3"><PiggyBank className="text-indigo-600" size={30} /> الادخار الشخصي</h1>
-          <p className="text-slate-500 mt-1 font-medium text-sm">خزائن ادخار خاصة بيك — منفصلة عن حسابات المحل. الإيداع من الخزنة الرئيسية بيتأكد بـ OTP.</p>
+          <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3"><PiggyBank className="text-indigo-600" size={30} /> الادخار الشخصي</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">خزائن ادخار خاصة بيك — منفصلة عن حسابات المحل. الإيداع من الخزنة الرئيسية بيتأكد بـ OTP.</p>
         </div>
         <button onClick={addVault} disabled={busy} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-indigo-700 transition shadow-lg disabled:opacity-50">
           <Plus size={18} /> خزنة جديدة
@@ -255,24 +255,24 @@ export default function PersonalSavings() {
 
       {/* ملخّص شخصي */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-sm">
-          <p className="text-emerald-600 font-bold text-xs mb-1">صافي فلوسك الشخصية</p>
-          <h3 className="text-2xl font-black text-emerald-700" dir="ltr">{money(personal.netSelf)} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-emerald-100 dark:border-emerald-500/30 shadow-sm">
+          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-xs mb-1">صافي فلوسك الشخصية</p>
+          <h3 className="text-2xl font-black text-emerald-700 dark:text-emerald-300" dir="ltr">{money(personal.netSelf)} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
           <p className="text-[10px] text-slate-400 mt-1 font-bold">اللي حطيته من جيبك − اللي طلّعته</p>
         </div>
-        <div className="bg-white p-5 rounded-3xl border border-indigo-100 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-indigo-100 shadow-sm">
           <p className="text-indigo-600 font-bold text-xs mb-1">إجمالي أرصدة الخزائن</p>
           <h3 className="text-2xl font-black text-indigo-700" dir="ltr">{money(personal.vaultsTotal)} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
           <p className="text-[10px] text-slate-400 mt-1 font-bold">مجموع كل الخزائن حالياً</p>
         </div>
-        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
-          <p className="text-slate-500 font-bold text-xs mb-1">جاي من الرئيسية</p>
-          <h3 className="text-2xl font-black text-slate-700" dir="ltr">{money(personal.fromMain)} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-xs mb-1">جاي من الرئيسية</p>
+          <h3 className="text-2xl font-black text-slate-700 dark:text-slate-200" dir="ltr">{money(personal.fromMain)} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
           <p className="text-[10px] text-slate-400 mt-1 font-bold">إجمالي اللي اتسحب من الخزنة الرئيسية</p>
         </div>
-        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
-          <p className="text-slate-500 font-bold text-xs mb-1">راجع للرئيسية</p>
-          <h3 className="text-2xl font-black text-slate-700" dir="ltr">{money(personal.toMain)} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-xs mb-1">راجع للرئيسية</p>
+          <h3 className="text-2xl font-black text-slate-700 dark:text-slate-200" dir="ltr">{money(personal.toMain)} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
           <p className="text-[10px] text-slate-400 mt-1 font-bold">إجمالي اللي رجّعته للخزنة الرئيسية</p>
         </div>
       </div>
@@ -280,7 +280,7 @@ export default function PersonalSavings() {
       {/* الخزائن */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {vaults.length === 0 && !loading && (
-          <div className="col-span-full bg-white rounded-3xl border border-dashed border-slate-200 p-10 text-center text-slate-400">
+          <div className="col-span-full bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 p-10 text-center text-slate-400">
             <PiggyBank size={48} className="mx-auto opacity-30" />
             <p className="font-bold mt-3">لسه مفيش خزائن ادخار. اضغطي «خزنة جديدة» عشان تبدأي.</p>
           </div>
@@ -293,20 +293,20 @@ export default function PersonalSavings() {
               key={v.id}
               type="button"
               onClick={() => setSelectedVaultId(v.id)}
-              className={`text-right bg-white p-5 rounded-3xl border transition-all ${isSel ? 'border-indigo-500 ring-2 ring-indigo-200 shadow-md' : 'border-slate-100 hover:border-indigo-200 hover:shadow-sm'}`}
+              className={`text-right bg-white dark:bg-slate-800 p-5 rounded-3xl border transition-all ${isSel ? 'border-indigo-500 ring-2 ring-indigo-200 shadow-md' : 'border-slate-100 dark:border-slate-800 hover:border-indigo-200 hover:shadow-sm'}`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-black text-slate-800 flex items-center gap-2"><Wallet size={18} className="text-indigo-600" /> {v.name}</span>
+                <span className="font-black text-slate-800 dark:text-slate-100 flex items-center gap-2"><Wallet size={18} className="text-indigo-600" /> {v.name}</span>
                 <Trash2
                   size={16}
                   className="text-slate-300 hover:text-red-500 transition"
                   onClick={(e) => { e.stopPropagation(); deleteVault(v); }}
                 />
               </div>
-              <h3 className="text-2xl font-black text-slate-800 mt-2" dir="ltr">{money(balTotal(b))} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-2" dir="ltr">{money(balTotal(b))} <span className="text-xs font-normal opacity-50">{cur}</span></h3>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {keys.filter((k) => Math.abs(b?.[k] || 0) > 0.001).map((k) => (
-                  <span key={k} className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg" dir="ltr">
+                  <span key={k} className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-lg" dir="ltr">
                     {payLabelOf(storeSettings as any, k)}: {money(b[k])}
                   </span>
                 ))}
@@ -319,8 +319,8 @@ export default function PersonalSavings() {
       {selectedVault && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* نموذج الحركة */}
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-            <h2 className="font-black text-slate-800 mb-4">حركة على «{selectedVault.name}»</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
+            <h2 className="font-black text-slate-800 dark:text-slate-100 mb-4">حركة على «{selectedVault.name}»</h2>
 
             <div className="grid grid-cols-2 gap-2 mb-4">
               {OPS.map((o) => {
@@ -330,7 +330,7 @@ export default function PersonalSavings() {
                     key={o.id}
                     type="button"
                     onClick={() => { setOpId(o.id); setOtpSent(false); setOtpInput(''); }}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold border transition text-right ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-600 border-slate-100 hover:border-indigo-200'}`}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold border transition text-right ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-100 dark:border-slate-800 hover:border-indigo-200'}`}
                   >
                     <o.icon size={16} /> {o.label}
                   </button>
@@ -344,7 +344,7 @@ export default function PersonalSavings() {
             <div className="grid grid-cols-2 gap-3 mb-4">
               {keys.map((k) => (
                 <div key={k}>
-                  <label className="text-[11px] font-bold text-slate-500 flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center justify-between">
                     <span>{payLabelOf(storeSettings as any, k)}</span>
                     {capBal && <span className="text-slate-400" dir="ltr">متاح: {money(capBal[k] || 0)}</span>}
                   </label>
@@ -362,7 +362,7 @@ export default function PersonalSavings() {
 
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label className="text-[11px] font-bold text-slate-500">التاريخ</label>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">التاريخ</label>
                 <input
                   type="date"
                   value={txDate}
@@ -372,13 +372,13 @@ export default function PersonalSavings() {
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-slate-500">ملاحظة (اختياري)</label>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">ملاحظة (اختياري)</label>
                 <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="..." className={input} />
               </div>
             </div>
 
-            <div className="flex items-center justify-between mb-4 bg-slate-50 rounded-xl px-4 py-2.5">
-              <span className="text-xs font-bold text-slate-500">إجمالي الحركة</span>
+            <div className="flex items-center justify-between mb-4 bg-slate-50 dark:bg-slate-900 rounded-xl px-4 py-2.5">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">إجمالي الحركة</span>
               <span className="text-lg font-black text-indigo-700" dir="ltr">{total.toLocaleString()} {cur}</span>
             </div>
 
@@ -401,29 +401,29 @@ export default function PersonalSavings() {
           </div>
 
           {/* سجل حركات الخزنة */}
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-            <h2 className="font-black text-slate-800 mb-4">سجل «{selectedVault.name}»</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6">
+            <h2 className="font-black text-slate-800 dark:text-slate-100 mb-4">سجل «{selectedVault.name}»</h2>
             <div className="space-y-2 max-h-[520px] overflow-y-auto">
               {groups.length === 0 && <p className="text-center text-slate-400 py-10 font-bold">لسه مفيش حركات على الخزنة دي.</p>}
               {groups.map((g) => {
                 const o = opById(g.source);
                 const isIn = g.direction === 'in';
                 return (
-                  <div key={g.key} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3">
+                  <div key={g.key} className="flex items-center justify-between gap-3 border border-slate-100 dark:border-slate-800 rounded-xl p-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${isIn ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{o?.label || g.source}</span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${isIn ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-50 text-red-600'}`}>{o?.label || g.source}</span>
                         <span className="text-[10px] text-slate-400 font-bold">{new Date(g.created_at).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {Object.entries(g.methods).map(([k, val]: [string, any]) => (
-                          <span key={k} className="text-[10px] font-bold text-slate-500" dir="ltr">{payLabelOf(storeSettings as any, k)}: {Number(val).toLocaleString()}</span>
+                          <span key={k} className="text-[10px] font-bold text-slate-500 dark:text-slate-400" dir="ltr">{payLabelOf(storeSettings as any, k)}: {Number(val).toLocaleString()}</span>
                         ))}
                       </div>
                       {g.note && <p className="text-[10px] text-slate-400 mt-1 truncate">{g.note}</p>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className={`font-black ${isIn ? 'text-emerald-600' : 'text-red-600'}`} dir="ltr">{isIn ? '+' : '−'}{g.total.toLocaleString()}</span>
+                      <span className={`font-black ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`} dir="ltr">{isIn ? '+' : '−'}{g.total.toLocaleString()}</span>
                       <button onClick={() => deleteGroup(g)} disabled={busy} className="p-1.5 text-slate-300 hover:text-red-500 transition disabled:opacity-50" title="حذف"><Trash2 size={15} /></button>
                     </div>
                   </div>

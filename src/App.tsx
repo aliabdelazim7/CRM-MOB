@@ -99,6 +99,19 @@ function ThemeInjector() {
       .dark .dark\\:text-indigo-400 { color: rgba(${r},${g},${b},0.7) !important; }
       .dark .dark\\:from-indigo-400 { --tw-gradient-from: rgba(${r},${g},${b},0.7) !important; }
       .dark .dark\\:to-purple-400   { --tw-gradient-to: rgba(${r},${g},${b},0.6) !important; }
+
+      /*
+       * في الوضع الداكن الدرجات الفاتحة من لون المتجر (indigo-50/100) كانت
+       * بتطلع لطخة بيضا وسط الواجهة. بنخليها شفافة فوق الخلفية الداكنة،
+       * وبنفتح لون النص عشان التباين يفضل مقروء.
+       */
+      .dark .bg-indigo-50  { background-color: rgba(${r},${g},${b},0.14) !important; }
+      .dark .bg-indigo-100 { background-color: rgba(${r},${g},${b},0.22) !important; }
+      .dark .hover\\:bg-indigo-50:hover { background-color: rgba(${r},${g},${b},0.18) !important; }
+      .dark .text-indigo-600,
+      .dark .text-indigo-700 { color: rgba(${r},${g},${b},1) !important; filter: brightness(1.45); }
+      .dark .border-indigo-100 { border-color: rgba(${r},${g},${b},0.3) !important; }
+      .dark .border-indigo-200 { border-color: rgba(${r},${g},${b},0.4) !important; }
     `;
   }, [hex]);
 
@@ -120,12 +133,12 @@ function LoadingScreen() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-slate-50 gap-4 p-8 text-center" dir="rtl">
-      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-      <p className="text-slate-500 font-bold text-lg">جاري تحميل البيانات...</p>
+    <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 gap-4 p-8 text-center" dir="rtl">
+      <div className="w-12 h-12 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent dark:border-t-transparent rounded-full animate-spin" />
+      <p className="text-slate-500 dark:text-slate-400 font-bold text-lg">جاري تحميل البيانات...</p>
       {slow && (
         <div className="mt-4 space-y-3 max-w-sm">
-          <p className="text-amber-700 font-bold text-sm">النت بطيء أو مش راد.</p>
+          <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">النت بطيء أو مش راد.</p>
           <div className="flex gap-2 justify-center flex-wrap">
             <button
               onClick={async () => {
@@ -139,7 +152,7 @@ function LoadingScreen() {
             </button>
             <button
               onClick={() => loadAll()}
-              className="bg-slate-200 text-slate-700 px-5 py-3 rounded-xl font-bold hover:bg-slate-300 transition"
+              className="bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 px-5 py-3 rounded-xl font-bold transition"
             >
               إعادة المحاولة
             </button>
@@ -159,10 +172,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // موردين، رواتب) وأي كتابة من غير نت ممكن تتعارض مع جهاز تاني.
   if (isOfflineMode) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-amber-50 gap-4 p-8 text-center" dir="rtl">
+      <div className="h-screen flex flex-col items-center justify-center bg-amber-50 dark:bg-slate-950 gap-4 p-8 text-center" dir="rtl">
         <div className="text-5xl">📴</div>
-        <h2 className="text-2xl font-black text-amber-800">لوحة التحكم مش متاحة بدون نت</h2>
-        <p className="text-amber-700 font-bold max-w-md">
+        <h2 className="text-2xl font-black text-amber-800 dark:text-amber-300">لوحة التحكم مش متاحة بدون نت</h2>
+        <p className="text-amber-700 dark:text-amber-400/90 font-bold max-w-md">
           السيستم شغّال دلوقتي من النسخة المحفوظة على الجهاز — الكاشير بيبيع عادي والفواتير بتتحفظ
           وترتفع أول ما النت يرجع. لوحة التحكم بتحتاج اتصال.
         </p>
@@ -231,10 +244,10 @@ function App() {
 
   if (dbError && !isStandaloneRoute) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-red-50 gap-4 p-8 text-center">
+      <div className="h-screen flex flex-col items-center justify-center bg-red-50 dark:bg-slate-950 gap-4 p-8 text-center">
         <div className="text-5xl">⚠️</div>
-        <h2 className="text-2xl font-black text-red-700">تعذّر الاتصال بقاعدة البيانات</h2>
-        <p className="text-red-500 font-mono text-sm bg-red-100 px-4 py-2 rounded-lg max-w-lg">{dbError}</p>
+        <h2 className="text-2xl font-black text-red-700 dark:text-red-400">تعذّر الاتصال بقاعدة البيانات</h2>
+        <p className="text-red-500 dark:text-red-300 font-mono text-sm bg-red-100 dark:bg-red-500/10 px-4 py-2 rounded-lg max-w-lg">{dbError}</p>
         <button onClick={() => loadAll()} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 transition">
           إعادة المحاولة
         </button>

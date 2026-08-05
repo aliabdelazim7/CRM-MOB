@@ -363,25 +363,25 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl" dir="rtl">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl" dir="rtl">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
           <div className="flex items-center gap-3">
             <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
               {exchangeMode ? <RefreshCw size={24} /> : <Save size={24} />}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-800">{exchangeMode ? 'استبدال' : 'تعديل الفاتورة'} #{invoice.id}</h2>
-              <p className="text-sm text-slate-500">{exchangeMode ? 'بدّل أصناف بأصناف، واحسب الفرق ردًّا أو تحصيلًا' : 'تعديل المنتجات والمبالغ المدفوعة'}</p>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{exchangeMode ? 'استبدال' : 'تعديل الفاتورة'} #{invoice.id}</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{exchangeMode ? 'بدّل أصناف بأصناف، واحسب الفرق ردًّا أو تحصيلًا' : 'تعديل المنتجات والمبالغ المدفوعة'}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
             <X size={24} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-2 border border-red-100">
+            <div className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-center gap-2 border border-red-100 dark:border-red-500/30">
               <AlertCircle size={20} />
               <p className="font-semibold">{error}</p>
             </div>
@@ -390,8 +390,8 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
           {/* سجل الاستبدالات السابقة — الفاتورة اتستبدلت قبل كده، فالكاشير محتاج
               يعرف إيه اللي راح وإيه اللي جه في كل مرة قبل ما يستبدل تاني. */}
           {exchangeMode && previousExchanges.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 bg-amber-100 text-amber-800 font-black text-sm flex items-center gap-2">
+            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/40 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-black text-sm flex items-center gap-2">
                 <RefreshCw size={16} />
                 الفاتورة دي اتستبدلت {previousExchanges.length} مرة قبل كده
               </div>
@@ -400,23 +400,23 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                   const names = (arr: any[]) => (arr || []).map((i) => `${i.name} ×${i.quantity}`).join('، ') || '—';
                   const d = Number(x.diff) || 0;
                   return (
-                    <div key={idx} className="bg-white border border-amber-100 rounded-lg p-3 text-xs space-y-1">
+                    <div key={idx} className="bg-white dark:bg-slate-800 border border-amber-100 dark:border-amber-500/30 rounded-lg p-3 text-xs space-y-1">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className="font-black text-amber-700">استبدال {idx + 1}</span>
+                        <span className="font-black text-amber-700 dark:text-amber-300">استبدال {idx + 1}</span>
                         <span className="text-slate-400 font-bold">
                           {x.date ? new Date(x.date).toLocaleDateString('ar-EG', { calendar: 'gregory' }) : ''}
                         </span>
                       </div>
-                      <div><span className="font-bold text-slate-500">رجّع:</span> <span className="text-red-600 font-bold">{names(x.before)}</span></div>
-                      <div><span className="font-bold text-slate-500">خد:</span> <span className="text-emerald-700 font-bold">{names(x.after)}</span></div>
-                      <div className="font-bold text-slate-600">
+                      <div><span className="font-bold text-slate-500 dark:text-slate-400">رجّع:</span> <span className="text-red-600 dark:text-red-400 font-bold">{names(x.before)}</span></div>
+                      <div><span className="font-bold text-slate-500 dark:text-slate-400">خد:</span> <span className="text-emerald-700 dark:text-emerald-300 font-bold">{names(x.after)}</span></div>
+                      <div className="font-bold text-slate-600 dark:text-slate-300">
                         {Math.abs(d) < 0.01 ? 'من غير فرق' : d > 0 ? `دفع فرق ${Math.abs(d).toLocaleString()} ${storeSettings.currency}` : `استلم فرق ${Math.abs(d).toLocaleString()} ${storeSettings.currency}`}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <div className="px-4 py-2 bg-amber-100/60 text-[11px] font-bold text-amber-800">
+              <div className="px-4 py-2 bg-amber-100/60 text-[11px] font-bold text-amber-800 dark:text-amber-300">
                 القطع اللي تحت في «القطع القديمة» هي اللي مع العميل دلوقتي بعد الاستبدالات دي.
               </div>
             </div>
@@ -431,20 +431,20 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث عن منتج لإضافته (الاسم أو الباركود)..."
-                className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full pl-4 pr-12 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               />
             </div>
             {filteredProducts.length > 0 && (
-              <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-10">
+              <div className="absolute top-full mt-2 w-full bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden z-10">
                 {filteredProducts.map(product => (
                   <button
                     key={product.id}
                     onClick={() => handleAddProduct(product)}
-                    className="w-full px-4 py-3 text-right hover:bg-slate-50 flex justify-between items-center border-b last:border-0 border-slate-50"
+                    className="w-full px-4 py-3 text-right hover:bg-slate-50 dark:hover:bg-slate-800 flex justify-between items-center border-b last:border-0 border-slate-50"
                   >
                     <div>
-                      <div className="font-bold text-slate-800">{product.name}</div>
-                      <div className="text-xs text-slate-500">متاح: {product.stock_quantity}</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-100">{product.name}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">متاح: {product.stock_quantity}</div>
                     </div>
                     <div className="font-bold text-indigo-600">{product.sale_price} {storeSettings.currency}</div>
                   </button>
@@ -456,13 +456,13 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
           {/* Cart Items */}
           {exchangeMode ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 bg-slate-100 text-slate-700 font-black text-sm">
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-black text-sm">
                   {previousExchanges.length > 0 ? 'القطع اللي مع العميل دلوقتي' : 'القطع القديمة'}
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-right">
-                    <thead className="text-slate-500 font-bold">
+                    <thead className="text-slate-500 dark:text-slate-400 font-bold">
                       <tr>
                         <th className="p-3 w-10"></th>
                         <th className="p-3">المنتج</th>
@@ -470,7 +470,7 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                         <th className="p-3">الإجمالي</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                       {originalItems.map(item => {
                         const maxQty = exchangeableQty(item);
                         const selectedQty = selectedQtyOf(item);
@@ -485,41 +485,41 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                                 className="w-5 h-5 accent-amber-600 disabled:opacity-40"
                               />
                             </td>
-                            <td className="p-3 font-bold text-slate-800">
+                            <td className="p-3 font-bold text-slate-800 dark:text-slate-100">
                               {item.name}
                               {maxQty < (item.quantity || 0) && <div className="text-[11px] text-slate-400 font-bold">متاح للاستبدال: {maxQty}</div>}
                             </td>
                             <td className="p-3">
                               <div className="flex items-center justify-center gap-2">
-                                <button disabled={selectedQty <= 1} onClick={() => updateOldItemQty(item.id, -1)} className="p-1 text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded disabled:opacity-30"><Minus size={16} /></button>
-                                <span className="w-10 text-center font-black text-slate-700">{selectedQty || 0} / {maxQty}</span>
-                                <button disabled={selectedQty >= maxQty || maxQty <= 0} onClick={() => updateOldItemQty(item.id, 1)} className="p-1 text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded disabled:opacity-30"><Plus size={16} /></button>
+                                <button disabled={selectedQty <= 1} onClick={() => updateOldItemQty(item.id, -1)} className="p-1 text-slate-400 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-500/15 rounded disabled:opacity-30"><Minus size={16} /></button>
+                                <span className="w-10 text-center font-black text-slate-700 dark:text-slate-200">{selectedQty || 0} / {maxQty}</span>
+                                <button disabled={selectedQty >= maxQty || maxQty <= 0} onClick={() => updateOldItemQty(item.id, 1)} className="p-1 text-slate-400 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-500/15 rounded disabled:opacity-30"><Plus size={16} /></button>
                               </div>
                             </td>
-                            <td className="p-3 font-black text-slate-700">{(selectedQty * (item.sale_price || 0)).toLocaleString()} {storeSettings.currency}</td>
+                            <td className="p-3 font-black text-slate-700 dark:text-slate-200">{(selectedQty * (item.sale_price || 0)).toLocaleString()} {storeSettings.currency}</td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
                 </div>
-                <div className="px-4 py-3 bg-white border-t border-slate-200 space-y-2 text-sm">
-                  <div className="flex justify-between font-black text-amber-700">
+                <div className="px-4 py-3 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 space-y-2 text-sm">
+                  <div className="flex justify-between font-black text-amber-700 dark:text-amber-300">
                     <span>إجمالي المحدد للاستبدال</span>
                     <span>{selectedOldTotal.toLocaleString()} {storeSettings.currency}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-slate-500">
+                  <div className="flex justify-between font-bold text-slate-500 dark:text-slate-400">
                     <span>باقي في الفاتورة</span>
                     <span>{keptOldTotal.toLocaleString()} {storeSettings.currency}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-emerald-200 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 bg-emerald-50 text-emerald-700 font-black text-sm">القطع الجديدة</div>
+              <div className="bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/40 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-black text-sm">القطع الجديدة</div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-right">
-                    <thead className="text-slate-500 font-bold">
+                    <thead className="text-slate-500 dark:text-slate-400 font-bold">
                       <tr>
                         <th className="p-3">المنتج</th>
                         <th className="p-3 text-center">الكمية</th>
@@ -528,45 +528,45 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                         <th className="p-3"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {cart.map(item => (
                         <tr key={item.id}>
-                          <td className="p-3 font-bold text-slate-800">{item.name}</td>
+                          <td className="p-3 font-bold text-slate-800 dark:text-slate-100">{item.name}</td>
                           <td className="p-3">
                             <div className="flex items-center justify-center gap-2">
                               <button onClick={() => handleUpdateQuantity(item.id, -1)} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded"><Minus size={16} /></button>
-                              <span className="w-8 text-center font-black text-slate-700">{item.quantity}</span>
+                              <span className="w-8 text-center font-black text-slate-700 dark:text-slate-200">{item.quantity}</span>
                               <button onClick={() => handleUpdateQuantity(item.id, 1)} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded"><Plus size={16} /></button>
                             </div>
                           </td>
                           <td className="p-3">
-                            <input type="number" min="0" value={item.sale_price} onChange={(e) => handleUpdatePrice(item.id, Number(e.target.value))} className="w-20 p-2 bg-white border border-slate-200 rounded-lg text-center focus:ring-2 focus:ring-indigo-500 outline-none" />
+                            <input type="number" min="0" value={item.sale_price} onChange={(e) => handleUpdatePrice(item.id, Number(e.target.value))} className="w-20 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-center focus:ring-2 focus:ring-indigo-500 outline-none" />
                           </td>
-                          <td className="p-3 font-black text-emerald-700">{(item.quantity * (item.sale_price || 0)).toLocaleString()} {storeSettings.currency}</td>
+                          <td className="p-3 font-black text-emerald-700 dark:text-emerald-300">{(item.quantity * (item.sale_price || 0)).toLocaleString()} {storeSettings.currency}</td>
                           <td className="p-3 text-left">
-                            <button onClick={() => handleRemoveItem(item.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button>
+                            <button onClick={() => handleRemoveItem(item.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg"><Trash2 size={18} /></button>
                           </td>
                         </tr>
                       ))}
                       {cart.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="p-8 text-center text-slate-500 font-bold">ضيفي القطع الجديدة من البحث فوق</td>
+                          <td colSpan={5} className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold">ضيفي القطع الجديدة من البحث فوق</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
-                <div className="px-4 py-3 bg-emerald-50 border-t border-emerald-100 flex justify-between font-black text-emerald-700">
+                <div className="px-4 py-3 bg-emerald-50 dark:bg-emerald-500/10 border-t border-emerald-100 dark:border-emerald-500/30 flex justify-between font-black text-emerald-700 dark:text-emerald-300">
                   <span>إجمالي الجديد</span>
                   <span>{total.toLocaleString()} {storeSettings.currency}</span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
               <table className="w-full text-sm text-right">
-                <thead className="bg-slate-50 text-slate-600 font-medium">
+                <thead className="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-medium">
                   <tr>
                     <th className="p-4">المنتج</th>
                     <th className="p-4 text-center">الكمية</th>
@@ -575,16 +575,16 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                     <th className="p-4"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {cart.map(item => (
-                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-4 font-medium text-slate-800">{item.name}</td>
+                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                      <td className="p-4 font-medium text-slate-800 dark:text-slate-100">{item.name}</td>
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-3">
                           <button onClick={() => handleUpdateQuantity(item.id, -1)} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded">
                             <Minus size={16} />
                           </button>
-                          <span className="w-8 text-center font-bold text-slate-700">{item.quantity}</span>
+                          <span className="w-8 text-center font-bold text-slate-700 dark:text-slate-200">{item.quantity}</span>
                           <button onClick={() => handleUpdateQuantity(item.id, 1)} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded">
                             <Plus size={16} />
                           </button>
@@ -596,14 +596,14 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                           min="0"
                           value={item.sale_price}
                           onChange={(e) => handleUpdatePrice(item.id, Number(e.target.value))}
-                          className="w-24 p-2 bg-white border border-slate-200 rounded-lg text-center focus:ring-2 focus:ring-indigo-500 outline-none"
+                          className="w-24 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-center focus:ring-2 focus:ring-indigo-500 outline-none"
                         />
                       </td>
                       <td className="p-4 font-bold text-indigo-600">
                         {(item.quantity * (item.sale_price || 0)).toLocaleString()} {storeSettings.currency}
                       </td>
                       <td className="p-4 text-left">
-                        <button onClick={() => handleRemoveItem(item.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => handleRemoveItem(item.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition-colors">
                           <Trash2 size={18} />
                         </button>
                       </td>
@@ -611,7 +611,7 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                   ))}
                   {cart.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-500">
+                      <td colSpan={5} className="p-8 text-center text-slate-500 dark:text-slate-400">
                         لا يوجد منتجات في الفاتورة
                       </td>
                     </tr>
@@ -625,7 +625,7 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
           {/* Payment Settings */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
                 {exchangeMode ? 'تسوية الفرق' : 'المدفوعات'}
               </h3>
@@ -633,25 +633,25 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
               {exchangeMode ? (
                 <div className="space-y-3">
                   {Math.abs(settleAmount) < 0.01 ? (
-                    <div className="bg-slate-100 rounded-xl p-4 text-center font-bold text-slate-600">لا يوجد فرق — نفس القيمة</div>
+                    <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-4 text-center font-bold text-slate-600 dark:text-slate-300">لا يوجد فرق — نفس القيمة</div>
                   ) : (
                     <>
-                      <div className={`rounded-xl p-4 text-center ${settleAmount > 0 ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
-                        <div className={`text-sm font-bold ${settleAmount > 0 ? 'text-emerald-700' : 'text-red-700'}`}>{settleAmount > 0 ? 'تحصّل من العميل' : 'ترجّع للعميل'}</div>
-                        <div className={`text-3xl font-black ${settleAmount > 0 ? 'text-emerald-700' : 'text-red-700'}`}>{Math.abs(settleAmount).toLocaleString()} {storeSettings.currency}</div>
+                      <div className={`rounded-xl p-4 text-center ${settleAmount > 0 ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/40' : 'bg-red-50 border border-red-200'}`}>
+                        <div className={`text-sm font-bold ${settleAmount > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700'}`}>{settleAmount > 0 ? 'تحصّل من العميل' : 'ترجّع للعميل'}</div>
+                        <div className={`text-3xl font-black ${settleAmount > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700'}`}>{Math.abs(settleAmount).toLocaleString()} {storeSettings.currency}</div>
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1">{settleAmount > 0 ? 'طريقة تحصيل الفرق' : 'طريقة رد الفلوس للعميل'}</label>
+                        <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">{settleAmount > 0 ? 'طريقة تحصيل الفرق' : 'طريقة رد الفلوس للعميل'}</label>
                         <p className="text-[11px] text-slate-400 mb-2 font-bold">تقدري تقسّمي المبلغ على أكتر من وسيلة — المهم المجموع يساوي الفرق.</p>
                         <div className="space-y-2">
                           {payKeys.map((k) => (
                             <div key={k} className="flex items-center gap-3">
-                              <label className="w-24 text-sm font-medium text-slate-600 shrink-0">{payLabelOf(storeSettings as any, k)}:</label>
+                              <label className="w-24 text-sm font-medium text-slate-600 dark:text-slate-300 shrink-0">{payLabelOf(storeSettings as any, k)}:</label>
                               <input
                                 type="number" min="0" step="0.01"
                                 value={effectiveSplit[k] ? effectiveSplit[k] : ''}
                                 onChange={(e) => setSplitVal(k, Number(e.target.value))}
-                                className="flex-1 min-w-0 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold"
+                                className="flex-1 min-w-0 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold"
                                 placeholder="0"
                               />
                             </div>
@@ -666,11 +666,11 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                             إعادة الكل على {methodLabelOf(defaultSettleKey)}
                           </button>
                           {Math.abs(splitRemaining) < 0.01 ? (
-                            <span className="text-emerald-600">التقسيمة مظبوطة ✓</span>
+                            <span className="text-emerald-600 dark:text-emerald-400">التقسيمة مظبوطة ✓</span>
                           ) : splitRemaining > 0 ? (
-                            <span className="text-amber-600">باقي {splitRemaining.toLocaleString()} {storeSettings.currency}</span>
+                            <span className="text-amber-600 dark:text-amber-400">باقي {splitRemaining.toLocaleString()} {storeSettings.currency}</span>
                           ) : (
-                            <span className="text-red-600">زيادة {Math.abs(splitRemaining).toLocaleString()} {storeSettings.currency}</span>
+                            <span className="text-red-600 dark:text-red-400">زيادة {Math.abs(splitRemaining).toLocaleString()} {storeSettings.currency}</span>
                           )}
                         </div>
                       </div>
@@ -678,15 +678,15 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                   )}
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">تاريخ الاستبدال</label>
+                    <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">تاريخ الاستبدال</label>
                     <input
                       type="date"
                       value={exchangeDate}
                       max={todayBusinessDate}
                       onChange={(e) => setExchangeDate(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold"
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold"
                     />
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       حركة الفرق هتتسجّل في تقفيل ومعاملات وميزانية اليوم ده. لازم يكون يوم لسه مش مقفول في الخزنة.
                     </p>
                   </div>
@@ -695,8 +695,8 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
               <div className="space-y-3">
                 {payKeys.map((k) => (
                   <div key={k} className="flex items-center gap-3">
-                    <label className="w-24 text-sm font-medium text-slate-600">{payLabelOf(storeSettings as any, k)}:</label>
-                    <input type="number" min="0" value={pay[k] || ''} onChange={(e) => setPayVal(k, Number(e.target.value))} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="0" />
+                    <label className="w-24 text-sm font-medium text-slate-600 dark:text-slate-300">{payLabelOf(storeSettings as any, k)}:</label>
+                    <input type="number" min="0" value={pay[k] || ''} onChange={(e) => setPayVal(k, Number(e.target.value))} className="flex-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="0" />
                   </div>
                 ))}
               </div>
@@ -704,12 +704,12 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
 
               {!exchangeMode && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">تاريخ ووقت الفاتورة</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">تاريخ ووقت الفاتورة</label>
                   <input
                     type="datetime-local"
                     value={orderDate}
                     onChange={(e) => setOrderDate(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold"
+                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold"
                   />
                   <p className="text-[11px] text-slate-400 mt-1 font-bold">تغيير التاريخ بيحرّك الفاتورة لتقفيل اليوم اللي بيقع فيه.</p>
                 </div>
@@ -723,13 +723,13 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                   فيها حاجة في يوم تاني قبل ما يغيّر تاريخها. */}
               {!exchangeMode && invoiceRefundedAt && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">تاريخ الاسترجاع</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">تاريخ الاسترجاع</label>
                   <div className="flex gap-2">
                     <input
                       type="datetime-local"
                       value={refundDate}
                       onChange={(e) => setRefundDate(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none transition-all font-bold"
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none transition-all font-bold"
                     />
                     <button
                       type="button"
@@ -754,15 +754,15 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
                 if (!exchangedAt) return null;
                 const sameDay = new Date(exchangedAt).toDateString() === new Date(invoice.date).toDateString();
                 return (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-slate-500">تاريخ الاستبدال</span>
+                  <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">تاريخ الاستبدال</span>
                     <div className="flex items-center gap-2">
                       {!sameDay && (
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-500/30">
                           يوم مختلف عن الفاتورة
                         </span>
                       )}
-                      <span className="text-xs font-black text-amber-600">
+                      <span className="text-xs font-black text-amber-600 dark:text-amber-400">
                         {new Date(exchangedAt).toLocaleString('ar-EG', {
                           calendar: 'gregory', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
                         })}
@@ -773,43 +773,43 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
               })()}
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">{exchangeMode ? 'سبب الاستبدال (مطلوب)' : 'سبب التعديل (مطلوب)'}</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">{exchangeMode ? 'سبب الاستبدال (مطلوب)' : 'سبب التعديل (مطلوب)'}</label>
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
                   rows={2}
                   placeholder="مثال: تعديل سعر منتج، تغيير طريقة الدفع..."
                 />
               </div>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-6 flex flex-col justify-center space-y-4 border border-slate-100">
-              <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                <span className="text-slate-600 font-medium">{exchangeMode ? 'إجمالي المحدد للاستبدال:' : 'الإجمالي القديم:'}</span>
-                <span className="text-lg font-bold text-slate-500">{(exchangeMode ? selectedOldTotal : (invoice.total || 0)).toLocaleString()} {storeSettings.currency}</span>
+            <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 flex flex-col justify-center space-y-4 border border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-slate-600 dark:text-slate-300 font-medium">{exchangeMode ? 'إجمالي المحدد للاستبدال:' : 'الإجمالي القديم:'}</span>
+                <span className="text-lg font-bold text-slate-500 dark:text-slate-400">{(exchangeMode ? selectedOldTotal : (invoice.total || 0)).toLocaleString()} {storeSettings.currency}</span>
               </div>
-              <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                <span className="text-slate-600 font-medium">{exchangeMode ? 'إجمالي القطع الجديدة:' : 'الإجمالي الجديد:'}</span>
-                <span className="text-2xl font-black text-slate-800">{total.toLocaleString()} {storeSettings.currency}</span>
+              <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-700">
+                <span className="text-slate-600 dark:text-slate-300 font-medium">{exchangeMode ? 'إجمالي القطع الجديدة:' : 'الإجمالي الجديد:'}</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-slate-100">{total.toLocaleString()} {storeSettings.currency}</span>
               </div>
               {exchangeMode && keptOldTotal > 0.009 && (
-                <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-medium">باقي الفاتورة بدون استبدال:</span>
-                  <span className="text-lg font-bold text-slate-500">{keptOldTotal.toLocaleString()} {storeSettings.currency}</span>
+                <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-700">
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">باقي الفاتورة بدون استبدال:</span>
+                  <span className="text-lg font-bold text-slate-500 dark:text-slate-400">{keptOldTotal.toLocaleString()} {storeSettings.currency}</span>
                 </div>
               )}
               {exchangeMode && (
-                <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-medium">إجمالي الفاتورة بعد الاستبدال:</span>
-                  <span className="text-xl font-black text-slate-800">{finalExchangeTotal.toLocaleString()} {storeSettings.currency}</span>
+                <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-700">
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">إجمالي الفاتورة بعد الاستبدال:</span>
+                  <span className="text-xl font-black text-slate-800 dark:text-slate-100">{finalExchangeTotal.toLocaleString()} {storeSettings.currency}</span>
                 </div>
               )}
               {(() => {
                 const diff = exchangeMode ? settleAmount : total - (invoice.total || 0);
                 if (Math.abs(diff) < 0.01) return null;
                 return (
-                  <div className={`flex justify-between items-center pb-4 border-b border-slate-200 ${diff > 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                  <div className={`flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-700 ${diff > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700'}`}>
                     <span className="font-bold">{diff > 0 ? '⬆️ تاخد من العميل فرق:' : '⬇️ ترجّع للعميل فرق:'}</span>
                     <span className="text-xl font-black">{Math.abs(diff).toLocaleString()} {storeSettings.currency}</span>
                   </div>
@@ -817,13 +817,13 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
               })()}
               {!exchangeMode && (
                 <>
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                    <span className="text-slate-600 font-medium">إجمالي المدفوع:</span>
-                    <span className="text-xl font-bold text-emerald-600">{paidAmount.toLocaleString()} {storeSettings.currency}</span>
+                  <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-600 dark:text-slate-300 font-medium">إجمالي المدفوع:</span>
+                    <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{paidAmount.toLocaleString()} {storeSettings.currency}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2">
-                    <span className="text-slate-600 font-medium">الآجل (المديونية):</span>
-                    <span className={`text-xl font-bold ${debt > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                    <span className="text-slate-600 dark:text-slate-300 font-medium">الآجل (المديونية):</span>
+                    <span className={`text-xl font-bold ${debt > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`}>
                       {debt.toLocaleString()} {storeSettings.currency}
                     </span>
                   </div>
@@ -833,10 +833,10 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-3 text-slate-600 hover:bg-slate-100 rounded-xl font-bold transition-colors"
+            className="px-6 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl font-bold transition-colors"
           >
             إلغاء
           </button>

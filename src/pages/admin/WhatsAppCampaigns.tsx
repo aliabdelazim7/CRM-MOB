@@ -272,15 +272,15 @@ export default function WhatsAppCampaigns() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto h-[calc(100vh-2rem)] overflow-y-auto" dir="rtl">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 bg-white dark:bg-slate-800 p-6 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <MessageCircle size={26} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-800">حملات واتساب</h1>
-              <p className="text-slate-500 font-medium">إرسال يدوي مجاني لعملاء لديهم أرقام واتساب</p>
+              <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100">حملات واتساب</h1>
+              <p className="text-slate-500 dark:text-slate-400 font-medium">إرسال يدوي مجاني لعملاء لديهم أرقام واتساب</p>
             </div>
           </div>
         </div>
@@ -296,38 +296,38 @@ export default function WhatsAppCampaigns() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-6">
         <div className="space-y-6">
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100">
-              <h2 className="text-xl font-black text-slate-800 mb-4">إنشاء حملة</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-4">إنشاء حملة</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">اسم الحملة</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">اسم الحملة</label>
                   <input
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-emerald-500/20"
                     placeholder="مثال: عرض عيد"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">نص الرسالة</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">نص الرسالة</label>
                   <textarea
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 h-40 outline-none font-medium resize-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-40 outline-none font-medium resize-none focus:ring-2 focus:ring-emerald-500/20"
                     placeholder="اكتب نص الحملة. يمكنك استخدام {name} لاسم العميل و {store} لاسم المحل."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">رابط صورة العرض</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رابط صورة العرض</label>
                   <div className="relative">
                     <Image className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                       value={formData.imageUrl}
                       onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pr-12 pl-4 py-4 outline-none font-medium focus:ring-2 focus:ring-emerald-500/20"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pr-12 pl-4 py-4 outline-none font-medium focus:ring-2 focus:ring-emerald-500/20"
                       placeholder="https://..."
                       dir="ltr"
                     />
@@ -335,20 +335,20 @@ export default function WhatsAppCampaigns() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">اختيار العملاء</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">اختيار العملاء</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => {
                         setSelectionMode('all');
                         setSelectedCustomerIds(customersWithPhones.map((customer) => customer.id));
                       }}
-                      className={`py-3 rounded-2xl font-black border transition ${selectionMode === 'all' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                      className={`py-3 rounded-2xl font-black border transition ${selectionMode === 'all' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
                     >
                       كل العملاء
                     </button>
                     <button
                       onClick={() => setSelectionMode('custom')}
-                      className={`py-3 rounded-2xl font-black border transition ${selectionMode === 'custom' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                      className={`py-3 rounded-2xl font-black border transition ${selectionMode === 'custom' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
                     >
                       تحديد يدوي
                     </button>
@@ -356,19 +356,19 @@ export default function WhatsAppCampaigns() {
                 </div>
 
                 {selectionMode === 'custom' && (
-                  <div className="border border-slate-100 rounded-2xl overflow-hidden">
-                    <div className="p-3 bg-slate-50 border-b border-slate-100 relative">
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 relative">
                       <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                       <input
                         value={recipientSearch}
                         onChange={(e) => setRecipientSearch(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-xl pr-10 pl-3 py-2 outline-none text-sm font-bold"
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pr-10 pl-3 py-2 outline-none text-sm font-bold"
                         placeholder="ابحث عن عميل..."
                       />
                     </div>
-                    <div className="max-h-56 overflow-y-auto divide-y divide-slate-50">
+                    <div className="max-h-56 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
                       {filteredCustomers.map((customer) => (
-                        <label key={customer.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer">
+                        <label key={customer.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={selectedCustomerIds.includes(customer.id)}
@@ -376,8 +376,8 @@ export default function WhatsAppCampaigns() {
                             className="w-4 h-4 accent-emerald-600"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-black text-slate-800 truncate">{customer.name}</p>
-                            <p className="text-xs text-slate-500 font-mono" dir="ltr">{customer.phone}</p>
+                            <p className="font-black text-slate-800 dark:text-slate-100 truncate">{customer.name}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono" dir="ltr">{customer.phone}</p>
                           </div>
                         </label>
                       ))}
@@ -395,34 +395,34 @@ export default function WhatsAppCampaigns() {
             </div>
           </div>
 
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100">
-              <h2 className="text-xl font-black text-slate-800 mb-4">الحملات المحفوظة</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-4">الحملات المحفوظة</h2>
               <div className="relative">
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pr-12 pl-4 py-3 outline-none font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pr-12 pl-4 py-3 outline-none font-bold"
                   placeholder="بحث في الحملات..."
                 />
               </div>
             </div>
-            <div className="divide-y divide-slate-50 max-h-80 overflow-y-auto">
+            <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-80 overflow-y-auto">
               {visibleCampaigns.map((campaign) => {
                 const sent = campaign.recipients.filter((recipient) => recipient.sentAt).length;
                 return (
                   <button
                     key={campaign.id}
                     onClick={() => setSelectedCampaignId(campaign.id)}
-                    className={`w-full text-right p-4 transition ${selectedCampaignId === campaign.id ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
+                    className={`w-full text-right p-4 transition ${selectedCampaignId === campaign.id ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-black text-slate-800">{campaign.name}</p>
-                        <p className="text-xs text-slate-500 mt-1">{new Date(campaign.createdAt).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</p>
+                        <p className="font-black text-slate-800 dark:text-slate-100">{campaign.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{new Date(campaign.createdAt).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</p>
                       </div>
-                      <span className="text-xs font-black text-emerald-600 bg-white px-2 py-1 rounded-lg border border-emerald-100">
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 px-2 py-1 rounded-lg border border-emerald-100 dark:border-emerald-500/30">
                         {sent}/{campaign.customerIds.length}
                       </span>
                     </div>
@@ -439,61 +439,61 @@ export default function WhatsAppCampaigns() {
         <div className="space-y-6">
           {selectedCampaign ? (
             <>
-              <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 p-6">
                 <div className="flex flex-col lg:flex-row justify-between gap-5 mb-6">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-800">{selectedCampaign.name}</h2>
-                    <p className="text-slate-500 font-medium mt-1">الإرسال يدوي واحد واحد عبر واتساب Web</p>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">{selectedCampaign.name}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">الإرسال يدوي واحد واحد عبر واتساب Web</p>
                   </div>
                   <button
                     onClick={() => deleteCampaign(selectedCampaign.id)}
-                    className="self-start px-4 py-2 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition"
+                    className="self-start px-4 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-500/25 transition"
                   >
                     حذف الحملة
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <p className="text-xs font-bold text-slate-400 mb-1">إجمالي العملاء</p>
-                    <p className="text-2xl font-black text-slate-800">{selectedStats.total}</p>
+                    <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{selectedStats.total}</p>
                   </div>
-                  <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                  <div className="bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-500/30">
                     <p className="text-xs font-bold text-emerald-500 mb-1">تم الإرسال</p>
-                    <p className="text-2xl font-black text-emerald-700">{selectedStats.sent}</p>
+                    <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{selectedStats.sent}</p>
                   </div>
-                  <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                  <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-2xl border border-amber-100 dark:border-amber-500/30">
                     <p className="text-xs font-bold text-amber-500 mb-1">متبقي</p>
-                    <p className="text-2xl font-black text-amber-700">{selectedStats.pending}</p>
+                    <p className="text-2xl font-black text-amber-700 dark:text-amber-300">{selectedStats.pending}</p>
                   </div>
-                  <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                  <div className="bg-red-50 dark:bg-red-500/10 p-4 rounded-2xl border border-red-100 dark:border-red-500/30">
                     <p className="text-xs font-bold text-red-500 mb-1">تم التخطي</p>
-                    <p className="text-2xl font-black text-red-700">{selectedStats.skipped}</p>
+                    <p className="text-2xl font-black text-red-700 dark:text-red-300">{selectedStats.skipped}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 p-6">
-                <h3 className="text-xl font-black text-slate-800 mb-4 flex items-center gap-2">
-                  <MousePointer2 size={20} className="text-emerald-600" />
+              <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+                <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+                  <MousePointer2 size={20} className="text-emerald-600 dark:text-emerald-400" />
                   العميل الحالي
                 </h3>
 
                 {currentRecipient ? (
                   <div className="space-y-5">
-                    <div className="flex items-center justify-between gap-4 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                    <div className="flex items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
                       <div>
-                        <p className="text-xl font-black text-slate-800">{currentRecipient.name}</p>
-                        <p className="text-slate-500 font-mono" dir="ltr">{currentRecipient.phone}</p>
+                        <p className="text-xl font-black text-slate-800 dark:text-slate-100">{currentRecipient.name}</p>
+                        <p className="text-slate-500 dark:text-slate-400 font-mono" dir="ltr">{currentRecipient.phone}</p>
                       </div>
-                      <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                         <Users size={26} />
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4">
                       <p className="text-xs font-bold text-slate-400 mb-2">معاينة الرسالة</p>
-                      <pre className="whitespace-pre-wrap text-sm leading-7 font-sans text-slate-700 break-words overflow-x-hidden max-w-full" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{buildMessage(selectedCampaign, currentRecipient)}</pre>
+                      <pre className="whitespace-pre-wrap text-sm leading-7 font-sans text-slate-700 dark:text-slate-200 break-words overflow-x-hidden max-w-full" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{buildMessage(selectedCampaign, currentRecipient)}</pre>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -505,13 +505,13 @@ export default function WhatsAppCampaigns() {
                       </button>
                       <button
                         onClick={() => updateRecipient(currentRecipient.id, 'sent')}
-                        className="flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition"
+                        className="flex items-center justify-center gap-2 bg-slate-900 dark:bg-slate-700 text-white py-4 rounded-2xl font-black hover:bg-black transition"
                       >
                         <CheckCircle2 size={18} /> تم الإرسال
                       </button>
                       <button
                         onClick={copyCurrentMessage}
-                        className="flex items-center justify-center gap-2 bg-slate-100 text-slate-700 py-4 rounded-2xl font-black hover:bg-slate-200 transition"
+                        className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-4 rounded-2xl font-black hover:bg-slate-200 dark:hover:bg-slate-600 transition"
                       >
                         <Copy size={18} /> نسخ الرسالة
                       </button>
@@ -525,17 +525,17 @@ export default function WhatsAppCampaigns() {
                     </button>
                   </div>
                 ) : (
-                  <div className="p-10 text-center bg-emerald-50 rounded-3xl border border-emerald-100">
-                    <CheckCircle2 size={42} className="mx-auto text-emerald-600 mb-3" />
-                    <p className="text-xl font-black text-emerald-700">الحملة مكتملة</p>
+                  <div className="p-10 text-center bg-emerald-50 dark:bg-emerald-500/10 rounded-3xl border border-emerald-100 dark:border-emerald-500/30">
+                    <CheckCircle2 size={42} className="mx-auto text-emerald-600 dark:text-emerald-400 mb-3" />
+                    <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">الحملة مكتملة</p>
                     <p className="text-sm font-bold text-emerald-500 mt-1">كل العملاء تم تعليمهم كمرسل أو متخطى</p>
                   </div>
                 )}
               </div>
 
-              <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center gap-4">
-                  <h3 className="text-xl font-black text-slate-800">قائمة العملاء في الحملة</h3>
+              <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4">
+                  <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">قائمة العملاء في الحملة</h3>
                   <div className="flex items-center gap-3">
                     {selectedTableCustomerIds.size > 0 && (
                       <button
@@ -551,7 +551,7 @@ export default function WhatsAppCampaigns() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-right">
                     <thead>
-                      <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                      <tr className="bg-slate-50 dark:bg-slate-900 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                         <th className="p-4 w-8">
                           <input 
                             type="checkbox"
@@ -572,7 +572,7 @@ export default function WhatsAppCampaigns() {
                         <th className="p-4 text-left">إجراءات</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                       {campaignCustomers.map((customer) => {
                         const row = selectedCampaign.recipients.find((recipient) => recipient.customerId === customer.id);
                         const status = row?.sentAt ? 'sent' : row?.skippedAt ? 'skipped' : 'pending';
@@ -586,12 +586,12 @@ export default function WhatsAppCampaigns() {
                                 className="w-4 h-4 accent-purple-600 cursor-pointer"
                               />
                             </td>
-                            <td className="p-4 font-black text-slate-800">{customer.name}</td>
-                            <td className="p-4 font-mono text-slate-500" dir="ltr">{customer.phone}</td>
+                            <td className="p-4 font-black text-slate-800 dark:text-slate-100">{customer.name}</td>
+                            <td className="p-4 font-mono text-slate-500 dark:text-slate-400" dir="ltr">{customer.phone}</td>
                             <td className="p-4">
                               <span className={`px-3 py-1 rounded-lg text-xs font-black ${
                                 status === 'sent'
-                                  ? 'bg-emerald-50 text-emerald-600'
+                                  ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                   : status === 'skipped'
                                     ? 'bg-red-50 text-red-600'
                                     : 'bg-amber-50 text-amber-600'
@@ -624,7 +624,7 @@ export default function WhatsAppCampaigns() {
                                 </button>
                                 <button
                                   onClick={() => updateRecipient(customer.id, 'pending')}
-                                  className="p-2 text-slate-400 hover:text-slate-700 transition"
+                                  className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
                                   title="إعادة للانتظار"
                                 >
                                   <RotateCcw size={16} />
@@ -640,9 +640,9 @@ export default function WhatsAppCampaigns() {
               </div>
             </>
           ) : (
-            <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 p-12 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 p-12 text-center">
               <MessageCircle size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-xl font-black text-slate-700">ابدأ بإنشاء حملة واتساب</p>
+              <p className="text-xl font-black text-slate-700 dark:text-slate-200">ابدأ بإنشاء حملة واتساب</p>
               <p className="text-slate-400 font-bold mt-2">سيتم تجهيز روابط الإرسال للعملاء المسجل لهم رقم هاتف</p>
             </div>
           )}

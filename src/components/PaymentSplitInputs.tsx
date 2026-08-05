@@ -24,14 +24,14 @@ export default function PaymentSplitInputs({ value, onChange, cols = 2, inputCla
     <div className={`grid ${cols === 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'} gap-3`}>
       {keys.map((k) => (
         <div key={k}>
-          <label className={labelClassName || 'block text-[11px] font-bold text-slate-500 mb-1'}>{payLabelOf(storeSettings as any, k)}</label>
+          <label className={labelClassName || 'block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1'}>{payLabelOf(storeSettings as any, k)}</label>
           <input
             type="number"
             dir="ltr"
             placeholder="0.00"
             value={value[k] ?? ''}
             onChange={(e) => onChange(k, e.target.value)}
-            className={inputClassName || 'w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-indigo-500'}
+            className={inputClassName || 'w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-indigo-500'}
           />
         </div>
       ))}

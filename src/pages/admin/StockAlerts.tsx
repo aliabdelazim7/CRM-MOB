@@ -44,7 +44,7 @@ export default function StockAlerts() {
           <AlertTriangle className="text-orange-500" size={32} />
           نواقص ومقترحات
         </h1>
-        <p className="text-slate-500 mt-2 font-medium">متابعة المنتجات الناقصة، مقترحات العملاء، وملاحظات الكاشير</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">متابعة المنتجات الناقصة، مقترحات العملاء، وملاحظات الكاشير</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -66,12 +66,12 @@ export default function StockAlerts() {
                   <li key={product.id} className={`flex justify-between items-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/30 border border-slate-100 dark:border-slate-700 transition-opacity ${product.is_hidden ? 'opacity-50 grayscale' : ''}`}>
                     <div className="flex-1">
                       <p className="font-bold text-slate-800 dark:text-white">{product.name}</p>
-                      <p className="text-xs text-slate-500 mt-1">الباركود: {product.barcode}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">الباركود: {product.barcode}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => updateProduct(product.id, { is_hidden: !product.is_hidden })}
-                        className={`p-2 rounded-full transition-colors ${product.is_hidden ? 'bg-slate-200 text-slate-500' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}
+                        className={`p-2 rounded-full transition-colors ${product.is_hidden ? 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}
                         title={product.is_hidden ? 'إظهار في الكاشير' : 'إخفاء من الكاشير'}
                       >
                         {product.is_hidden ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -110,12 +110,12 @@ export default function StockAlerts() {
                   <li key={product.id} className={`flex justify-between items-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/30 border border-slate-100 dark:border-slate-700 transition-opacity ${product.is_hidden ? 'opacity-50 grayscale' : ''}`}>
                     <div className="flex-1">
                       <p className="font-bold text-slate-800 dark:text-white">{product.name}</p>
-                      <p className="text-xs text-slate-500 mt-1">الباركود: {product.barcode}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">الباركود: {product.barcode}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => updateProduct(product.id, { is_hidden: !product.is_hidden })}
-                        className={`p-2 rounded-full transition-colors ${product.is_hidden ? 'bg-slate-200 text-slate-500' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}
+                        className={`p-2 rounded-full transition-colors ${product.is_hidden ? 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}
                         title={product.is_hidden ? 'إظهار في الكاشير' : 'إخفاء من الكاشير'}
                       >
                         {product.is_hidden ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -201,14 +201,14 @@ export default function StockAlerts() {
                           <button
                             onClick={() => markSuggestionAsPurchased(suggestion.id)}
                             title="تم الشراء"
-                            className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition"
+                            className="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 rounded-lg transition"
                           >
                             <Check size={16} />
                           </button>
                           <button
                             onClick={() => deleteProductSuggestion(suggestion.id)}
                             title="حذف"
-                            className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition"
+                            className="p-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/25 rounded-lg transition"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -253,14 +253,14 @@ export default function StockAlerts() {
                   <div key={note.id} className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-blue-100 dark:border-blue-900/30 shadow-sm relative group">
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400">
                           <span className="font-bold text-sm">{note.cashier_name.charAt(0)}</span>
                         </div>
                         <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">{note.cashier_name}</span>
                       </div>
                       <button
                         onClick={() => markCashierNoteAsRead(note.id)}
-                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/25 rounded-lg text-xs font-bold flex items-center gap-1"
                       >
                         <Check size={14} /> مقروء
                       </button>

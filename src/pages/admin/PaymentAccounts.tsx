@@ -237,7 +237,7 @@ export default function PaymentAccounts() {
     <div className="p-6 md:p-8 space-y-5 animate-fade-in">
       <div>
         <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3"><Landmark className="text-indigo-600" size={28} /> كشوف حسابات وسائل الدفع</h1>
-        <p className="text-slate-500 mt-1 text-sm font-medium">كشف حساب بالمعاملات لكل وسيلة (وارد/صادر ورصيد جارٍ)، مع رصيد افتتاحي مستقل لكل وسيلة. الفواتير المقسّمة بتظهر نصيب كل وسيلة على حدة.</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm font-medium">كشف حساب بالمعاملات لكل وسيلة (وارد/صادر ورصيد جارٍ)، مع رصيد افتتاحي مستقل لكل وسيلة. الفواتير المقسّمة بتظهر نصيب كل وسيلة على حدة.</p>
       </div>
 
       {/* فلتر النطاق: خزنة المحل / الخزنة الرئيسية / الكل — كل خزنة حساب مستقل */}
@@ -255,7 +255,7 @@ export default function PaymentAccounts() {
           const active = selected === k;
           return (
             <button key={k} onClick={() => setSelected(k)} className={`text-right rounded-2xl border p-3 transition ${active ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300'}`}>
-              <div className="flex items-center gap-2 mb-1"><Icon size={16} className={active ? 'text-white' : 'text-indigo-500'} /><span className={`text-[11px] font-bold ${active ? 'text-indigo-100' : 'text-slate-500'} truncate`}>{payLabelOf(storeSettings as any, k)}</span></div>
+              <div className="flex items-center gap-2 mb-1"><Icon size={16} className={active ? 'text-white' : 'text-indigo-500'} /><span className={`text-[11px] font-bold ${active ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'} truncate`}>{payLabelOf(storeSettings as any, k)}</span></div>
               <div className={`text-lg font-black ${active ? 'text-white' : (s.balance < 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100')}`}>{fmt(s.balance)}</div>
               <div className={`text-[10px] ${active ? 'text-indigo-100' : 'text-slate-400'}`}>{cur}</div>
             </button>
@@ -266,12 +266,12 @@ export default function PaymentAccounts() {
       {/* الأرصدة الافتتاحية (لخزنة المحل فقط) */}
       {scope === 'shop' && (
       <details className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-        <summary className="cursor-pointer font-black text-slate-800 dark:text-white flex items-center gap-2"><Banknote size={18} className="text-emerald-600" /> الأرصدة الافتتاحية لكل وسيلة (خزنة المحل)</summary>
+        <summary className="cursor-pointer font-black text-slate-800 dark:text-white flex items-center gap-2"><Banknote size={18} className="text-emerald-600 dark:text-emerald-400" /> الأرصدة الافتتاحية لكل وسيلة (خزنة المحل)</summary>
         <p className="text-[11px] text-slate-400 mt-2 mb-3">الرصيد اللي كان موجود في كل وسيلة بخزنة المحل قبل ما تبدأ تسجّل على النظام. بيظهر كأول سطر في الكشف ويُضاف للرصيد. (الرصيد الافتتاحي للخزنة الرئيسية بيتعدّل من صفحة الخزنة الرئيسية.)</p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {methods.map((k) => (
             <div key={k}>
-              <label className="text-xs font-bold text-slate-500 block mb-1 truncate">{payLabelOf(storeSettings as any, k)}</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 truncate">{payLabelOf(storeSettings as any, k)}</label>
               <input type="number" value={openingDraft[k] ?? ''} onChange={(e) => setOpeningDraft((d) => ({ ...d, [k]: e.target.value }))} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
           ))}
@@ -291,9 +291,9 @@ export default function PaymentAccounts() {
           ))}
         </div>
         <div className="flex items-end gap-2 mr-auto flex-wrap">
-          <div><label className="text-[11px] font-bold text-slate-500 block mb-1">من</label><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold outline-none" /></div>
-          <div><label className="text-[11px] font-bold text-slate-500 block mb-1">إلى</label><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold outline-none" /></div>
-          <button onClick={exportExcel} className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold px-4 py-2 rounded-xl flex items-center gap-2 text-sm"><Download size={16} /> Excel</button>
+          <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">من</label><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold outline-none" /></div>
+          <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">إلى</label><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold outline-none" /></div>
+          <button onClick={exportExcel} className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold px-4 py-2 rounded-xl flex items-center gap-2 text-sm"><Download size={16} /> Excel</button>
           <button onClick={exportPDF} disabled={exporting} className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-2 text-sm"><FileText size={16} /> {exporting ? 'جاري...' : 'PDF'}</button>
         </div>
       </div>
@@ -310,7 +310,7 @@ export default function PaymentAccounts() {
           <div className="text-lg font-black text-slate-800 dark:text-white">{storeSettings.name}</div>
           <div className="text-sm font-bold text-indigo-600">كشف حساب: {payLabelOf(storeSettings as any, selected)} · {SCOPE_LABEL[scope]}</div>
         </div>
-        <div className="text-left text-[11px] text-slate-500 font-semibold">
+        <div className="text-left text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
           <div>الفترة: {periodLabel}</div>
         </div>
       </div>
@@ -327,7 +327,7 @@ export default function PaymentAccounts() {
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="overflow-x-auto max-h-[60vh] pa-scroll">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 sticky top-0">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 sticky top-0">
               <tr>
                 <th className="p-3">التاريخ</th><th className="p-3">البيان</th><th className="p-3 text-center">النوع</th>
                 <th className="p-3 text-center">وارد</th><th className="p-3 text-center">صادر</th><th className="p-3 text-center">الرصيد</th>
@@ -341,11 +341,11 @@ export default function PaymentAccounts() {
               {statement.rows.length === 0 ? <tr><td colSpan={6} className="text-center text-slate-400 py-8">لا توجد حركات في هذه الفترة</td></tr>
                 : statement.rows.map((r) => (
                   <tr key={r.e.id} className="border-b border-slate-100 dark:border-slate-700/50">
-                    <td className="p-3 text-slate-500 whitespace-nowrap text-xs">{new Date(r.e.date).toLocaleDateString('ar-EG')}</td>
+                    <td className="p-3 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">{new Date(r.e.date).toLocaleDateString('ar-EG')}</td>
                     <td className="p-3 font-semibold text-slate-800 dark:text-slate-100">{r.e.desc}</td>
                     <td className="p-3 text-center"><span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">{KIND_LABEL[r.e.kind]}</span></td>
-                    <td className="p-3 text-center font-bold text-emerald-600">{r.e.inAmount > 0 ? <span className="inline-flex items-center gap-1"><ArrowDownLeft size={13} />{fmt(r.e.inAmount)}</span> : '—'}</td>
-                    <td className="p-3 text-center font-bold text-red-600">{r.e.outAmount > 0 ? <span className="inline-flex items-center gap-1"><ArrowUpRight size={13} />{fmt(r.e.outAmount)}</span> : '—'}</td>
+                    <td className="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400">{r.e.inAmount > 0 ? <span className="inline-flex items-center gap-1"><ArrowDownLeft size={13} />{fmt(r.e.inAmount)}</span> : '—'}</td>
+                    <td className="p-3 text-center font-bold text-red-600 dark:text-red-400">{r.e.outAmount > 0 ? <span className="inline-flex items-center gap-1"><ArrowUpRight size={13} />{fmt(r.e.outAmount)}</span> : '—'}</td>
                     <td className={`p-3 text-center font-black ${r.balance < 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}`}>{fmt(r.balance)}</td>
                   </tr>
                 ))}
@@ -354,8 +354,8 @@ export default function PaymentAccounts() {
               <tfoot className="sticky bottom-0">
                 <tr className="bg-slate-100 dark:bg-slate-900/60 font-black">
                   <td className="p-3" colSpan={3}>الإجمالي</td>
-                  <td className="p-3 text-center text-emerald-700">{fmt(statement.totalIn)}</td>
-                  <td className="p-3 text-center text-red-700">{fmt(statement.totalOut)}</td>
+                  <td className="p-3 text-center text-emerald-700 dark:text-emerald-300">{fmt(statement.totalIn)}</td>
+                  <td className="p-3 text-center text-red-700 dark:text-red-300">{fmt(statement.totalOut)}</td>
                   <td className="p-3 text-center">{fmt(statement.closing)}</td>
                 </tr>
               </tfoot>
@@ -369,10 +369,10 @@ export default function PaymentAccounts() {
 }
 
 function MiniStat({ label, value, tone }: { label: string; value: string; tone?: 'in' | 'out' | 'bold' }) {
-  const color = tone === 'in' ? 'text-emerald-600' : tone === 'out' ? 'text-red-600' : 'text-slate-800 dark:text-slate-100';
+  const color = tone === 'in' ? 'text-emerald-600 dark:text-emerald-400' : tone === 'out' ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-100';
   return (
     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 text-center">
-      <div className="text-[11px] font-bold text-slate-500">{label}</div>
+      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{label}</div>
       <div className={`text-base md:text-lg font-black mt-1 ${color}`}>{value}</div>
     </div>
   );

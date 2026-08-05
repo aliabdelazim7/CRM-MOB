@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, HELD_STATUS_LABEL, type HeldInvoice, type HeldStatus, type Product } from '../store/useStore';
+import { useTheme } from '../theme';
 import { HeldReturnModal } from '../components/HeldReturnModal';
 import { EditInvoiceModal } from '../components/EditInvoiceModal';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Banknote, RefreshCcw, Moon, Sun, ArrowRightLeft, X, Printer, CreditCard, Smartphone, Zap, ScanLine, Camera, Box, Check, ChevronRight, ChevronLeft, FileText, MessageSquare, Send, Wallet, Edit2, Eye, HandCoins, UserMinus, Clock, PauseCircle, Undo2, Truck, Hourglass, Play } from 'lucide-react';
@@ -643,15 +644,12 @@ export default function POS() {
   const [discountStr, setDiscountStr] = useState('');
   const [couponInput, setCouponInput] = useState('');
   const [customerDebt, setCustomerDebt] = useState<number>(0);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof document !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved === 'dark') return true;
-      if (saved === 'light') return false;
-      return document.documentElement.classList.contains('dark') || true;
-    }
-    return true;
-  });
+  /*
+   * الثيم بقى من ستور واحد مشترك مع AdminLayout. قبل كده كان POS ماسك state
+   * خاص بيه — و POS بيتعرض جوه AdminLayout — فكان كل واحد بيكتب على
+   * documentElement.classList ويلغي التاني، والزرار بيبان بحالة قديمة.
+   */
+  const { isDark: isDarkMode, toggle: toggleTheme } = useTheme();
   const [showReturnsModal, setShowReturnsModal] = useState(false);
   const [returnSearchQuery, setReturnSearchQuery] = useState('');
   const [showHistory, setShowHistory] = useState(false);
@@ -1513,17 +1511,6 @@ export default function POS() {
     }
   };
 
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   // Online/Offline sync listener
   useEffect(() => {
@@ -2378,7 +2365,7 @@ export default function POS() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => printInvoice(lastInvoiceId, lastOrderDetails)}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all border border-slate-200"
+                    className="flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all border border-slate-200 dark:border-slate-700"
                   >
                     <Printer size={20} /> إعادة طباعة
                   </button>
@@ -2389,7 +2376,7 @@ export default function POS() {
                       clearCart();
                       focusById('pos-cust-name');
                     }}
-                    className="flex-1 bg-slate-900 hover:bg-black text-white py-3.5 rounded-2xl font-bold transition-all focus:ring-4 focus:ring-slate-400"
+                    className="flex-1 bg-slate-900 dark:bg-slate-700 hover:bg-black text-white py-3.5 rounded-2xl font-bold transition-all focus:ring-4 focus:ring-slate-400"
                   >
                     إغلاق وفاتورة جديدة
                   </button>
@@ -2577,7 +2564,7 @@ export default function POS() {
                   </div>
                   <div className="bg-gray-100 dark:bg-slate-700 rounded-xl p-3 flex justify-between items-center">
                     <span className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي المبلغ:</span>
-                    <span className={`text-xl font-black ${financeType === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <span className={`text-xl font-black ${financeType === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}>
                       {financeTotal.toLocaleString()} {storeSettings.currency}
                     </span>
                   </div>
@@ -2651,7 +2638,7 @@ export default function POS() {
 
               <div className="bg-gray-100 dark:bg-slate-700 rounded-xl p-3 flex justify-between items-center">
                 <span className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي السلفة:</span>
-                <span className="text-xl font-black text-amber-600">{advanceTotal.toLocaleString()} {storeSettings.currency}</span>
+                <span className="text-xl font-black text-amber-600 dark:text-amber-400">{advanceTotal.toLocaleString()} {storeSettings.currency}</span>
               </div>
 
               {/* مصدر صرف السلفة: خزنة المحل أو الرئيسية */}
@@ -2751,7 +2738,7 @@ export default function POS() {
               <div className="bg-gray-100 dark:bg-slate-700 rounded-xl p-3 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي الخصم:</span>
-                  <span className="text-xl font-black text-rose-600">{dedTotal.toLocaleString()} {storeSettings.currency}</span>
+                  <span className="text-xl font-black text-rose-600 dark:text-rose-400">{dedTotal.toLocaleString()} {storeSettings.currency}</span>
                 </div>
                 {dedEmpId && (
                   <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 dark:text-slate-400">
@@ -2878,7 +2865,7 @@ export default function POS() {
               <button
                 onClick={handlePrintBarcode}
                 disabled={barcodeRows.length === 0}
-                className="w-full font-black py-4 rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white bg-slate-800 hover:bg-slate-900"
+                className="w-full font-black py-4 rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600"
               >
                 <Printer size={20} /> طباعة {barcodeTotal > 0 ? `${barcodeTotal} ملصق` : 'الباركود'}
               </button>
@@ -2898,7 +2885,7 @@ export default function POS() {
               <div className="flex items-center gap-2 flex-wrap">
                 <label className="text-sm font-bold text-slate-600 dark:text-slate-300">التاريخ:</label>
                 <input type="date" value={dayBudgetDate} onChange={(e) => setDayBudgetDate(e.target.value)} className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-bold text-sm" />
-                <button onClick={() => setDayBudgetDate(todayStr())} className="text-xs font-bold text-emerald-600 hover:underline">اليوم</button>
+                <button onClick={() => setDayBudgetDate(todayStr())} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline">اليوم</button>
               </div>
               <p className="text-[11px] text-slate-400 font-bold mb-2">اليوم يبدأ الساعة {(() => { const h = storeSettings.dayStartHour ?? 3; return h === 0 ? '12 ص' : h < 12 ? `${h} ص` : h === 12 ? '12 م' : `${h - 12} م`; })()} — الفواتير قبلها تُحسب على اليوم السابق.</p>
               {/* أرقام من نسخة الجهاز: الكاشير لازم يعرف إنها مش لحظية قبل ما يبني عليها قرار. */}
@@ -2919,7 +2906,7 @@ export default function POS() {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-slate-100 dark:bg-slate-900/40 rounded-xl p-4 text-center">
-                      <div className="text-[11px] font-bold text-slate-500">رصيد بداية اليوم</div>
+                      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">رصيد بداية اليوم</div>
                       <div className="text-xl font-black text-slate-800 dark:text-slate-100">{dayBudget.opening.toFixed(2)}</div>
                     </div>
                     <div className="bg-emerald-600 text-white rounded-xl p-4 text-center">
@@ -2962,14 +2949,14 @@ export default function POS() {
                     );
                   })()}
                   <div>
-                    <div className="text-xs font-bold text-slate-500 mb-2">الرصيد الحالي الفعلي في الخزنة (بالتقسيمة):</div>
+                    <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">الرصيد الحالي الفعلي في الخزنة (بالتقسيمة):</div>
                     <div className="grid grid-cols-2 gap-3">
                       {activePayKeys.map((k) => {
                         const bal = (dayBudget.shopAvail?.[k]) ?? (dayBudget.dayIn[k] - dayBudget.dayOut[k]);
                         const net = dayBudget.dayIn[k] - dayBudget.dayOut[k];
                         return (
                           <div key={k} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
-                            <div className="text-[11px] font-bold text-slate-500">{payLabel(k)}</div>
+                            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{payLabel(k)}</div>
                             <div className={`text-lg font-black ${bal < 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}`}>{bal.toFixed(2)} {storeSettings.currency}</div>
                             <div className="text-[10px] text-slate-400">صافي اليوم: {net.toFixed(2)} (داخل {dayBudget.dayIn[k].toFixed(2)} · خارج {dayBudget.dayOut[k].toFixed(2)})</div>
                           </div>
@@ -2996,14 +2983,14 @@ export default function POS() {
                         <div key={k} className="grid grid-cols-[1fr_auto_auto] items-center px-3 py-1.5 border-t border-slate-100 dark:border-slate-700/50 text-[13px]">
                           <span className="font-bold text-slate-600 dark:text-slate-300">{payLabel(k)}</span>
                           <span className="text-left w-28 font-black text-indigo-600">{out.toFixed(2)}</span>
-                          <span className={`text-left w-28 font-black ${left < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{left.toFixed(2)}</span>
+                          <span className={`text-left w-28 font-black ${left < 0 ? 'text-red-600' : 'text-emerald-600 dark:text-emerald-400'}`}>{left.toFixed(2)}</span>
                         </div>
                       );
                     })}
                     <div className="grid grid-cols-[1fr_auto_auto] items-center px-3 py-2 border-t-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/40 text-[13px]">
                       <span className="font-black text-slate-700 dark:text-slate-200">الإجمالي</span>
                       <span className="text-left w-28 font-black text-indigo-700">{(dayBudget.breakdown?.savingsOut || 0).toFixed(2)}</span>
-                      <span className="text-left w-28 font-black text-emerald-700">{activePayKeys.reduce((s, k) => s + ((dayBudget.shopAvail?.[k]) || 0), 0).toFixed(2)}</span>
+                      <span className="text-left w-28 font-black text-emerald-700 dark:text-emerald-300">{activePayKeys.reduce((s, k) => s + ((dayBudget.shopAvail?.[k]) || 0), 0).toFixed(2)}</span>
                     </div>
                     <p className="px-3 py-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-700/50">🔁 المتبقي في خزنة المحل يترحّل تلقائياً كرصيد بداية اليوم التالي.</p>
                   </div>
@@ -3014,14 +3001,14 @@ export default function POS() {
                   {perm('savings') && (
                   <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
                     {!showReconcile ? (
-                      <button onClick={openReconcile} className="w-full bg-slate-700 hover:bg-slate-800 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">📋 ضبط رصيد الخزنة (جرد)</button>
+                      <button onClick={openReconcile} className="w-full bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">📋 ضبط رصيد الخزنة (جرد)</button>
                     ) : (
                       <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-black text-slate-800 dark:text-slate-200">ضبط رصيد الخزنة (جرد)</span>
-                          <button onClick={() => setShowReconcile(false)} className="text-xs font-bold text-slate-500">إغلاق</button>
+                          <button onClick={() => setShowReconcile(false)} className="text-xs font-bold text-slate-500 dark:text-slate-400">إغلاق</button>
                         </div>
-                        <p className="text-[11px] text-slate-500">اكتب الكاش الفعلي الموجود دلوقتي لكل طريقة. النظام هيسجّل قيد تسوية يخلّي الرصيد مطابق للحقيقة (الفرق يظهر كزيادة/عجز).</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">اكتب الكاش الفعلي الموجود دلوقتي لكل طريقة. النظام هيسجّل قيد تسوية يخلّي الرصيد مطابق للحقيقة (الفرق يظهر كزيادة/عجز).</p>
                         <div className="grid grid-cols-2 gap-2">
                           {PAY_KEYS.map(([k]) => {
                             const cur = Number(dayBudget.shopAvail?.[k]) || 0;
@@ -3029,14 +3016,14 @@ export default function POS() {
                             const diff = Math.round((counted - cur) * 100) / 100;
                             return (
                               <div key={k}>
-                                <label className="text-[11px] font-bold text-slate-500">{payLabel(k)} <span className="text-slate-400">(محسوب {cur.toFixed(2)})</span></label>
+                                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{payLabel(k)} <span className="text-slate-400">(محسوب {cur.toFixed(2)})</span></label>
                                 <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold" type="number" dir="ltr" value={reconcileCounts[k] ?? ''} onChange={(e) => setReconcileCounts((s) => ({ ...s, [k]: e.target.value }))} />
-                                {Math.abs(diff) > 0.009 && <div className={`text-[10px] font-bold ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}>{diff > 0 ? 'زيادة' : 'عجز'}: {Math.abs(diff).toFixed(2)}</div>}
+                                {Math.abs(diff) > 0.009 && <div className={`text-[10px] font-bold ${diff > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600'}`}>{diff > 0 ? 'زيادة' : 'عجز'}: {Math.abs(diff).toFixed(2)}</div>}
                               </div>
                             );
                           })}
                         </div>
-                        <button onClick={handleReconcile} disabled={reconcileBusy} className="w-full bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white font-black py-2.5 rounded-xl">{reconcileBusy ? 'جاري...' : 'تأكيد الجرد وضبط الرصيد'}</button>
+                        <button onClick={handleReconcile} disabled={reconcileBusy} className="w-full bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50 text-white font-black py-2.5 rounded-xl">{reconcileBusy ? 'جاري...' : 'تأكيد الجرد وضبط الرصيد'}</button>
                       </div>
                     )}
                   </div>
@@ -3057,13 +3044,13 @@ export default function POS() {
                       <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-2xl p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-black text-indigo-800 dark:text-indigo-300">تحويل للخزنة الرئيسية</span>
-                          <button onClick={() => { setShowSaveXfer(false); setSaveXferSent(false); }} className="text-xs font-bold text-slate-500">إغلاق</button>
+                          <button onClick={() => { setShowSaveXfer(false); setSaveXferSent(false); }} className="text-xs font-bold text-slate-500 dark:text-slate-400">إغلاق</button>
                         </div>
-                        <p className="text-[11px] text-slate-500">المبالغ مملوءة بكامل الموجود في خزنة المحل — عدّليها لو عايزة مبلغ محدد (مش أكبر من المتاح). كل طريقة بتتحوّل بنفسها.</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">المبالغ مملوءة بكامل الموجود في خزنة المحل — عدّليها لو عايزة مبلغ محدد (مش أكبر من المتاح). كل طريقة بتتحوّل بنفسها.</p>
                         <div className="grid grid-cols-2 gap-2">
                           {PAY_KEYS.map(([k]) => (
                             <div key={k}>
-                              <label className="text-[11px] font-bold text-slate-500">{payLabel(k)} <span className="text-slate-400">(متاح {((dayBudget.shopAvail?.[k]) || 0).toFixed(0)})</span></label>
+                              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{payLabel(k)} <span className="text-slate-400">(متاح {((dayBudget.shopAvail?.[k]) || 0).toFixed(0)})</span></label>
                               <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold" type="number" min="0" value={saveXfer[k]} onChange={(e) => { setSaveXfer((s) => ({ ...s, [k]: e.target.value })); setSaveXferSent(false); }} />
                             </div>
                           ))}
@@ -3079,7 +3066,7 @@ export default function POS() {
                               <input className="flex-1 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-700 rounded-lg px-3 py-2 text-center font-black tracking-widest" dir="ltr" placeholder="رمز التأكيد" value={saveXferOtp} onChange={(e) => setSaveXferOtp(e.target.value)} />
                               <button onClick={saveXferConfirm} disabled={saveXferBusy} className="shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black px-4 rounded-lg">تأكيد</button>
                             </div>
-                            <button onClick={saveXferRequest} disabled={saveXferBusy} className="text-[11px] font-bold text-amber-700">إعادة إرسال الرمز</button>
+                            <button onClick={saveXferRequest} disabled={saveXferBusy} className="text-[11px] font-bold text-amber-700 dark:text-amber-300">إعادة إرسال الرمز</button>
                           </div>
                         )}
                       </div>
@@ -3162,8 +3149,8 @@ export default function POS() {
                       <div key={row.id} className="bg-red-50 dark:bg-red-900/15 rounded-xl p-3 border border-red-100 dark:border-red-800/60">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div>
-                            <p className="font-black text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2"><span className="text-[11px] px-2 py-1 rounded-lg bg-red-100 text-red-700">مرتجع</span> فاتورة #{o.id} · {o.customer?.name || 'عميل نقدي'}</p>
-                            <p className="text-[11px] text-slate-500">{new Date(row.date).toLocaleString('ar-EG')} · قيمة المرتجع: <b>{money(row.value)}</b></p>
+                            <p className="font-black text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2"><span className="text-[11px] px-2 py-1 rounded-lg bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300">مرتجع</span> فاتورة #{o.id} · {o.customer?.name || 'عميل نقدي'}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{new Date(row.date).toLocaleString('ar-EG')} · قيمة المرتجع: <b>{money(row.value)}</b></p>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <button onClick={() => window.open(`/view-invoice/${o.id}`, '_blank')} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300">عرض</button>
@@ -3179,15 +3166,15 @@ export default function POS() {
                       <div key={row.id} className="bg-amber-50 dark:bg-amber-900/15 rounded-xl p-3 border border-amber-100 dark:border-amber-800/60">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div>
-                            <p className="font-black text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2"><span className="text-[11px] px-2 py-1 rounded-lg bg-amber-100 text-amber-700">استبدال</span> فاتورة #{o.id} · {o.customer?.name || 'عميل نقدي'}</p>
-                            <p className="text-[11px] text-slate-500">{new Date(row.date).toLocaleString('ar-EG')} · {diffLabel}: <b>{money(row.value)}</b></p>
+                            <p className="font-black text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2"><span className="text-[11px] px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">استبدال</span> فاتورة #{o.id} · {o.customer?.name || 'عميل نقدي'}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{new Date(row.date).toLocaleString('ar-EG')} · {diffLabel}: <b>{money(row.value)}</b></p>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <button onClick={() => setViewExchange(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 flex items-center gap-1"><Eye size={14} /> تفاصيل</button>
+                            <button onClick={() => setViewExchange(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 flex items-center gap-1"><Eye size={14} /> تفاصيل</button>
                             <button onClick={() => reprintOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 flex items-center gap-1"><Printer size={14} /> طباعة</button>
                             {/* استبدال تاني من صف الاستبدال نفسه — من غير ما نرجع لصف الفاتورة */}
                             {perm('editDelete') && !canExchangeAgain(o).blocked && (
-                              <button onClick={() => openEditOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 flex items-center gap-1"><RefreshCcw size={14} /> استبدال تاني</button>
+                              <button onClick={() => openEditOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-200 flex items-center gap-1"><RefreshCcw size={14} /> استبدال تاني</button>
                             )}
                           </div>
                         </div>
@@ -3199,7 +3186,7 @@ export default function POS() {
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div>
                           <p className="font-black text-slate-800 dark:text-slate-100 text-sm">#{o.id} · {o.customer?.name || 'عميل نقدي'}</p>
-                          <p className="text-[11px] text-slate-500">{new Date(o.date).toLocaleString('ar-EG')} · الإجمالي: <b>{money(o.total || 0)}</b>{(o.total - calculateOrderReturnValue(o) - o.paid_amount) > 0.5 ? ` · باقي: ${(o.total - calculateOrderReturnValue(o) - o.paid_amount).toFixed(2)}` : ''}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{new Date(o.date).toLocaleString('ar-EG')} · الإجمالي: <b>{money(o.total || 0)}</b>{(o.total - calculateOrderReturnValue(o) - o.paid_amount) > 0.5 ? ` · باقي: ${(o.total - calculateOrderReturnValue(o) - o.paid_amount).toFixed(2)}` : ''}</p>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <button onClick={() => window.open(`/view-invoice/${o.id}`, '_blank')} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300">عرض</button>
@@ -3207,23 +3194,23 @@ export default function POS() {
                           <button onClick={() => sendOrderWhatsApp(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#25D366] text-white hover:bg-[#1da851]">واتساب</button>
                           {(() => {
                             // فاتورة اترجعت بالكامل = كل أصنافها مرتجعة → مايصحّش نستبدل فيها.
-                            if (canExchangeAgain(o).blocked) return <span className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-400 flex items-center gap-1"><RefreshCcw size={14} /> مرتجعة بالكامل</span>;
+                            if (canExchangeAgain(o).blocked) return <span className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-400 flex items-center gap-1"><RefreshCcw size={14} /> مرتجعة بالكامل</span>;
                             // فاتورة متستبدلة قبل كده: بنعرض زرار العرض *و* زرار
                             // استبدال تاني — الفاتورة دلوقتي شايلة القطع الحالية،
                             // فالاستبدال التاني بيشتغل عليها عادي.
                             return (
                               <>
                                 {o.exchange_data && (
-                                  <button onClick={() => setViewExchange(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 flex items-center gap-1"><Eye size={14} /> تم الاستبدال</button>
+                                  <button onClick={() => setViewExchange(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 flex items-center gap-1"><Eye size={14} /> تم الاستبدال</button>
                                 )}
                                 {perm('editDelete') && (
-                                  <button onClick={() => openEditOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 flex items-center gap-1"><RefreshCcw size={14} /> {o.exchange_data ? 'استبدال تاني' : 'استبدال'}</button>
+                                  <button onClick={() => openEditOrder(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-200 flex items-center gap-1"><RefreshCcw size={14} /> {o.exchange_data ? 'استبدال تاني' : 'استبدال'}</button>
                                 )}
                               </>
                             );
                           })()}
                           {perm('editDelete') && (
-                            <button onClick={() => deleteOrderWithOtp(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 flex items-center gap-1"><Trash2 size={14} /> حذف</button>
+                            <button onClick={() => deleteOrderWithOtp(o)} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 hover:bg-red-200 flex items-center gap-1"><Trash2 size={14} /> حذف</button>
                           )}
                         </div>
                       </div>
@@ -3261,18 +3248,18 @@ export default function POS() {
                 {/* استبدالات سابقة (لو الفاتورة اتستبدلت أكتر من مرة) */}
                 {Array.isArray(ex.history) && ex.history.length > 0 && (
                   <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-100 dark:border-amber-800 space-y-2">
-                    <div className="text-xs font-black text-amber-700">استبدالات سابقة ({ex.history.length})</div>
+                    <div className="text-xs font-black text-amber-700 dark:text-amber-300">استبدالات سابقة ({ex.history.length})</div>
                     {ex.history.map((h: any, i: number) => {
                       const names = (arr: any[]) => (arr || []).map((it: any) => `${it.name} ×${it.quantity}`).join('، ') || '—';
                       const hd = Number(h.diff) || 0;
                       return (
                         <div key={i} className="bg-white dark:bg-slate-800 rounded-lg p-2 text-[11px] space-y-0.5 border border-amber-100 dark:border-amber-800/50">
-                          <div className="flex justify-between font-black text-amber-700">
+                          <div className="flex justify-between font-black text-amber-700 dark:text-amber-300">
                             <span>استبدال {i + 1}</span>
                             <span className="text-slate-400">{h.date ? new Date(h.date).toLocaleDateString('ar-EG', { calendar: 'gregory' }) : ''}</span>
                           </div>
-                          <div className="text-red-600 font-bold">رجّع: {names(h.before)}</div>
-                          <div className="text-emerald-700 font-bold">خد: {names(h.after)}</div>
+                          <div className="text-red-600 dark:text-red-400 font-bold">رجّع: {names(h.before)}</div>
+                          <div className="text-emerald-700 dark:text-emerald-300 font-bold">خد: {names(h.after)}</div>
                           <div className="font-bold text-slate-600 dark:text-slate-300">
                             {Math.abs(hd) < 0.01 ? 'من غير فرق' : hd > 0 ? `دفع ${Math.abs(hd).toFixed(2)} ${cur}` : `استلم ${Math.abs(hd).toFixed(2)} ${cur}`}
                           </div>
@@ -3282,16 +3269,16 @@ export default function POS() {
                   </div>
                 )}
                 <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-100 dark:border-red-800">
-                  <div className="text-xs font-black text-red-600 mb-1">
+                  <div className="text-xs font-black text-red-600 dark:text-red-400 mb-1">
                     {Array.isArray(ex.history) && ex.history.length > 0 ? 'آخر استبدال — رجّع' : 'قبل الاستبدال'} — الإجمالي: {(Number(ex.oldTotal) || 0).toFixed(2)} {cur}
                   </div>
                   {list(ex.before)}
                 </div>
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 border border-emerald-100 dark:border-emerald-800">
-                  <div className="text-xs font-black text-emerald-700 mb-1">بعد الاستبدال — الإجمالي: {(Number(ex.newTotal) || 0).toFixed(2)} {cur}</div>
+                  <div className="text-xs font-black text-emerald-700 dark:text-emerald-300 mb-1">بعد الاستبدال — الإجمالي: {(Number(ex.newTotal) || 0).toFixed(2)} {cur}</div>
                   {list(ex.after)}
                 </div>
-                <div className={`rounded-xl p-3 text-center font-black ${Math.abs(diff) < 0.01 ? 'bg-slate-100 dark:bg-slate-900/40 text-slate-600' : diff > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                <div className={`rounded-xl p-3 text-center font-black ${Math.abs(diff) < 0.01 ? 'bg-slate-100 dark:bg-slate-900/40 text-slate-600' : diff > 0 ? 'bg-emerald-100 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 text-red-700'}`}>
                   {Math.abs(diff) < 0.01 ? 'لا يوجد فرق' : `${diff > 0 ? 'تم تحصيل' : 'تم رد'}: ${Math.abs(diff).toFixed(2)} ${cur}`}
                   {/* استبدال قديم مالوش split — بيقع على method القديمة. */}
                   {Math.abs(diff) >= 0.01 && (() => {
@@ -3299,9 +3286,9 @@ export default function POS() {
                     const text = used.length
                       ? used.map(([k, v]) => `${payLabelOf(storeSettings as any, k)} ${(Number(v) || 0).toFixed(2)}`).join(' + ')
                       : (ex.method ? payLabelOf(storeSettings as any, ex.method) : '');
-                    return text ? <div className="text-[11px] font-bold text-slate-600 mt-1">{text}</div> : null;
+                    return text ? <div className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mt-1">{text}</div> : null;
                   })()}
-                  {ex.date ? <div className="text-[11px] font-bold text-slate-500 mt-1">{new Date(ex.date).toLocaleString('ar-EG')}</div> : null}
+                  {ex.date ? <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1">{new Date(ex.date).toLocaleString('ar-EG')}</div> : null}
                 </div>
                 {/* استبدال تاني من جوه شاشة التفاصيل — الفاتورة دلوقتي شايلة القطع
                     الحالية، فالجولة الجاية بتشتغل عليها زي أي فاتورة. */}
@@ -3329,8 +3316,8 @@ export default function POS() {
                   <div className="space-y-2 max-h-72 overflow-y-auto">
                     {debtFiltered.length === 0 ? <p className="text-center text-slate-400 py-8 font-bold">لا يوجد عملاء عليهم آجل</p>
                       : debtFiltered.map((c) => (
-                        <button key={c.id} onClick={() => { setDebtCustId(c.id); setDebtAmount(String(c.debt.toFixed(2))); }} className="w-full text-right bg-slate-50 dark:bg-slate-900/40 hover:bg-amber-50 rounded-xl p-3 border border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                          <div><p className="font-black text-slate-800 dark:text-slate-100 text-sm">{c.name}</p><p className="text-[11px] text-slate-500" dir="ltr">{c.phone || '—'}</p></div>
+                        <button key={c.id} onClick={() => { setDebtCustId(c.id); setDebtAmount(String(c.debt.toFixed(2))); }} className="w-full text-right bg-slate-50 dark:bg-slate-900/40 hover:bg-amber-50 dark:hover:bg-amber-500/15 rounded-xl p-3 border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                          <div><p className="font-black text-slate-800 dark:text-slate-100 text-sm">{c.name}</p><p className="text-[11px] text-slate-500 dark:text-slate-400" dir="ltr">{c.phone || '—'}</p></div>
                           <span className="bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-lg">{c.debt.toFixed(2)} {storeSettings.currency}</span>
                         </button>
                       ))}
@@ -3339,29 +3326,29 @@ export default function POS() {
               ) : (
                 <>
                   <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 flex items-center justify-between">
-                    <div><p className="font-black text-slate-800 dark:text-slate-100">{selectedDebtCustomer.name}</p><p className="text-[11px] text-slate-500" dir="ltr">{selectedDebtCustomer.phone || '—'}</p></div>
-                    <button onClick={() => { setDebtCustId(''); setDebtAmount(''); }} className="text-xs font-bold text-amber-600">تغيير</button>
+                    <div><p className="font-black text-slate-800 dark:text-slate-100">{selectedDebtCustomer.name}</p><p className="text-[11px] text-slate-500 dark:text-slate-400" dir="ltr">{selectedDebtCustomer.phone || '—'}</p></div>
+                    <button onClick={() => { setDebtCustId(''); setDebtAmount(''); }} className="text-xs font-bold text-amber-600 dark:text-amber-400">تغيير</button>
                   </div>
                   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-center">
-                    <div className="text-[11px] font-bold text-red-600">إجمالي المديونية</div>
-                    <div className="text-2xl font-black text-red-700">{selectedDebtCustomer.debt.toFixed(2)} {storeSettings.currency}</div>
+                    <div className="text-[11px] font-bold text-red-600 dark:text-red-400">إجمالي المديونية</div>
+                    <div className="text-2xl font-black text-red-700 dark:text-red-300">{selectedDebtCustomer.debt.toFixed(2)} {storeSettings.currency}</div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">المبلغ المدفوع</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">المبلغ المدفوع</label>
                     <input autoFocus type="number" value={debtAmount} onChange={(e) => setDebtAmount(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-3 text-lg font-black outline-none focus:ring-2 focus:ring-amber-500" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">طريقة الدفع</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">طريقة الدفع</label>
                     <select value={debtMethod} onChange={(e) => setDebtMethod(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-3 text-sm font-bold outline-none">
                       <option value="cash">{payLabel('cash')}</option><option value="visa">{payLabel('visa')}</option><option value="wallet">{payLabel('wallet')}</option><option value="instapay">{payLabel('instapay')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">تاريخ التحصيل (يُسجَّل في حسابات هذا اليوم)</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">تاريخ التحصيل (يُسجَّل في حسابات هذا اليوم)</label>
                     <input type="date" value={debtPayDate} onChange={(e) => setDebtPayDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500" />
                   </div>
                   <div className="bg-slate-100 dark:bg-slate-900 rounded-xl p-3 text-center">
-                    <span className="text-xs font-bold text-slate-500">المتبقي بعد السداد: </span>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">المتبقي بعد السداد: </span>
                     <span className="font-black text-slate-800 dark:text-slate-100">{Math.max(0, selectedDebtCustomer.debt - (Number(debtAmount) || 0)).toFixed(2)} {storeSettings.currency}</span>
                   </div>
                   <button onClick={submitDebtPayment} disabled={debtSaving} className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">
@@ -3428,19 +3415,19 @@ export default function POS() {
                     {/* Financial Summary Card */}
                     <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">العميل</span>
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">العميل</span>
                         <span className="text-sm font-black text-slate-800 dark:text-slate-200">{activeReturnOrder.customer?.name || 'عميل نقدي'}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">إجمالي الفاتورة (بعد الخصم)</span>
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">إجمالي الفاتورة (بعد الخصم)</span>
                         <span className="text-sm font-black text-slate-800 dark:text-slate-200">{activeReturnOrder.total.toFixed(2)} {storeSettings.currency}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">المبلغ المدفوع</span>
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">المبلغ المدفوع</span>
                         <span className="text-sm font-black text-green-600 dark:text-green-400">{activeReturnOrder.paid_amount.toFixed(2)} {storeSettings.currency}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">نسبة خصم الفاتورة</span>
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">نسبة خصم الفاتورة</span>
                         <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{((1 - discountRatio) * 100).toFixed(1)}%</span>
                       </div>
                     </div>
@@ -3449,18 +3436,18 @@ export default function POS() {
                     {selectedReturnValue > 0 && (
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">تاريخ المرتجع</label>
+                          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">تاريخ المرتجع</label>
                           <input
                             type="date" value={refundDate}
                             onChange={(e) => setRefundDate(e.target.value)}
                             className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-sm font-bold focus:ring-2 focus:ring-indigo-400 outline-none"
                           />
                           {refundDate !== businessDateStr(storeSettings) && (
-                            <p className="text-[10px] font-bold text-amber-600 mt-1">هيتسجّل على تقفيل يوم {refundDate}</p>
+                            <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1">هيتسجّل على تقفيل يوم {refundDate}</p>
                           )}
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">خصم من المرتجع</label>
+                          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">خصم من المرتجع</label>
                           <input
                             type="number" dir="ltr" placeholder="0.00" value={refundFeeStr}
                             onChange={(e) => setRefundFeeStr(e.target.value)}
@@ -3475,7 +3462,7 @@ export default function POS() {
                     {selectedReturnValue > 0 && (
                       <div className="grid grid-cols-3 gap-3 mb-4">
                         <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-700">
-                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">قيمة المرتجع</div>
+                          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">قيمة المرتجع</div>
                           <div className="text-lg font-black text-slate-800 dark:text-slate-200">{selectedReturnValue.toFixed(2)}</div>
                         </div>
                         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 text-center border border-amber-200 dark:border-amber-800">
@@ -3515,7 +3502,7 @@ export default function POS() {
                                   key={m}
                                   type="button"
                                   onClick={() => setRefundMethod(m as any)}
-                                  className={`text-[9px] font-bold px-2 py-0.5 rounded transition ${refundMethod === m ? 'bg-white text-emerald-700' : 'bg-emerald-600/60 text-white hover:bg-emerald-600'}`}
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded transition ${refundMethod === m ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300' : 'bg-emerald-600/60 text-white hover:bg-emerald-600'}`}
                                 >
                                   {payLabel(m)}
                                 </button>
@@ -3544,7 +3531,7 @@ export default function POS() {
                           <div className="col-span-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">وزّع {cashToCustomer.toFixed(2)} {storeSettings.currency} على الوسائل</span>
-                              <span className={`text-[11px] font-black ${Math.abs(refundSplitTotal - cashToCustomer) < 0.01 ? 'text-emerald-600' : 'text-red-500'}`}>
+                              <span className={`text-[11px] font-black ${Math.abs(refundSplitTotal - cashToCustomer) < 0.01 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                                 المكتوب: {refundSplitTotal.toFixed(2)}
                                 {Math.abs(refundSplitTotal - cashToCustomer) >= 0.01 && ` (الفرق ${(cashToCustomer - refundSplitTotal).toFixed(2)})`}
                               </span>
@@ -3571,7 +3558,7 @@ export default function POS() {
                       <div className="bg-gray-100 dark:bg-slate-700 p-4 flex justify-between items-center border-b border-gray-200 dark:border-slate-600">
                         <div className="flex flex-col">
                           <span className="font-bold text-gray-700 dark:text-gray-200 font-mono tracking-wider">الأصناف المتاحة للإرجاع</span>
-                          <span className="text-[10px] text-slate-500 font-bold">رقم الفاتورة: #{activeReturnOrder.id} | المرتجع مسبقاً: {pastRefunds.toFixed(2)} {storeSettings.currency}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">رقم الفاتورة: #{activeReturnOrder.id} | المرتجع مسبقاً: {pastRefunds.toFixed(2)} {storeSettings.currency}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -3608,7 +3595,7 @@ export default function POS() {
                               </div>
                               <div className="flex items-center gap-3 w-full md:w-auto">
                                 <div className="flex flex-col gap-1 w-24">
-                                  <label className="text-[10px] font-bold text-slate-500">كمية الإرجاع</label>
+                                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">كمية الإرجاع</label>
                                   <input 
                                     type="number" 
                                     min="0" 
@@ -3793,22 +3780,22 @@ export default function POS() {
             </button>
             )}
             {perm('debt') && (
-            <button onClick={() => { setDebtPayDate(businessDateStr(storeSettings)); setShowDebtModal(true); }} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 rounded-2xl font-bold transition border border-amber-100 dark:border-amber-900/30 whitespace-nowrap shadow-sm shrink-0">
+            <button onClick={() => { setDebtPayDate(businessDateStr(storeSettings)); setShowDebtModal(true); }} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/25 rounded-2xl font-bold transition border border-amber-100 dark:border-amber-900/30 whitespace-nowrap shadow-sm shrink-0">
               <CreditCard size={18} /> <span className="text-sm">سداد آجل</span>
             </button>
             )}
             {perm('dayClosing') && (
-            <button onClick={() => setShowDayBudget(true)} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 rounded-2xl font-bold transition border border-emerald-100 dark:border-emerald-900/30 whitespace-nowrap shadow-sm shrink-0">
+            <button onClick={() => setShowDayBudget(true)} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 rounded-2xl font-bold transition border border-emerald-100 dark:border-emerald-900/30 whitespace-nowrap shadow-sm shrink-0">
               <Banknote size={18} /> <span className="text-sm">تقفيل اليوم</span>
             </button>
             )}
             {perm('returns') && (
-            <button onClick={() => setShowReturnsModal(true)} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 rounded-2xl font-bold transition border border-red-100 dark:border-red-900/30 whitespace-nowrap shadow-sm shrink-0">
+            <button onClick={() => setShowReturnsModal(true)} className="flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/25 rounded-2xl font-bold transition border border-red-100 dark:border-red-900/30 whitespace-nowrap shadow-sm shrink-0">
               <RefreshCcw size={18} /> <span className="text-sm">مرتجع</span>
             </button>
             )}
             {perm('held') && (
-            <button onClick={() => setShowHeldModal(true)} className="relative flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 rounded-2xl font-bold transition border border-orange-100 dark:border-orange-900/30 whitespace-nowrap shadow-sm shrink-0">
+            <button onClick={() => setShowHeldModal(true)} className="relative flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/25 rounded-2xl font-bold transition border border-orange-100 dark:border-orange-900/30 whitespace-nowrap shadow-sm shrink-0">
               <Clock size={18} /> <span className="text-sm">فواتير معلقة</span>
               {heldInvoices.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 flex items-center justify-center text-[10px] font-black text-white bg-orange-500 rounded-full shadow">{heldInvoices.length}</span>
@@ -3816,7 +3803,7 @@ export default function POS() {
             </button>
             )}
             {/* فواتير الانتظار — مش متقيّدة بصلاحية: مفيش مخزون ولا فلوس بتتحرّك، ودي حاجة كل كاشير محتاجها. */}
-            <button onClick={() => setShowParkedModal(true)} className="relative flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 rounded-2xl font-bold transition border border-amber-100 dark:border-amber-900/30 whitespace-nowrap shadow-sm shrink-0">
+            <button onClick={() => setShowParkedModal(true)} className="relative flex items-center justify-center gap-1.5 lg:gap-2 px-3 lg:px-5 h-[44px] lg:h-[52px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/25 rounded-2xl font-bold transition border border-amber-100 dark:border-amber-900/30 whitespace-nowrap shadow-sm shrink-0">
               <Hourglass size={18} /> <span className="text-sm">انتظار</span>
               {parkedCarts.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 flex items-center justify-center text-[10px] font-black text-white bg-amber-500 rounded-full shadow">{parkedCarts.length}</span>
@@ -3831,7 +3818,7 @@ export default function POS() {
             <span className="text-[11px] font-bold text-slate-400 shrink-0">الفاتورة</span>
             {([['retail', 'قطاعي'], ['half', 'نص جملة'], ['wholesale', 'جملة']] as const).filter(([k]) => k === 'retail' || perm('wholesale')).map(([k, label]) => (
               <button key={k} onClick={() => setInvoiceType(k)}
-                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition ${invoiceType === k ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
+                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition ${invoiceType === k ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}>
                 {label}
               </button>
             ))}
@@ -3840,7 +3827,7 @@ export default function POS() {
             <span className="text-[11px] font-bold text-slate-400 shrink-0">الموسم</span>
             {([['all', 'الكل'], ['summer', 'صيفي'], ['winter', 'شتوي'], ['annual', 'سنوي']] as const).map(([k, label]) => (
               <button key={k} onClick={() => setPosSeason(k)}
-                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition ${posSeason === k ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
+                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition ${posSeason === k ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}>
                 {label}
               </button>
             ))}
@@ -3993,7 +3980,7 @@ export default function POS() {
                         value={workDateOverride || businessDateStr(storeSettings)}
                         max={businessDateStr(storeSettings)}
                         onChange={(e) => setWorkDateOverride(e.target.value)}
-                        className="text-slate-800 bg-white rounded-lg px-2 py-1 text-[11px] font-bold outline-none"
+                        className="text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-lg px-2 py-1 text-[11px] font-bold outline-none"
                       />
                     )}
                   </div>
@@ -4028,7 +4015,7 @@ export default function POS() {
                 id="pos-cust-phone"
                 type="text" dir="ltr" value={customerPhone} onChange={handlePhoneChange}
                 onKeyDown={(e) => keyNext(e, 'pos-cust-card')}
-                className="w-full bg-white/95 text-slate-800 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-full"
+                className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-full"
                 placeholder="الموبايل"
               />
             </div>
@@ -4040,7 +4027,7 @@ export default function POS() {
                 onChange={e => { setCustomerName(e.target.value); setShowCustomerSuggestions(true); }}
                 onFocus={() => setShowCustomerSuggestions(true)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setShowCustomerSuggestions(false); focusById('pos-cust-phone'); } }}
-                className="w-full bg-white/95 text-slate-800 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-full"
+                className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-full"
                 placeholder="الاسم"
               />
               {showCustomerSuggestions && filteredCustomers.length > 0 && (
@@ -4105,7 +4092,7 @@ export default function POS() {
                           />
                         </div>
                         <span className="font-black text-lg text-indigo-600 dark:text-indigo-400">
-                          {(item.sale_price * item.quantity).toFixed(2)} <span className="text-[10px] text-gray-500">{storeSettings.currency}</span>
+                          {(item.sale_price * item.quantity).toFixed(2)} <span className="text-[10px] text-gray-500 dark:text-slate-400">{storeSettings.currency}</span>
                         </span>
                       </>
                     )}
@@ -4114,7 +4101,7 @@ export default function POS() {
                   {isFractionalUnit(item.unit) ? (
                     <button
                       onClick={() => { setWeightProduct(item); setWeightUnitInput(String(item.quantity)); setWeightSubInput(''); }}
-                      className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 rounded-lg px-3 py-1.5 text-amber-700 dark:text-amber-300 font-bold text-sm shadow-inner hover:bg-amber-100 transition"
+                      className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 rounded-lg px-3 py-1.5 text-amber-700 dark:text-amber-300 font-bold text-sm shadow-inner hover:bg-amber-100 dark:hover:bg-amber-500/25 transition"
                       title="تعديل الوزن"
                     >
                       <span>{formatQty(item.quantity, item.unit)}</span>
@@ -4206,7 +4193,7 @@ export default function POS() {
               <span className="flex items-center gap-1">
                 كوبون:
                 {validCoupon && (
-                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 rounded-full">
+                  <span className="text-xs bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 rounded-full">
                     مفعل (خصم {couponDiscountAmount} ج.م)
                   </span>
                 )}
@@ -4243,7 +4230,7 @@ export default function POS() {
               <span className="text-xs font-black text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><Clock size={14} /> عربون محصّل من الحجز</span>
               <div className="text-left">
                 <div className="text-sm font-black text-orange-700 dark:text-orange-300">{activeDeposit.amount.toFixed(2)} {storeSettings.currency}</div>
-                <div className="text-[10px] font-bold text-slate-500">الباقي المطلوب: {Math.max(0, total - activeDeposit.amount).toFixed(2)}</div>
+                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">الباقي المطلوب: {Math.max(0, total - activeDeposit.amount).toFixed(2)}</div>
               </div>
             </div>
           )}
@@ -4273,7 +4260,7 @@ export default function POS() {
           <button
             onClick={openHoldForm}
             disabled={cart.length === 0 || pricesHidden || holdBusy}
-            className="w-full mt-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-sm active:scale-95 border border-orange-100 dark:border-orange-900/30"
+            className="w-full mt-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/25 disabled:opacity-40 disabled:cursor-not-allowed py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-sm active:scale-95 border border-orange-100 dark:border-orange-900/30"
           >
             <PauseCircle size={18} /> {holdBusy ? 'جاري الحفظ...' : 'حفظ كفاتورة معلقة'}
           </button>
@@ -4281,7 +4268,7 @@ export default function POS() {
           <button
             onClick={parkCurrentCart}
             disabled={cart.length === 0}
-            className="w-full mt-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-sm active:scale-95 border border-amber-100 dark:border-amber-900/30"
+            className="w-full mt-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-sm active:scale-95 border border-amber-100 dark:border-amber-900/30"
           >
             <Hourglass size={18} /> وضع الفاتورة في الانتظار
           </button>
@@ -4304,7 +4291,7 @@ export default function POS() {
                   <p className="text-xs text-slate-400 font-bold">يرجى تحديد كيفية تحصيل مبلغ الفاتورة</p>
                 </div>
               </div>
-              <button onClick={() => setShowCheckoutModal(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors">
+              <button onClick={() => setShowCheckoutModal(false)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-500 rounded-xl transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -4323,7 +4310,7 @@ export default function POS() {
                   <span className="text-xs font-black text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><Clock size={14} /> عربون محصّل مسبقاً</span>
                   <div className="text-left">
                     <div className="text-base font-black text-orange-700 dark:text-orange-300">− {activeDeposit.amount.toFixed(2)} {storeSettings.currency}</div>
-                    <div className="text-[10px] font-bold text-slate-500">المطلوب تحصيله الآن: {Math.max(0, total - activeDeposit.amount).toFixed(2)}</div>
+                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">المطلوب تحصيله الآن: {Math.max(0, total - activeDeposit.amount).toFixed(2)}</div>
                   </div>
                 </div>
               )}
@@ -4393,7 +4380,7 @@ export default function POS() {
             <div className="p-6 bg-slate-50 dark:bg-slate-900/50 flex gap-3">
               <button
                 onClick={() => setShowCheckoutModal(false)}
-                className="flex-1 py-4 px-6 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition-all active:scale-95"
+                className="flex-1 py-4 px-6 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
               >
                 تراجع
               </button>
@@ -4424,7 +4411,7 @@ export default function POS() {
                   <p className="text-xs text-slate-400 font-bold">تُحجز الكمية، وتقدر تحصّل عربون يدخل الخزنة</p>
                 </div>
               </div>
-              <button onClick={() => setShowHoldForm(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors"><X size={20} /></button>
+              <button onClick={() => setShowHoldForm(false)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-500 rounded-xl transition-colors"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 flex justify-between items-center border border-indigo-100 dark:border-indigo-800/50">
@@ -4433,7 +4420,7 @@ export default function POS() {
               </div>
               {/* نوع الحجز — الأونلاين بيتتبّع بحالات (شحن/تسليم) من لوحة التحكم */}
               <div>
-                <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">نوع الفاتورة</label>
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">نوع الفاتورة</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -4465,19 +4452,19 @@ export default function POS() {
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-black text-slate-500 uppercase mb-1.5 block">ملاحظة للمندوب (اختياري)</label>
+                    <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1.5 block">ملاحظة للمندوب (اختياري)</label>
                     <input
                       value={holdShipNote} onChange={(e) => setHoldShipNote(e.target.value)}
                       placeholder="علامة مميزة، أفضل وقت للتسليم..."
                       className="w-full bg-white dark:bg-slate-900 border-2 border-transparent focus:border-sky-500 py-2.5 px-3 rounded-xl outline-none font-bold text-sm"
                     />
                   </div>
-                  {!holdAddress.trim() && <p className="text-[11px] font-black text-amber-600">⚠️ من غير عنوان، بوليصة الشحن هتطلع ناقصة.</p>}
-                  {!customerPhone.trim() && <p className="text-[11px] font-black text-amber-600">⚠️ اكتب موبايل العميل — المندوب محتاجه.</p>}
+                  {!holdAddress.trim() && <p className="text-[11px] font-black text-amber-600 dark:text-amber-400">⚠️ من غير عنوان، بوليصة الشحن هتطلع ناقصة.</p>}
+                  {!customerPhone.trim() && <p className="text-[11px] font-black text-amber-600 dark:text-amber-400">⚠️ اكتب موبايل العميل — المندوب محتاجه.</p>}
                 </div>
               )}
               <div>
-                <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">العربون المحصّل (اختياري) — يدخل الخزنة</label>
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">العربون المحصّل (اختياري) — يدخل الخزنة</label>
                 <div className="grid grid-cols-2 gap-3">
                   {activePayKeys.map((k) => (
                     <div key={k} className="space-y-1">
@@ -4489,8 +4476,8 @@ export default function POS() {
                   ))}
                 </div>
                 <div className="flex justify-between items-center mt-3 px-1">
-                  <span className="text-xs font-bold text-slate-500">إجمالي العربون</span>
-                  <span className="text-lg font-black text-orange-600">{holdDepositTotal.toFixed(2)} {storeSettings.currency}</span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">إجمالي العربون</span>
+                  <span className="text-lg font-black text-orange-600 dark:text-orange-400">{holdDepositTotal.toFixed(2)} {storeSettings.currency}</span>
                 </div>
                 {holdDepositTotal > 0 && <div className="text-[11px] font-bold text-slate-400 mt-1">الباقي بعد العربون: {Math.max(0, total - holdDepositTotal).toFixed(2)} {storeSettings.currency} — يتحصّل وقت الإتمام أو يتحط آجل.</div>}
               </div>
@@ -4517,7 +4504,7 @@ export default function POS() {
                   <p className="text-xs text-slate-400 font-bold">محفوظة على الجهاز ده — الكمية <span className="text-amber-600 dark:text-amber-400">مش محجوزة</span> من المخزون</p>
                 </div>
               </div>
-              <button onClick={() => setShowParkedModal(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors">
+              <button onClick={() => setShowParkedModal(false)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-500 rounded-xl transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -4569,7 +4556,7 @@ export default function POS() {
                       </button>
                       <button
                         onClick={() => deleteParkedCart(p.id)}
-                        className="px-4 bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition active:scale-95"
+                        className="px-4 bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/25 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition active:scale-95"
                       >
                         <Trash2 size={16} /> حذف
                       </button>
@@ -4603,7 +4590,7 @@ export default function POS() {
                   <p className="text-xs text-slate-400 font-bold">الكمية محجوزة من المخزون لحد تأكيد البيع أو الإرجاع</p>
                 </div>
               </div>
-              <button onClick={() => setShowHeldModal(false)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors">
+              <button onClick={() => setShowHeldModal(false)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-500 rounded-xl transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -4642,10 +4629,10 @@ export default function POS() {
                       <div className="flex justify-between items-start gap-3 mb-2">
                         <div className="min-w-0">
                           <div className="font-black text-slate-800 dark:text-white truncate flex items-center gap-2">
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md border shrink-0 ${h.kind === 'online' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md border shrink-0 ${h.kind === 'online' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-500/40'}`}>
                               {h.kind === 'online' ? '🚚 أونلاين' : '🏬 حجز'}
                             </span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md border shrink-0 ${h.status === 'shipped' ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md border shrink-0 ${h.status === 'shipped' ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-500/40' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                               {HELD_STATUS_LABEL[(h.status || 'held') as HeldStatus]}
                             </span>
                             <span className="truncate">{h.customer_name?.trim() || 'عميل نقدي'}</span>
@@ -4658,7 +4645,7 @@ export default function POS() {
                         </div>
                         <div className="text-left shrink-0">
                           <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">{Number(h.total).toFixed(2)} <span className="text-[10px] text-slate-400">{storeSettings.currency}</span></div>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${ageDays >= 7 ? 'text-amber-600 bg-amber-50 border-amber-100' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${ageDays >= 7 ? 'text-amber-600 bg-amber-50 border-amber-100' : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-700'}`}>
                             {ageDays === 0 ? 'محجوزة اليوم' : `محجوزة من ${ageDays} يوم`}
                           </span>
                         </div>
@@ -4727,7 +4714,7 @@ export default function POS() {
                           {(h.status || 'held') !== 'held' && (
                             <button
                               onClick={() => setReturningHeld(h)}
-                              className="w-full bg-white dark:bg-slate-800 text-amber-600 border border-amber-200 dark:border-amber-900/40 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
+                              className="w-full bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
                             >
                               <Undo2 size={14} /> مرتجع (العميل مستلمش كله أو جزء منه)
                             </button>
@@ -4743,7 +4730,7 @@ export default function POS() {
                         </button>
                         <button
                           onClick={() => handleReturnHeld(h.id)}
-                          className="flex-1 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-50 py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition active:scale-95"
+                          className="flex-1 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-500/15 py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 transition active:scale-95"
                         >
                           <Undo2 size={16} /> إرجاع للمخزون
                         </button>
@@ -4796,10 +4783,10 @@ export default function POS() {
             {scannedProduct && (
               <div className="absolute bottom-10 left-4 right-4 bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl z-[210] animate-in slide-in-from-bottom-10 max-w-md mx-auto">
                 <div className="flex items-start gap-4 border-b border-gray-100 dark:border-slate-700 pb-4 mb-4">
-                  <div className="bg-emerald-100 text-emerald-600 p-3 rounded-2xl shrink-0"><Check size={24} strokeWidth={3} /></div>
+                  <div className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-2xl shrink-0"><Check size={24} strokeWidth={3} /></div>
                   <div className="flex-1">
                     <h4 className="font-black text-lg text-slate-800 dark:text-white leading-tight mb-1">{scannedProduct.name}</h4>
-                    <p className="text-emerald-600 font-bold">{scannedProduct.sale_price} {storeSettings.currency}</p>
+                    <p className="text-emerald-600 dark:text-emerald-400 font-bold">{scannedProduct.sale_price} {storeSettings.currency}</p>
                   </div>
                 </div>
                 
@@ -4837,10 +4824,10 @@ export default function POS() {
               <div className="flex items-start justify-between p-5 border-b border-gray-100 dark:border-slate-700">
                 <div>
                   <h3 className="font-black text-lg text-slate-800 dark:text-white leading-tight">{weightProduct.name}</h3>
-                  <p className="text-sm text-emerald-600 font-bold mt-1">{weightProduct.sale_price} {storeSettings.currency} / {cfg.label}</p>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400 font-bold mt-1">{weightProduct.sale_price} {storeSettings.currency} / {cfg.label}</p>
                   <p className="text-[11px] text-slate-400 font-bold mt-0.5">المتاح: {formatQty(weightProduct.stock_quantity, weightProduct.unit)}</p>
                 </div>
-                <button onClick={() => setWeightProduct(null)} className="text-slate-400 hover:text-slate-600 bg-slate-50 dark:bg-slate-700 p-2 rounded-xl"><X size={18} /></button>
+                <button onClick={() => setWeightProduct(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 dark:bg-slate-700 p-2 rounded-xl"><X size={18} /></button>
               </div>
 
               <div className="p-5 space-y-4">
@@ -4903,14 +4890,14 @@ export default function POS() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-[100] flex items-center justify-around px-2 pb-5 pt-2">
         <button 
           onClick={() => setMobileView('catalog')}
-          className={`flex flex-col items-center p-2 rounded-xl flex-1 transition-all ${mobileView === 'catalog' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
+          className={`flex flex-col items-center p-2 rounded-xl flex-1 transition-all ${mobileView === 'catalog' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 shadow-inner' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
         >
           <Box size={20} className={mobileView === 'catalog' ? 'animate-bounce' : ''} />
           <span className="text-[11px] font-bold mt-1">المنتجات</span>
         </button>
         <button 
           onClick={() => setMobileView('cart')}
-          className={`flex flex-col items-center p-2 rounded-xl flex-1 relative transition-all ${mobileView === 'cart' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
+          className={`flex flex-col items-center p-2 rounded-xl flex-1 relative transition-all ${mobileView === 'cart' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 shadow-inner' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
         >
           <ShoppingCart size={20} className={mobileView === 'cart' ? 'animate-bounce' : ''} />
           <span className="text-[11px] font-bold mt-1">الفاتورة</span>

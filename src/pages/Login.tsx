@@ -38,8 +38,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="bg-slate-800 p-8 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-700">
+    <div className="min-h-screen bg-slate-900 dark:bg-slate-700 flex items-center justify-center p-4">
+      <div className="bg-slate-800 dark:bg-slate-700 p-8 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-700">
         <div className="flex justify-center mb-6">
           <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
             <Lock size={32} className="text-white" />
@@ -53,7 +53,7 @@ export default function Login() {
             <select
               value={userId}
               onChange={(e) => { setUserId(e.target.value); setError(false); }}
-              className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl py-3 px-4 text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-slate-900 dark:bg-slate-700 border border-slate-700 text-white rounded-xl py-3 px-4 text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">المدير العام</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -66,7 +66,7 @@ export default function Login() {
               dir="ltr"
               value={pin}
               onChange={(e) => { setPin(e.target.value); setError(false); }}
-              className={`w-full bg-slate-900 border ${error ? 'border-red-500' : 'border-slate-700'} text-white rounded-xl py-3 px-4 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 transition`}
+              className={`w-full bg-slate-900 dark:bg-slate-700 border ${error ? 'border-red-500' : 'border-slate-700'} text-white rounded-xl py-3 px-4 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 transition`}
               placeholder="••••"
               autoFocus
             />

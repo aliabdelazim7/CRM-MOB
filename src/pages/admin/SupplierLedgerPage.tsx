@@ -223,19 +223,19 @@ export default function SupplierLedgerPage() {
 
             <form onSubmit={handleRecordPayment} className="space-y-3 text-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">المبلغ (ج.م) *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">المبلغ (ج.م) *</label>
                 <input
                   type="number"
                   min="1"
                   required
                   value={payAmount}
                   onChange={(e) => setPayAmount(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 font-bold text-lg text-emerald-600"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 font-bold text-lg text-emerald-600 dark:text-emerald-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">طريقة الدفع</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">طريقة الدفع</label>
                 <select
                   value={payMethod}
                   onChange={(e) => setPayMethod(e.target.value)}

@@ -46,7 +46,7 @@ export default function OfflineInvoices() {
             <button 
               onClick={handleSync}
               disabled={isSyncing || pendingCount === 0 || !isOnline}
-              className="group/btn relative overflow-hidden bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-indigo-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl hover:-translate-y-1 w-full md:w-auto"
+              className="group/btn relative overflow-hidden bg-white dark:bg-slate-800 text-indigo-900 px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-indigo-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl hover:-translate-y-1 w-full md:w-auto"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-white opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
               <RefreshCw size={22} className={`relative z-10 ${isSyncing ? 'animate-spin text-indigo-600' : 'text-indigo-500 group-hover/btn:rotate-180 transition-transform duration-500'}`} />
@@ -62,9 +62,9 @@ export default function OfflineInvoices() {
       </div>
 
       {!isOnline && (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-3xl p-5 flex items-start sm:items-center gap-4 text-red-800 shadow-sm">
-          <div className="bg-red-100 p-3 rounded-full shrink-0">
-            <WifiOff className="text-red-600" size={24} />
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 dark:border-red-500/30 rounded-3xl p-5 flex items-start sm:items-center gap-4 text-red-800 dark:text-red-300 shadow-sm">
+          <div className="bg-red-100 dark:bg-red-500/20 p-3 rounded-full shrink-0">
+            <WifiOff className="text-red-600 dark:text-red-400" size={24} />
           </div>
           <div>
             <p className="font-bold text-lg mb-1">أنت حالياً في وضع الأوفلاين</p>
@@ -94,7 +94,7 @@ export default function OfflineInvoices() {
           {/* Offline Orders Queue */}
           <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col">
             <div className="bg-slate-50/50 dark:bg-slate-900/50 p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
+              <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
                 <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
                   <ShoppingCart size={20} />
                 </div>
@@ -114,14 +114,14 @@ export default function OfflineInvoices() {
               ) : (
                 <div className="space-y-4">
                   {offlineQueue.map((order) => (
-                    <div key={order.id} className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 hover:shadow-md hover:border-indigo-100 transition-all group">
+                    <div key={order.id} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl p-5 hover:shadow-md hover:border-indigo-100 transition-all group">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <div className="font-black text-slate-800 text-lg mb-1 flex items-center gap-2">
+                          <div className="font-black text-slate-800 dark:text-slate-100 text-lg mb-1 flex items-center gap-2">
                             {order.id}
-                            <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">بانتظار الرفع</span>
+                            <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold">بانتظار الرفع</span>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
                             <Calendar size={14} className="text-indigo-400" />
                             {new Date(order.date).toLocaleString('ar-EG')}
                           </div>
@@ -131,7 +131,7 @@ export default function OfflineInvoices() {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 mb-4 bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                      <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300 mb-4 bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
                         <div className="flex items-center gap-2 font-medium truncate">
                           <User size={14} className="text-slate-400 shrink-0" />
                           <span className="truncate">{order.customer?.name || 'عميل نقدي'}</span>
@@ -142,14 +142,14 @@ export default function OfflineInvoices() {
                         </div>
                       </div>
 
-                      <div className="border-t border-slate-100 pt-3">
-                        <p className="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+                      <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-1.5">
                           <Package size={14} className="text-slate-400" />
                           المنتجات المشتراة ({order.items.length})
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {order.items.map((item: any, idx: number) => (
-                            <span key={idx} className="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">
+                            <span key={idx} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm flex items-center gap-1">
                               <span className="text-indigo-500">{item.quantity}x</span> {item.name}
                             </span>
                           ))}
@@ -163,10 +163,10 @@ export default function OfflineInvoices() {
           </div>
 
           {/* Offline Returns Queue */}
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-            <div className="bg-slate-50/50 p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
-                <div className="bg-rose-100 p-2 rounded-xl text-rose-600">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col">
+            <div className="bg-slate-50/50 p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                <div className="bg-rose-100 dark:bg-rose-500/20 p-2 rounded-xl text-rose-600 dark:text-rose-400">
                   <RotateCcw size={20} />
                 </div>
                 مرتجعات معلقة
@@ -185,32 +185,32 @@ export default function OfflineInvoices() {
               ) : (
                 <div className="space-y-4">
                   {offlineReturnsQueue.map((ret, idx) => (
-                    <div key={idx} className="bg-white border border-slate-100 shadow-sm rounded-2xl p-5 hover:shadow-md hover:border-rose-100 transition-all group">
+                    <div key={idx} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl p-5 hover:shadow-md hover:border-rose-100 transition-all group">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <div className="font-black text-slate-800 text-lg mb-1 flex items-center gap-2">
+                          <div className="font-black text-slate-800 dark:text-slate-100 text-lg mb-1 flex items-center gap-2">
                             عملية إرجاع
-                            <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">بانتظار الرفع</span>
+                            <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold">بانتظار الرفع</span>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
                             <span className="text-rose-400">#</span>
-                            رقم الفاتورة الأصلية: <span className="font-bold text-slate-700">{ret.orderId}</span>
+                            رقم الفاتورة الأصلية: <span className="font-bold text-slate-700 dark:text-slate-200">{ret.orderId}</span>
                           </div>
                         </div>
-                        <div className="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-black shadow-sm border border-rose-100/50 flex items-center gap-1.5">
+                        <div className="bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 px-4 py-2 rounded-xl text-sm font-black shadow-sm border border-rose-100/50 flex items-center gap-1.5">
                           {ret.returns.length} منتجات
                         </div>
                       </div>
                       
-                      <div className="border-t border-slate-100 pt-3">
+                      <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
                         <div className="flex flex-col gap-2">
                           {ret.returns.map((item: any, i: number) => (
-                            <div key={i} className="flex items-center justify-between text-sm bg-slate-50 p-3 rounded-xl border border-slate-100/50 font-medium text-slate-700">
+                            <div key={i} className="flex items-center justify-between text-sm bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-100/50 font-medium text-slate-700 dark:text-slate-200">
                               <span className="flex items-center gap-2">
                                 <Package size={14} className="text-slate-400" />
                                 كود: {item.productId.substring(0,8)}...
                               </span>
-                              <span className="bg-white text-rose-600 font-black px-2 py-1 rounded-md shadow-sm border border-slate-100 flex items-center gap-1">
+                              <span className="bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 font-black px-2 py-1 rounded-md shadow-sm border border-slate-100 dark:border-slate-800 flex items-center gap-1">
                                 <RotateCcw size={12} />
                                 {item.returnQty} قطعة
                               </span>

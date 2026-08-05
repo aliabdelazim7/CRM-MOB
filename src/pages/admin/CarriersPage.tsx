@@ -159,7 +159,7 @@ export default function CarriersPage() {
 
             <form onSubmit={handleSubmit} className="space-y-3 text-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">اسم شركة الشحن *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">اسم شركة الشحن *</label>
                 <input
                   type="text"
                   required
@@ -171,7 +171,7 @@ export default function CarriersPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">الهاتف</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الهاتف</label>
                   <input
                     type="text"
                     value={form.phone}
@@ -180,7 +180,7 @@ export default function CarriersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">البريد الإلكتروني</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">البريد الإلكتروني</label>
                   <input
                     type="email"
                     value={form.email}
@@ -191,7 +191,7 @@ export default function CarriersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">قالب رابط التتبع (مثل: https://track.com/{'{TN}'})</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">قالب رابط التتبع (مثل: https://track.com/{'{TN}'})</label>
                 <input
                   type="text"
                   value={form.tracking_url_template}
@@ -201,7 +201,7 @@ export default function CarriersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">الحالة</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الحالة</label>
                 <select
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value as any })}

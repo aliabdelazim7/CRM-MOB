@@ -303,11 +303,11 @@ export default function Customers() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="flex flex-wrap gap-3 justify-between items-end mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800 flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
             <User style={{ color: storeSettings.themeColor }} size={32} />
             قاعدة العملاء
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">إدارة بيانات العملاء، سجل المشتريات، والمديونيات المعلقة</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">إدارة بيانات العملاء، سجل المشتريات، والمديونيات المعلقة</p>
         </div>
         <div className="flex gap-3">
           <button 
@@ -388,33 +388,33 @@ export default function Customers() {
                             {customer.name.charAt(0)}
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-black text-slate-800">{customer.name}</span>
+                            <span className="font-black text-slate-800 dark:text-slate-100">{customer.name}</span>
                             <span className="text-[10px] text-indigo-600 font-black font-mono">ID: {customer.custom_id || customer.id.substring(0, 8)}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="p-5 font-mono font-bold text-slate-500" dir="ltr">{customer.phone}</td>
+                      <td className="p-5 font-mono font-bold text-slate-500 dark:text-slate-400" dir="ltr">{customer.phone}</td>
                       <td className="p-5 text-center">
                         <span style={{ backgroundColor: storeSettings.themeColor + '15', color: storeSettings.themeColor }} className="px-3 py-1.5 rounded-lg font-bold">
                           {activeCustomerOrders.length} طلب
                         </span>
                       </td>
-                      <td className="p-5 text-center font-black text-slate-900">
+                      <td className="p-5 text-center font-black text-slate-900 dark:text-slate-50">
                         {totalSpent.toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">{storeSettings.currency}</span>
                       </td>
-                      <td className="p-5 text-center font-bold text-orange-600">
+                      <td className="p-5 text-center font-bold text-orange-600 dark:text-orange-400">
                         {totalReturns > 0 ? `${totalReturns.toLocaleString()} ${storeSettings.currency}` : '-'}
                       </td>
                       <td className="p-5 text-center">
                         {totalDebt > 0 ? (
-                          <span className="bg-red-50 text-red-600 px-3 py-1.5 rounded-xl font-black border border-red-100">
+                          <span className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-xl font-black border border-red-100 dark:border-red-500/30">
                             {totalDebt.toLocaleString()} <span className="text-[10px] font-normal">{storeSettings.currency}</span>
                           </span>
                         ) : (
                           <span className="text-emerald-500 font-bold">خالص</span>
                         )}
                       </td>
-                      <td className="p-5 text-center text-slate-500 font-medium">
+                      <td className="p-5 text-center text-slate-500 dark:text-slate-400 font-medium">
                         {new Date(customer.timestamp).toLocaleDateString('ar-EG', { calendar: 'gregory' })}
                       </td>
                       <td className="p-5 text-left">
@@ -438,9 +438,9 @@ export default function Customers() {
       {/* Customer Profile Modal */}
       {isModalOpen && selectedCustomer && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div id="customer-profile-modal" className="bg-white rounded-[40px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
+          <div id="customer-profile-modal" className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
             {/* Modal Header */}
-            <div className="p-8 flex justify-between items-center border-b border-slate-100 relative overflow-hidden bg-white">
+            <div className="p-8 flex justify-between items-center border-b border-slate-100 dark:border-slate-800 relative overflow-hidden bg-white dark:bg-slate-800">
                <div 
                 className="absolute top-0 right-0 w-32 h-32 opacity-5 pointer-events-none"
                 style={{ backgroundColor: storeSettings.themeColor, borderRadius: '0 0 0 100%' }}
@@ -457,20 +457,20 @@ export default function Customers() {
                   {isEditMode ? (
                     <div className="flex flex-col gap-2">
                       <input 
-                        className="text-xl font-black text-slate-800 border-b-2 border-indigo-500 focus:outline-none"
+                        className="text-xl font-black text-slate-800 dark:text-slate-100 border-b-2 border-indigo-500 focus:outline-none"
                         value={editForm.name}
                         onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                       />
                       <div className="flex gap-4">
                          <input 
-                          className="bg-slate-100 px-2 py-1 rounded-lg text-slate-600 font-bold focus:outline-none text-sm"
+                          className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-lg text-slate-600 dark:text-slate-300 font-bold focus:outline-none text-sm"
                           placeholder="رقم الهاتف"
                           value={editForm.phone}
                           onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
                         />
                         <input 
                           placeholder="رقم الكارت"
-                          className="bg-slate-100 px-2 py-1 rounded-lg text-slate-600 font-mono font-bold border border-slate-200 focus:outline-none text-sm"
+                          className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-lg text-slate-600 dark:text-slate-300 font-mono font-bold border border-slate-200 dark:border-slate-700 focus:outline-none text-sm"
                           value={editForm.card_number}
                           onChange={e => setEditForm({ ...editForm, card_number: e.target.value })}
                         />
@@ -484,9 +484,9 @@ export default function Customers() {
                     </div>
                   ) : (
                     <div className="flex flex-col md:flex-row md:items-center gap-x-4 gap-y-1">
-                      <h2 className="text-xl font-black text-slate-800 whitespace-nowrap">{selectedCustomer.name}</h2>
-                      <div className="hidden md:block w-px h-4 bg-slate-200" />
-                      <div className="flex items-center gap-3 text-slate-500 font-bold text-xs flex-wrap">
+                      <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 whitespace-nowrap">{selectedCustomer.name}</h2>
+                      <div className="hidden md:block w-px h-4 bg-slate-200 dark:bg-slate-600" />
+                      <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 font-bold text-xs flex-wrap">
                         <span className="flex items-center gap-1"><CreditCard size={12} /> {selectedCustomer.phone}</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300" />
                         {selectedCustomer.card_number && (
@@ -508,7 +508,7 @@ export default function Customers() {
                   <>
                     <button 
                       onClick={() => setIsEditMode(false)}
-                      className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-sm"
+                      className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition text-sm"
                     >
                       إلغاء
                     </button>
@@ -523,7 +523,7 @@ export default function Customers() {
                   <>
                     <button 
                       onClick={() => setIsEditMode(true)}
-                      className="bg-slate-800 text-white flex items-center gap-2 px-4 py-2 rounded-xl font-bold hover:bg-black transition shadow-lg text-sm"
+                      className="bg-slate-800 dark:bg-slate-700 text-white flex items-center gap-2 px-4 py-2 rounded-xl font-bold hover:bg-black transition shadow-lg text-sm"
                     >
                       تعديل البيانات
                     </button>
@@ -537,7 +537,7 @@ export default function Customers() {
                 )}
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="bg-slate-100 text-slate-400 hover:text-slate-600 p-2 rounded-xl transition-colors"
+                  className="bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-2 rounded-xl transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -548,40 +548,40 @@ export default function Customers() {
             <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
                   <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                     <TrendingUp size={20} />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 mb-0.5">صافي المشتريات</p>
-                    <p className="text-lg font-black text-slate-800">{selectedCustomer.totalSpent.toLocaleString()} {storeSettings.currency}</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-slate-100">{selectedCustomer.totalSpent.toLocaleString()} {storeSettings.currency}</p>
                   </div>
                 </div>
-                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center">
                     <ArrowRightLeft size={20} />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 mb-0.5">إجمالي المرتجعات</p>
-                    <p className="text-lg font-black text-orange-600">{selectedCustomer.totalReturns.toLocaleString()} {storeSettings.currency}</p>
+                    <p className="text-lg font-black text-orange-600 dark:text-orange-400">{selectedCustomer.totalReturns.toLocaleString()} {storeSettings.currency}</p>
                   </div>
                 </div>
-                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                     <Wallet size={20} />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 mb-0.5">صافي الربح</p>
-                    <p className="text-lg font-black text-emerald-600">{selectedCustomer.totalProfit.toLocaleString()} {storeSettings.currency}</p>
+                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{selectedCustomer.totalProfit.toLocaleString()} {storeSettings.currency}</p>
                   </div>
                 </div>
-                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
                     <CreditCard size={20} />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 mb-0.5">المديونية الحالية</p>
-                    <p className={`text-lg font-black ${selectedCustomer.totalDebt <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <p className={`text-lg font-black ${selectedCustomer.totalDebt <= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}>
                       {selectedCustomer.totalDebt.toLocaleString()} {storeSettings.currency}
                     </p>
                   </div>
@@ -598,13 +598,13 @@ export default function Customers() {
 
               {/* PAYMENT SUB-MODAL */}
               {isPaymentModalOpen && (
-                <div className="mb-8 bg-white p-6 rounded-[32px] border-2 border-indigo-500 shadow-xl animate-in slide-in-from-top-4 duration-300">
+                <div className="mb-8 bg-white dark:bg-slate-800 p-6 rounded-[32px] border-2 border-indigo-500 shadow-xl animate-in slide-in-from-top-4 duration-300">
                   <div className="flex justify-between items-center mb-6">
-                    <h4 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                    <h4 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                       <Wallet className="text-indigo-600" size={24} />
                       تحصيل آجل
                     </h4>
-                    <button onClick={() => setIsPaymentModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                    <button onClick={() => setIsPaymentModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                       <X size={20} />
                     </button>
                   </div>
@@ -614,11 +614,11 @@ export default function Customers() {
                       value={paymentForm}
                       onChange={(k, v) => setPaymentForm({ ...paymentForm, [k]: v })}
                       labelClassName="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider text-right"
-                      inputClassName="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-1 focus:outline-none font-bold text-right"
+                      inputClassName="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-1 focus:outline-none font-bold text-right"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-slate-400">إجمالي المبلغ المدفوع</span>
                       <span className="text-2xl font-black text-indigo-600">
@@ -637,13 +637,13 @@ export default function Customers() {
 
               {/* Orders History Table */}
               {profileTab === 'orders' && (
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
                   <div className="p-5 border-b border-slate-50 flex items-center gap-2">
                     <FileText className="text-slate-400" size={18} />
-                    <h3 className="font-black text-slate-800">سجل الطلبات والفواتير</h3>
+                    <h3 className="font-black text-slate-800 dark:text-slate-100">سجل الطلبات والفواتير</h3>
                   </div>
                 <table className="w-full text-right text-sm">
-                  <thead className="bg-slate-50 text-slate-400 font-bold">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-slate-400 font-bold">
                     <tr>
                       <th className="p-4">رقم الفاتورة</th>
                       <th className="p-4">التاريخ</th>
@@ -654,7 +654,7 @@ export default function Customers() {
                       <th className="p-4 text-left">إجراءات</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50 text-slate-600">
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
                     {selectedCustomer.customerOrders.length === 0 ? (
                       <tr><td colSpan={7} className="p-10 text-center text-slate-400 font-bold">لا يوجد فواتير سابقة لهذا العميل</td></tr>
                     ) : (
@@ -667,22 +667,22 @@ export default function Customers() {
                         const isPayment = order.type === 'payment';
                         
                         return (
-                          <tr key={order.id} className="hover:bg-slate-50 transition">
-                            <td className="p-4 font-mono font-bold text-slate-800">#{order.id}</td>
+                          <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                            <td className="p-4 font-mono font-bold text-slate-800 dark:text-slate-100">#{order.id}</td>
                             <td className="p-4 text-xs font-medium">{new Date(order.date).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</td>
                             <td className="p-4">
                               {order.is_deleted ? (
-                                <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1">
+                                <span className="bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1">
                                   <Archive size={12} /> فاتورة محذوفة
                                 </span>
                               ) : isPayment ? (
                                 <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[10px] font-bold">تحصيل آجل</span>
                               ) : (
-                                <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-bold">فاتورة بيع</span>
+                                <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded text-[10px] font-bold">فاتورة بيع</span>
                               )}
                             </td>
-                            <td className="p-4 text-center font-bold text-slate-900">{netTotal.toLocaleString()}</td>
-                            <td className="p-4 text-center font-bold text-emerald-600">{order.paid_amount.toLocaleString()}</td>
+                            <td className="p-4 text-center font-bold text-slate-900 dark:text-slate-50">{netTotal.toLocaleString()}</td>
+                            <td className="p-4 text-center font-bold text-emerald-600 dark:text-emerald-400">{order.paid_amount.toLocaleString()}</td>
                             <td className="p-4 text-center">
                               {order.is_deleted ? (
                                 <span className="text-red-500 text-[10px] font-bold">محذوفة</span>
@@ -693,7 +693,7 @@ export default function Customers() {
                                   غير مكتملة
                                 </span>
                               ) : rowDebt < 0 ? (
-                                <span className="text-emerald-600 text-[10px] font-bold">رصيد متبقي</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">رصيد متبقي</span>
                               ) : (
                                 <span className="text-emerald-500 text-[10px] font-bold">مدفوعة بالكامل</span>
                               )}
@@ -702,7 +702,7 @@ export default function Customers() {
                               <button 
                                 onClick={() => handlePrintInvoice(order)}
                                 style={{ color: storeSettings.themeColor }}
-                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                                 title="طباعة"
                               >
                                 <Printer size={16} />
@@ -725,14 +725,14 @@ export default function Customers() {
       {/* Add Customer Modal */}
       {isAddCustomerModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
             {/* Modal Header */}
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center relative overflow-hidden">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center relative overflow-hidden">
               <div 
                 className="absolute top-0 right-0 w-24 h-24 opacity-5 pointer-events-none"
                 style={{ backgroundColor: storeSettings.themeColor, borderRadius: '0 0 0 100%' }}
               />
-              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+              <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
                 <div 
                   style={{ backgroundColor: storeSettings.themeColor + '20' }}
                   className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -743,7 +743,7 @@ export default function Customers() {
               </h2>
               <button 
                 onClick={() => setIsAddCustomerModalOpen(false)}
-                className="bg-slate-100 text-slate-400 hover:text-slate-600 p-2 rounded-xl transition-colors"
+                className="bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-2 rounded-xl transition-colors"
               >
                 <X size={20} />
               </button>
@@ -752,38 +752,38 @@ export default function Customers() {
             {/* Modal Content */}
             <div className="p-8 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">اسم العميل *</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">اسم العميل *</label>
                 <input 
                   type="text"
                   placeholder="أدخل اسم العميل"
                   value={addCustomerForm.name}
                   onChange={(e) => setAddCustomerForm({ ...addCustomerForm, name: e.target.value })}
-                  className="w-full border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 transition-all"
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 transition-all"
                   style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف *</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رقم الهاتف *</label>
                 <input 
                   type="tel"
                   placeholder="أدخل رقم الهاتف"
                   value={addCustomerForm.phone}
                   onChange={(e) => setAddCustomerForm({ ...addCustomerForm, phone: e.target.value })}
-                  className="w-full border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 transition-all font-mono"
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 transition-all font-mono"
                   style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
                   dir="ltr"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">رقم الكارت</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رقم الكارت</label>
                 <input 
                   type="text"
                   placeholder="أدخل رقم الكارت (اختياري)"
                   value={addCustomerForm.card_number}
                   onChange={(e) => setAddCustomerForm({ ...addCustomerForm, card_number: e.target.value })}
-                  className="w-full border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 transition-all font-mono"
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 transition-all font-mono"
                   style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
                   dir="ltr"
                 />
@@ -791,10 +791,10 @@ export default function Customers() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-8 border-t border-slate-100 flex gap-3 justify-end">
+            <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex gap-3 justify-end">
               <button 
                 onClick={() => setIsAddCustomerModalOpen(false)}
-                className="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
+                className="px-6 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
               >
                 إلغاء
               </button>

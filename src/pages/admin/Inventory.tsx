@@ -805,10 +805,10 @@ export default function Inventory() {
       {/* ADD PRODUCT MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50 shrink-0">
-              <h2 className="text-xl font-bold text-slate-800">{editingProductId ? 'تعديل بيانات المنتج' : 'إضافة منتج جديد'}</h2>
-              <button onClick={() => { setShowAddModal(false); setEditingProductId(null); }} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50 dark:bg-slate-900 shrink-0">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{editingProductId ? 'تعديل بيانات المنتج' : 'إضافة منتج جديد'}</h2>
+              <button onClick={() => { setShowAddModal(false); setEditingProductId(null); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                 <X size={20} />
               </button>
             </div>
@@ -816,19 +816,19 @@ export default function Inventory() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* ── البيانات الأساسية (الأسرع إدخالاً) ── */}
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">اسم المنتج <span className="text-red-500">*</span></label>
-                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none" />
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">اسم المنتج <span className="text-red-500">*</span></label>
+                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">المورد <span className="text-[10px] text-slate-400">(اختياري)</span></label>
-                  <input type="text" list="suppliers-datalist" value={formData.supplier_name} onChange={e => setFormData({...formData, supplier_name: e.target.value})} placeholder="اسم المورد الذي يورّد هذا المنتج..." className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-teal-500" />
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">المورد <span className="text-[10px] text-slate-400">(اختياري)</span></label>
+                  <input type="text" list="suppliers-datalist" value={formData.supplier_name} onChange={e => setFormData({...formData, supplier_name: e.target.value})} placeholder="اسم المورد الذي يورّد هذا المنتج..." className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-teal-500" />
                   <datalist id="suppliers-datalist">
                     {suppliers.map(s => <option key={s.id} value={s.name} />)}
                   </datalist>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">وحدة البيع <span className="text-red-500">*</span></label>
-                  <select value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">وحدة البيع <span className="text-red-500">*</span></label>
+                  <select value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold">
                     {UNIT_OPTIONS.map(u => (
                       <option key={u.value} value={u.value}>{u.label}</option>
                     ))}
@@ -838,79 +838,79 @@ export default function Inventory() {
                 {!editingProductId ? (
                   <>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">كمية المستودع</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">كمية المستودع</label>
                       <input type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'} value={warehouseQty}
                         onChange={e => setWarehouseQty(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-blue-500" />
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-blue-500" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">كمية المعروض (في المحل)</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">كمية المعروض (في المحل)</label>
                       <input type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'} value={formData.display_quantity}
                         onChange={e => setFormData({...formData, display_quantity: parseFloat(e.target.value) || 0})}
-                        className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-emerald-500" />
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-emerald-500" />
                       <p className="text-xs text-slate-400 mt-1">الإجمالي = {(Number(warehouseQty) || 0) + (Number(formData.display_quantity) || 0)} {getUnitConfig(formData.unit).label} · الافتراضي كله في المستودع.</p>
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">الإجمالي في المخزون</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">الإجمالي في المخزون</label>
                       <input type="number" min="0" step={isFractionalUnit(formData.unit) ? '0.001' : '1'} value={formData.stock_quantity}
                         onChange={e => setFormData({...formData, stock_quantity: parseFloat(e.target.value) || 0})}
-                        className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-blue-500" />
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-blue-500" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">المعروض في المحل (النقل بين المستودع والمحل)</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">المعروض في المحل (النقل بين المستودع والمحل)</label>
                       <input type="number" min="0" max={formData.stock_quantity} step={isFractionalUnit(formData.unit) ? '0.001' : '1'} value={formData.display_quantity}
                         onChange={e => setFormData({...formData, display_quantity: Math.min(parseFloat(e.target.value) || 0, formData.stock_quantity)})}
-                        className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-emerald-500" />
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-emerald-500" />
                       <p className="text-xs text-slate-400 mt-1">المستودع: <b>{Math.max(0, (Number(formData.stock_quantity) || 0) - (Number(formData.display_quantity) || 0))}</b> · المعروض: <b>{Math.min(Number(formData.display_quantity) || 0, Number(formData.stock_quantity) || 0)}</b> · المُباع: <b>{soldMap.get(editingProductId) || 0}</b></p>
                     </div>
                   </>
                 )}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">سعر الشراء لكل {getUnitConfig(formData.unit).label} <span className="text-[10px] text-slate-400">(اختياري)</span></label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر الشراء لكل {getUnitConfig(formData.unit).label} <span className="text-[10px] text-slate-400">(اختياري)</span></label>
                   <input
                     type="number" min="0" step="0.01"
                     value={formData.purchase_price}
                     onChange={e => { const v = parseFloat(e.target.value) || 0; setFormData({...formData, purchase_price: v, average_purchase_price: v}); }}
                     style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-                    className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-amber-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">سعر البيع القطاعي لكل {getUnitConfig(formData.unit).label} <span className="text-red-500">*</span></label>
-                  <input type="number" min="0" step="0.01" required value={formData.sale_price} onChange={e => setFormData({...formData, sale_price: parseFloat(e.target.value) || 0})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-green-500" />
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر البيع القطاعي لكل {getUnitConfig(formData.unit).label} <span className="text-red-500">*</span></label>
+                  <input type="number" min="0" step="0.01" required value={formData.sale_price} onChange={e => setFormData({...formData, sale_price: parseFloat(e.target.value) || 0})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-green-500" />
                 </div>
 
                 {/* ── أسعار وبيانات إضافية ── */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">سعر البيع بعد الخصم <span className="text-[10px] text-slate-400">(اختياري)</span></label>
-                  <input type="number" min="0" step="0.01" value={formData.discount_price} onChange={e => setFormData({...formData, discount_price: parseFloat(e.target.value) || 0})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-amber-500" />
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر البيع بعد الخصم <span className="text-[10px] text-slate-400">(اختياري)</span></label>
+                  <input type="number" min="0" step="0.01" value={formData.discount_price} onChange={e => setFormData({...formData, discount_price: parseFloat(e.target.value) || 0})} style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-amber-500" />
                   <p className="text-xs text-slate-400 mt-1">لو دخلت قيمة هنا، هتبقى هي سعر البيع الفعلي على الكاشير.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">سعر نص الجملة <span className="text-[10px] text-slate-400">(اختياري)</span></label>
-                  <input type="number" min="0" step="0.01" value={formData.half_wholesale_price} onChange={e => setFormData({...formData, half_wholesale_price: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-sky-500" />
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر نص الجملة <span className="text-[10px] text-slate-400">(اختياري)</span></label>
+                  <input type="number" min="0" step="0.01" value={formData.half_wholesale_price} onChange={e => setFormData({...formData, half_wholesale_price: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-sky-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">سعر الجملة <span className="text-[10px] text-slate-400">(اختياري)</span></label>
-                  <input type="number" min="0" step="0.01" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-purple-500" />
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">سعر الجملة <span className="text-[10px] text-slate-400">(اختياري)</span></label>
+                  <input type="number" min="0" step="0.01" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:outline-none border-l-4 border-l-purple-500" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">الموسم</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">الموسم</label>
                   <div className="flex gap-2">
                     {([['summer','صيفي'],['winter','شتوي'],['annual','سنوي']] as const).map(([k,label]) => (
                       <button type="button" key={k} onClick={() => setFormData({...formData, season: k})}
-                        className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition border ${formData.season === k ? 'bg-indigo-600 text-white border-transparent' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                        className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition border ${formData.season === k ? 'bg-indigo-600 text-white border-transparent' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
                         {label}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">التصنيف</label>
-                  <select value={formData.category_id} onChange={e => setFormData({...formData, category_id: e.target.value})} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">التصنيف</label>
+                  <select value={formData.category_id} onChange={e => setFormData({...formData, category_id: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500">
                     {categories.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
@@ -918,7 +918,7 @@ export default function Inventory() {
                 </div>
                 <div className="sm:col-span-2 relative group">
                   <div className="flex justify-between items-end mb-1">
-                    <label className="block text-sm font-bold text-slate-700">الباركود <span className="text-[10px] text-slate-400">(يتولّد تلقائياً تسلسلياً لو فاضي)</span></label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200">الباركود <span className="text-[10px] text-slate-400">(يتولّد تلقائياً تسلسلياً لو فاضي)</span></label>
                     <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md flex items-center gap-1 opacity-0 group-focus-within:opacity-100 transition-opacity">
                       <ScanLine size={12} />
                       ضع المؤشر هنا واستخدم جهاز الـ POS للفحص
@@ -932,7 +932,7 @@ export default function Inventory() {
                       onChange={e => setFormData({...formData, barcode: e.target.value})}
                       onKeyDown={handleBarcodeKeyDown}
                       style={{ '--tw-ring-color': scanSuccess ? '#10b981' : storeSettings.themeColor + '40' } as any}
-                      className={`w-full bg-slate-50 border py-3 px-4 rounded-xl focus:ring-2 focus:outline-none text-left font-mono font-bold transition-colors ${scanSuccess ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'}`}
+                      className={`w-full bg-slate-50 border py-3 px-4 rounded-xl focus:ring-2 focus:outline-none text-left font-mono font-bold transition-colors ${scanSuccess ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-700'}`}
                       placeholder="امسح الباركود أو اتركه فارغاً للترقيم التلقائي..."
                     />
                     {scanSuccess && (
@@ -941,7 +941,7 @@ export default function Inventory() {
                   </div>
                 </div>
                 {/* ── أسعار ومصاريف المتاجر والمنصات (لكل ستور) ── */}
-                <div className="sm:col-span-2 space-y-4 pt-4 border-t border-slate-200">
+                <div className="sm:col-span-2 space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                   <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
                     🏬 أسعار ومصاريف المتاجر والمنصات (لكل ستور)
                   </h3>
@@ -1154,7 +1154,7 @@ export default function Inventory() {
                                   const updated = formData.custom_stores.filter(s => s.id !== cs.id);
                                   setFormData({ ...formData, custom_stores: updated });
                                 }}
-                                className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg"
+                                className="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 p-1.5 rounded-lg"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -1162,7 +1162,7 @@ export default function Inventory() {
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-500 mb-0.5">السعر (جنيه)</label>
+                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">السعر (جنيه)</label>
                                 <input
                                   type="number" min="0" step="0.01"
                                   value={cs.price}
@@ -1175,7 +1175,7 @@ export default function Inventory() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-500 mb-0.5">% العمولة</label>
+                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">% العمولة</label>
                                 <input
                                   type="number" min="0" step="0.1"
                                   value={cs.commission}
@@ -1188,7 +1188,7 @@ export default function Inventory() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-500 mb-0.5">الشحن (جنيه)</label>
+                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">الشحن (جنيه)</label>
                                 <input
                                   type="number" min="0" step="0.01"
                                   value={cs.shipping}
@@ -1201,7 +1201,7 @@ export default function Inventory() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-500 mb-0.5">الإعلانات (جنيه)</label>
+                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">الإعلانات (جنيه)</label>
                                 <input
                                   type="number" min="0" step="0.01"
                                   value={cs.ad_cost}
@@ -1294,13 +1294,13 @@ export default function Inventory() {
       {/* BATCH BARCODE PRINT — أكتر من منتج بكمياتهم في أمر طباعة واحد */}
       {showBatchPrint && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50 shrink-0">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50 dark:bg-slate-900 shrink-0">
               <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Printer size={22} className="text-slate-600" /> طباعة باركود لأكتر من منتج</h2>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Printer size={22} className="text-slate-600 dark:text-slate-300" /> طباعة باركود لأكتر من منتج</h2>
                 <p className="text-xs text-slate-400 font-bold mt-1">اختار المنتجات وحدّد عدد الملصقات لكل واحد — هيتطبعوا كلهم ورا بعض على الرول</p>
               </div>
-              <button onClick={() => setShowBatchPrint(false)} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-xl shadow-sm border border-slate-200"><X size={20} /></button>
+              <button onClick={() => setShowBatchPrint(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700"><X size={20} /></button>
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto">
@@ -1311,17 +1311,17 @@ export default function Inventory() {
                   value={batchSearch}
                   onChange={(e) => setBatchSearch(e.target.value)}
                   placeholder="ابحث بالاسم أو الباركود لإضافة منتج..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-10 pl-3 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pr-10 pl-3 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
                 {batchSearch.trim() !== '' && batchCandidates.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
                     {batchCandidates.map(p => (
                       <button
                         key={p.id}
                         onClick={() => addBatchRow(p)}
                         className="w-full text-right px-4 py-2.5 hover:bg-indigo-50 flex items-center justify-between gap-3 border-b border-slate-50 last:border-0"
                       >
-                        <span className="font-bold text-sm text-slate-700 truncate">{p.name}</span>
+                        <span className="font-bold text-sm text-slate-700 dark:text-slate-200 truncate">{p.name}</span>
                         <span className="text-[11px] font-mono text-slate-400 shrink-0">{p.barcode || 'بدون باركود'} · مخزون {formatQty(Number(p.stock_quantity) || 0, p.unit)}</span>
                       </button>
                     ))}
@@ -1338,20 +1338,20 @@ export default function Inventory() {
                     const p = products.find(x => x.id === row.id);
                     if (!p) return null;
                     return (
-                      <div key={row.id} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl p-3">
+                      <div key={row.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3">
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-slate-800 truncate">{p.name}</p>
+                          <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">{p.name}</p>
                           <p className="text-[11px] font-mono text-slate-400">
                             {p.barcode || <span className="text-red-500 font-sans font-bold">بدون باركود</span>} · {p.sale_price} {storeSettings.currency}
                           </p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => setBatchRows(rows => rows.map((r, i) => i === idx ? { ...r, count: String(Math.max(1, (parseInt(r.count) || 1) - 1)) } : r))} className="w-8 h-8 rounded-lg bg-white border border-slate-200 font-black text-slate-600">−</button>
+                          <button onClick={() => setBatchRows(rows => rows.map((r, i) => i === idx ? { ...r, count: String(Math.max(1, (parseInt(r.count) || 1) - 1)) } : r))} className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black text-slate-600 dark:text-slate-300">−</button>
                           <input
                             type="number" min="1"
                             value={row.count}
                             onChange={(e) => setBatchRows(rows => rows.map((r, i) => i === idx ? { ...r, count: e.target.value } : r))}
-                            className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-center font-black outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-center font-black outline-none focus:ring-2 focus:ring-indigo-500/20"
                           />
                           <button onClick={() => setBatchRows(rows => rows.map((r, i) => i === idx ? { ...r, count: String((parseInt(r.count) || 0) + 1) } : r))} className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 font-black">+</button>
                         </div>
@@ -1363,14 +1363,14 @@ export default function Inventory() {
               )}
             </div>
 
-            <div className="p-5 border-t bg-slate-50 flex items-center justify-between gap-3 shrink-0">
-              <span className="text-sm font-black text-slate-600">
+            <div className="p-5 border-t bg-slate-50 dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0">
+              <span className="text-sm font-black text-slate-600 dark:text-slate-300">
                 {batchRows.length} منتج · <span className="text-indigo-600">{batchTotalLabels}</span> ملصق
               </span>
               <button
                 onClick={submitBatchPrint}
                 disabled={batchRows.length === 0}
-                className="bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 transition"
+                className="bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 disabled:opacity-40 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 transition"
               >
                 <Printer size={18} /> طباعة الكل
               </button>
@@ -1382,50 +1382,50 @@ export default function Inventory() {
       {/* NO-PURCHASE STOCK INTAKE MODAL — سجل رأس مال البضاعة اللي دخلت بدون فاتورة شراء */}
       {showIntakeModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b flex justify-between items-center bg-amber-50 shrink-0">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Layers size={22} className="text-amber-500" /> مخزون دخل بدون شراء</h2>
-              <button onClick={() => setShowIntakeModal(false)} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-xl shadow-sm border border-slate-200"><X size={20} /></button>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b flex justify-between items-center bg-amber-50 dark:bg-amber-500/10 shrink-0">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Layers size={22} className="text-amber-500" /> مخزون دخل بدون شراء</h2>
+              <button onClick={() => setShowIntakeModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700"><X size={20} /></button>
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto">
-              <p className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-xl p-3 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 leading-relaxed">
                 كل كمية بتدخل المخزون من غير فاتورة مورد (كمية ابتدائية عند إضافة منتج، تعديل كمية يدوي، استيراد Excel، زيادة جرد)
                 بتتقيّد هنا بقيمتها. القيمة دي <b>رأس مال بضاعة بادئين بيه</b> — مش بتمسّ الخزنة ولا حساب المورد،
                 لكنها بتوضّح إن جزء من الربح مقابله بضاعة مدفوعش تمنها من خلال النظام.
               </p>
 
               {/* إضافة قيد يدوي — لتصحيح قيمة البضاعة الافتتاحية */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4">
-                <p className="text-sm font-bold text-slate-700 mb-1">إضافة قيد يدوي</p>
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">إضافة قيد يدوي</p>
                 <p className="text-[11px] text-slate-400 mb-3">بيسجّل <b>قيمة</b> بضاعة دخلت بدون شراء فقط — مش بيغيّر كمية المخزون.</p>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                   <select value={intakeProductId} onChange={(e) => {
                     setIntakeProductId(e.target.value);
                     const p = products.find(x => x.id === e.target.value);
                     if (p && !intakeCost) setIntakeCost(String(p.average_purchase_price || p.purchase_price || 0));
-                  }} className="md:col-span-2 p-3 border border-slate-200 rounded-xl text-sm bg-slate-50">
+                  }} className="md:col-span-2 p-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-900">
                     <option value="">اختر المنتج…</option>
                     {products.filter(p => !p.is_hidden).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                   <input type="number" step="any" placeholder="الكمية" value={intakeQty} onChange={(e) => setIntakeQty(e.target.value)}
-                    className="p-3 border border-slate-200 rounded-xl text-sm bg-slate-50" />
+                    className="p-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-900" />
                   <input type="number" step="any" placeholder="تكلفة الوحدة" value={intakeCost} onChange={(e) => setIntakeCost(e.target.value)}
-                    className="p-3 border border-slate-200 rounded-xl text-sm bg-slate-50" />
+                    className="p-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-900" />
                   <button onClick={submitManualIntake} className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold px-4 py-3">إضافة</button>
                 </div>
                 <input placeholder="ملاحظة (اختياري)" value={intakeNote} onChange={(e) => setIntakeNote(e.target.value)}
-                  className="w-full mt-2 p-3 border border-slate-200 rounded-xl text-sm bg-slate-50" />
+                  className="w-full mt-2 p-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-900" />
               </div>
 
-              <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
-                <span className="text-sm font-bold text-amber-800">الإجمالي المقيّد</span>
-                <span className="text-xl font-black text-amber-700">{fmtMoney(noPurchaseTotal)} {storeSettings.currency}</span>
+              <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/30 rounded-2xl px-4 py-3">
+                <span className="text-sm font-bold text-amber-800 dark:text-amber-300">الإجمالي المقيّد</span>
+                <span className="text-xl font-black text-amber-700 dark:text-amber-300">{fmtMoney(noPurchaseTotal)} {storeSettings.currency}</span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-slate-500">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400">
                     <tr>
                       <th className="p-3 text-right font-bold">التاريخ</th>
                       <th className="p-3 text-right font-bold">المنتج</th>
@@ -1441,20 +1441,20 @@ export default function Inventory() {
                       <tr><td colSpan={7} className="p-6 text-center text-slate-400 font-bold">لا توجد قيود.</td></tr>
                     )}
                     {visibleIntakes.map(i => (
-                      <tr key={i.id} className="border-b border-slate-100">
-                        <td className="p-3 text-slate-500">{new Date(i.created_at).toLocaleDateString()}</td>
-                        <td className="p-3 font-bold text-slate-700">
+                      <tr key={i.id} className="border-b border-slate-100 dark:border-slate-800">
+                        <td className="p-3 text-slate-500 dark:text-slate-400">{new Date(i.created_at).toLocaleDateString()}</td>
+                        <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
                           {i.product_name || '—'}
                           {i.note && <span className="block text-[11px] font-normal text-slate-400">{i.note}</span>}
                         </td>
-                        <td className="p-3 text-slate-600">{formatQty(Number(i.quantity), products.find(p => p.id === i.product_id)?.unit)}</td>
-                        <td className="p-3 text-slate-600">{Number(i.unit_cost).toLocaleString()}</td>
-                        <td className="p-3 font-black text-amber-600">{fmtMoney(Number(i.total_value))}</td>
-                        <td className="p-3"><span className="text-[11px] font-bold bg-slate-100 text-slate-600 rounded-lg px-2 py-1">{intakeSourceLabel(i.source)}</span></td>
+                        <td className="p-3 text-slate-600 dark:text-slate-300">{formatQty(Number(i.quantity), products.find(p => p.id === i.product_id)?.unit)}</td>
+                        <td className="p-3 text-slate-600 dark:text-slate-300">{Number(i.unit_cost).toLocaleString()}</td>
+                        <td className="p-3 font-black text-amber-600 dark:text-amber-400">{fmtMoney(Number(i.total_value))}</td>
+                        <td className="p-3"><span className="text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg px-2 py-1">{intakeSourceLabel(i.source)}</span></td>
                         <td className="p-3">
                           <button
                             onClick={() => { if (confirm('حذف القيد؟ ده بيشيل قيمته من رأس مال البضاعة فقط — المخزون مش هيتأثر.')) deleteStockIntake(i.id); }}
-                            className="text-red-500 hover:bg-red-50 p-2 rounded-lg"><Trash2 size={16} /></button>
+                            className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 p-2 rounded-lg"><Trash2 size={16} /></button>
                         </td>
                       </tr>
                     ))}
@@ -1469,20 +1469,20 @@ export default function Inventory() {
       {/* SWAP STOCK MODAL */}
       {showSwapModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b flex justify-between items-center bg-orange-50 shrink-0">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><ArrowLeftRight size={22} className="text-orange-500" /> استبدال مخزون</h2>
-              <button onClick={() => setShowSwapModal(false)} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-xl shadow-sm border border-slate-200"><X size={20} /></button>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b flex justify-between items-center bg-orange-50 dark:bg-orange-500/10 shrink-0">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><ArrowLeftRight size={22} className="text-orange-500" /> استبدال مخزون</h2>
+              <button onClick={() => setShowSwapModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4 overflow-y-auto">
-              <p className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-xl p-3">
+              <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3">
                 يُستخدم لتصحيح بيع قطعة بكود بدل كود آخر: يُنقص الكمية من منتج ويزيدها في منتج آخر <b>بنفس سعر البيع</b> فقط، حتى لا تتأثر قيمة المخزون.
               </p>
 
               {/* المنتج الناقص */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">المنتج اللي هينقص من المخزون <span className="text-red-500">*</span></label>
-                <select value={swapFromId} onChange={e => { setSwapFromId(e.target.value); setSwapToId(''); }} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:ring-orange-400 focus:outline-none">
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">المنتج اللي هينقص من المخزون <span className="text-red-500">*</span></label>
+                <select value={swapFromId} onChange={e => { setSwapFromId(e.target.value); setSwapToId(''); }} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-orange-400 focus:outline-none">
                   <option value="">-- اختر المنتج --</option>
                   {products.filter(p => !p.is_hidden).map(p => (
                     <option key={p.id} value={p.id}>{p.name} — {p.barcode || 'بدون كود'} — {p.sale_price} {storeSettings.currency} (متاح {formatQty(p.stock_quantity, p.unit)})</option>
@@ -1492,8 +1492,8 @@ export default function Inventory() {
 
               {/* المنتج الزائد — نفس سعر البيع فقط */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">المنتج اللي هيزيد في المخزون <span className="text-red-500">*</span></label>
-                <select value={swapToId} onChange={e => setSwapToId(e.target.value)} disabled={!swapFrom} className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:ring-orange-400 focus:outline-none disabled:opacity-50">
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">المنتج اللي هيزيد في المخزون <span className="text-red-500">*</span></label>
+                <select value={swapToId} onChange={e => setSwapToId(e.target.value)} disabled={!swapFrom} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-orange-400 focus:outline-none disabled:opacity-50">
                   <option value="">{swapFrom ? '-- اختر منتج بنفس السعر --' : 'اختر المنتج الناقص أولاً'}</option>
                   {swapToCandidates.map(p => (
                     <option key={p.id} value={p.id}>{p.name} — {p.barcode || 'بدون كود'} — {p.sale_price} {storeSettings.currency} (متاح {formatQty(p.stock_quantity, p.unit)})</option>
@@ -1506,17 +1506,17 @@ export default function Inventory() {
 
               {/* الكمية */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">الكمية <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">الكمية <span className="text-red-500">*</span></label>
                 <input type="number" min="0" step={swapFrom && isFractionalUnit(swapFrom.unit) ? '0.001' : '1'} value={swapQty}
                   onChange={e => setSwapQty(e.target.value)}
                   placeholder="عدد القطع المراد استبدالها"
-                  className="w-full bg-slate-50 border border-slate-200 py-3 px-4 rounded-xl focus:ring-2 focus:ring-orange-400 focus:outline-none border-l-4 border-l-orange-500" />
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 px-4 rounded-xl focus:ring-2 focus:ring-orange-400 focus:outline-none border-l-4 border-l-orange-500" />
               </div>
 
               {swapFrom && swapTo && (
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm space-y-1">
-                  <div className="flex justify-between"><span className="text-slate-500">🔻 {swapFrom.name}</span><span className="font-bold text-red-600">{formatQty(swapFrom.stock_quantity, swapFrom.unit)} ← {formatQty(Math.max(0, (Number(swapFrom.stock_quantity)||0) - (parseFloat(swapQty)||0)), swapFrom.unit)}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">🔺 {swapTo.name}</span><span className="font-bold text-emerald-600">{formatQty(swapTo.stock_quantity, swapTo.unit)} ← {formatQty((Number(swapTo.stock_quantity)||0) + (parseFloat(swapQty)||0), swapTo.unit)}</span></div>
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 text-sm space-y-1">
+                  <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">🔻 {swapFrom.name}</span><span className="font-bold text-red-600 dark:text-red-400">{formatQty(swapFrom.stock_quantity, swapFrom.unit)} ← {formatQty(Math.max(0, (Number(swapFrom.stock_quantity)||0) - (parseFloat(swapQty)||0)), swapFrom.unit)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">🔺 {swapTo.name}</span><span className="font-bold text-emerald-600 dark:text-emerald-400">{formatQty(swapTo.stock_quantity, swapTo.unit)} ← {formatQty((Number(swapTo.stock_quantity)||0) + (parseFloat(swapQty)||0), swapTo.unit)}</span></div>
                 </div>
               )}
             </div>
@@ -1524,7 +1524,7 @@ export default function Inventory() {
               <button onClick={handleSwap} disabled={swapBusy || !swapFrom || !swapTo} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3.5 rounded-xl font-bold shadow-lg transition disabled:opacity-50 flex items-center justify-center gap-2">
                 <ArrowLeftRight size={18} /> {swapBusy ? 'جاري التنفيذ...' : 'تأكيد الاستبدال'}
               </button>
-              <button onClick={() => setShowSwapModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition">إلغاء</button>
+              <button onClick={() => setShowSwapModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-3.5 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition">إلغاء</button>
             </div>
           </div>
         </div>
@@ -1533,7 +1533,7 @@ export default function Inventory() {
       {/* CATEGORIES SECTION */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Tag size={22} className="text-indigo-500" />
             التصنيفات
           </h2>
@@ -1554,11 +1554,11 @@ export default function Inventory() {
               onChange={e => setNewCategoryName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
               placeholder="اسم التصنيف الجديد..."
-              className="flex-1 bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+              className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
               autoFocus
             />
             <button onClick={handleAddCategory} style={{ backgroundColor: storeSettings.themeColor }} className="text-white px-5 rounded-xl font-bold text-sm">حفظ</button>
-            <button onClick={() => { setShowCatForm(false); setNewCategoryName(''); }} className="bg-slate-100 text-slate-600 px-4 rounded-xl font-bold text-sm">إلغاء</button>
+            <button onClick={() => { setShowCatForm(false); setNewCategoryName(''); }} className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-4 rounded-xl font-bold text-sm">إلغاء</button>
           </div>
         )}
 
@@ -1612,7 +1612,7 @@ export default function Inventory() {
             </button>
             <button
               onClick={exportTemplate}
-              className="flex items-center gap-2 bg-slate-700 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition text-sm"
+              className="flex items-center gap-2 bg-slate-700 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-600 transition text-sm"
               title="تحميل قالب Excel جاهز للتعبئة وإعادة الاستيراد"
             >
               <Download size={16} /> قالب Excel
@@ -1631,7 +1631,7 @@ export default function Inventory() {
               {loading ? '...جاري التصدير' : <><FileText size={16} /> PDF</>}
             </button>
           </div>
-          <button onClick={() => { setBatchRows([]); setBatchSearch(''); setShowBatchPrint(true); }} className="bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg">
+          <button onClick={() => { setBatchRows([]); setBatchSearch(''); setShowBatchPrint(true); }} className="bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white px-5 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg">
             <Printer size={20} />
             طباعة باركود
           </button>
@@ -1719,30 +1719,30 @@ export default function Inventory() {
                     <td className="p-4 font-mono text-slate-400">
                       {product.barcode}
                       {product.is_hidden && (
-                        <span className="mr-2 text-[10px] font-black bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">مخفي</span>
+                        <span className="mr-2 text-[10px] font-black bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded">مخفي</span>
                       )}
                     </td>
                     <td className={`p-4 font-bold ${product.is_hidden ? 'line-through text-slate-400' : ''}`}>{product.name}</td>
-                    <td className="p-4 text-slate-500">{category}</td>
-                    <td className="p-4 text-slate-500">{product.supplier_name || '—'}</td>
+                    <td className="p-4 text-slate-500 dark:text-slate-400">{category}</td>
+                    <td className="p-4 text-slate-500 dark:text-slate-400">{product.supplier_name || '—'}</td>
                     <td className="p-4 text-center">
-                      <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{getUnitConfig(product.unit).label}</span>
+                      <span className="text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-lg">{getUnitConfig(product.unit).label}</span>
                     </td>
                     <td className="p-4 text-center">{product.purchase_price} {storeSettings.currency}</td>
                     <td className="p-4 text-center font-bold text-indigo-600 bg-indigo-50/30">{product.average_purchase_price} {storeSettings.currency}</td>
 
-                    <td className="p-4 text-center border-x border-slate-100 bg-slate-50/50">
+                    <td className="p-4 text-center border-x border-slate-100 dark:border-slate-800 bg-slate-50/50">
                       <button onClick={() => handleEditPrice(product)} style={{ '--hover-color': storeSettings.themeColor } as any} className="flex items-center justify-center gap-2 w-full hover:text-[var(--hover-color)] transition group font-black">
                         {product.sale_price} {storeSettings.currency}<span className="text-[10px] text-slate-400 font-normal">/{getUnitConfig(product.unit).label}</span>
                         <Edit2 size={14} className="opacity-100 md:opacity-0 md:group-hover:opacity-100" />
                       </button>
                     </td>
 
-                    <td className="p-4 text-center border-l border-slate-100 bg-slate-50/50">
+                    <td className="p-4 text-center border-l border-slate-100 dark:border-slate-800 bg-slate-50/50">
                       <button
                         onClick={() => handleEditStock(product)}
                         style={{ '--hover-bg': storeSettings.themeColor + '15', '--hover-text': storeSettings.themeColor } as any}
-                        className={`flex items-center justify-center gap-2 w-full font-bold px-3 py-1.5 rounded-lg transition group ${isLowStock ? 'bg-red-50 text-red-600' : 'hover:bg-[var(--hover-bg)] hover:text-[var(--hover-text)]'}`}
+                        className={`flex items-center justify-center gap-2 w-full font-bold px-3 py-1.5 rounded-lg transition group ${isLowStock ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' : 'hover:bg-[var(--hover-bg)] hover:text-[var(--hover-text)]'}`}
                       >
                         {formatQty(qtyOf(product), product.unit)}
                         <Edit2 size={14} className="opacity-100 md:opacity-0 md:group-hover:opacity-100" />
@@ -1767,7 +1767,7 @@ export default function Inventory() {
                               currency: storeSettings.currency, count: parseInt(n) || 1, storeName: storeSettings.name,
                             });
                           }}
-                          className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-lg transition"
+                          className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition"
                           title="طباعة باركود"
                         >
                           <Printer size={18} />
@@ -1777,8 +1777,8 @@ export default function Inventory() {
                           onClick={() => handleToggleHide(product)}
                           className={`p-2 rounded-lg transition ${
                             product.is_hidden
-                              ? 'text-emerald-500 hover:bg-emerald-50 hover:text-emerald-700'
-                              : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                              ? 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 hover:text-emerald-700'
+                              : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:text-slate-300'
                           }`}
                           title={product.is_hidden ? 'إظهار المنتج للكاشير' : 'إخفاء المنتج من الكاشير'}
                         >

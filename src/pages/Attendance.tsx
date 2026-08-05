@@ -173,7 +173,7 @@ export default function Attendance() {
             <img src={branding.logo} alt="Logo" className="h-16 w-auto max-w-[200px] mx-auto rounded-3xl shadow-xl mb-3 p-1 bg-white object-contain" />
           )}
           <h1 className="text-2xl font-black text-slate-800 dark:text-white">{branding.name}</h1>
-          <p className="text-slate-500 font-bold flex items-center justify-center gap-2 mt-1">
+          <p className="text-slate-500 dark:text-slate-400 font-bold flex items-center justify-center gap-2 mt-1">
             <Clock size={16} /> تسجيل الحضور والانصراف
           </p>
         </div>
@@ -192,7 +192,7 @@ export default function Attendance() {
           </div>
 
           {/* الكاميرا */}
-          <div className="mb-6 relative rounded-3xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border-4 border-slate-100 dark:border-slate-800">
+          <div className="mb-6 relative rounded-3xl overflow-hidden bg-slate-900 dark:bg-slate-700 aspect-video flex items-center justify-center border-4 border-slate-100 dark:border-slate-800">
             <video ref={videoRef} playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
             {!camReady && !camError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70 gap-2">
@@ -208,7 +208,7 @@ export default function Attendance() {
             )}
             {camReady && (
               <div className="absolute bottom-2 right-2 bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse" /> مباشر
+                <span className="w-2 h-2 bg-white dark:bg-slate-800 rounded-full animate-pulse" /> مباشر
               </div>
             )}
           </div>
@@ -245,11 +245,11 @@ export default function Attendance() {
             {/* حالة اليوم */}
             {selectedId && (
               <div className="flex gap-3 text-center">
-                <div className={`flex-1 rounded-2xl py-2.5 border ${checkedIn ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                <div className={`flex-1 rounded-2xl py-2.5 border ${checkedIn ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
                   <div className="text-[10px] font-black">الحضور</div>
                   <div className="text-sm font-black tabular-nums">{fmtTime(status.check_in)}</div>
                 </div>
-                <div className={`flex-1 rounded-2xl py-2.5 border ${checkedOut ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                <div className={`flex-1 rounded-2xl py-2.5 border ${checkedOut ? 'bg-rose-50 border-rose-100 text-rose-600 dark:text-rose-400' : 'bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400'}`}>
                   <div className="text-[10px] font-black">الانصراف</div>
                   <div className="text-sm font-black tabular-nums">{fmtTime(status.check_out)}</div>
                 </div>
@@ -280,7 +280,7 @@ export default function Attendance() {
 
           {/* Toast */}
           {toast && (
-            <div className={`mt-5 flex items-center gap-2 rounded-2xl px-4 py-3 font-bold text-sm ${toast.kind === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+            <div className={`mt-5 flex items-center gap-2 rounded-2xl px-4 py-3 font-bold text-sm ${toast.kind === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-500/30' : 'bg-red-50 text-red-700 border border-red-100'}`}>
               {toast.kind === 'success' ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
               <span>{toast.text}</span>
             </div>

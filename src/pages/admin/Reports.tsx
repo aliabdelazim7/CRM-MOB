@@ -183,12 +183,12 @@ export default function Reports() {
     <div className="p-6 md:p-8 space-y-5 animate-fade-in">
       <div>
         <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3"><FileBarChart className="text-indigo-600" size={30} /> التقارير وكشوف الحساب</h1>
-        <p className="text-slate-500 mt-1 text-sm font-medium">كشوف المبيعات ووسائل الدفع والخزينة بفلتر الفترة وتصديرها PDF/طباعة</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm font-medium">كشوف المبيعات ووسائل الدفع والخزينة بفلتر الفترة وتصديرها PDF/طباعة</p>
       </div>
 
       <div className="flex flex-wrap gap-3 items-end bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-        <div><label className="text-[11px] font-bold text-slate-500 block mb-1">من</label><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold" /></div>
-        <div><label className="text-[11px] font-bold text-slate-500 block mb-1">إلى</label><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold" /></div>
+        <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">من</label><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold" /></div>
+        <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">إلى</label><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold" /></div>
         <div className="flex gap-1.5">
           {([['today', 'اليوم'], ['month', 'الشهر']] as const).map(([k, l]) => (
             <button key={k} onClick={() => { const businessToday = currentBusinessDay(); const d = new Date(`${businessToday}T00:00:00`); if (k === 'today') { setFrom(businessToday); setTo(businessToday); } else { setFrom([d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), '01'].join('-')); setTo(businessToday); } }} className="text-xs font-bold bg-slate-100 dark:bg-slate-900 px-3 py-2 rounded-xl">{l}</button>
@@ -215,7 +215,7 @@ export default function Reports() {
           </div>
           <div className="overflow-x-auto max-h-[55vh]">
             <table className="w-full text-right text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 sticky top-0"><tr><th className="p-2">#</th><th className="p-2">التاريخ</th><th className="p-2">العميل</th><th className="p-2">مسؤول المبيعات</th><th className="p-2">الإجمالي</th><th className="p-2">المدفوع</th><th className="p-2">الباقي</th><th className="p-2">الربح</th></tr></thead>
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 sticky top-0"><tr><th className="p-2">#</th><th className="p-2">التاريخ</th><th className="p-2">العميل</th><th className="p-2">مسؤول المبيعات</th><th className="p-2">الإجمالي</th><th className="p-2">المدفوع</th><th className="p-2">الباقي</th><th className="p-2">الربح</th></tr></thead>
               <tbody>
                 {sales.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-400 py-8">لا توجد مبيعات في الفترة</td></tr>
                   : sales.map((o: any) => (
@@ -225,8 +225,8 @@ export default function Reports() {
                       <td className="p-2">{o.customer?.name || 'نقدي'}</td>
                       <td className="p-2">{o.salesperson_name || '-'}</td>
                       <td className="p-2 font-bold">{effectiveTotalOf(o).toFixed(2)}</td>
-                      <td className="p-2 text-emerald-600 font-bold">{originalPaidOf(o).toFixed(2)}</td>
-                      <td className="p-2 text-red-600 font-bold">{(effectiveTotalOf(o) - originalPaidOf(o)).toFixed(2)}</td>
+                      <td className="p-2 text-emerald-600 dark:text-emerald-400 font-bold">{originalPaidOf(o).toFixed(2)}</td>
+                      <td className="p-2 text-red-600 dark:text-red-400 font-bold">{(effectiveTotalOf(o) - originalPaidOf(o)).toFixed(2)}</td>
                       <td className="p-2 font-bold">{profitOf(o).toFixed(2)}</td>
                     </tr>
                   ))}
@@ -248,17 +248,17 @@ export default function Reports() {
           )}
           <div className="overflow-x-auto">
             <table className="w-full text-right text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500"><tr><th className="p-3">الوسيلة</th><th className="p-3">مدين (داخل)</th><th className="p-3">دائن (خارج)</th><th className="p-3">الصافي</th></tr></thead>
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400"><tr><th className="p-3">الوسيلة</th><th className="p-3">مدين (داخل)</th><th className="p-3">دائن (خارج)</th><th className="p-3">الصافي</th></tr></thead>
               <tbody>
                 {METHODS.map(([k, l]) => (
                   <tr key={k} className="border-b border-slate-100 dark:border-slate-700/50">
                     <td className="p-3 font-bold">{l}</td>
-                    <td className="p-3 text-emerald-600 font-bold">{rangeMethods.inN[k].toFixed(2)}</td>
-                    <td className="p-3 text-red-600 font-bold">{rangeMethods.outN[k].toFixed(2)}</td>
+                    <td className="p-3 text-emerald-600 dark:text-emerald-400 font-bold">{rangeMethods.inN[k].toFixed(2)}</td>
+                    <td className="p-3 text-red-600 dark:text-red-400 font-bold">{rangeMethods.outN[k].toFixed(2)}</td>
                     <td className="p-3 font-black">{(rangeMethods.inN[k] - rangeMethods.outN[k]).toFixed(2)}</td>
                   </tr>
                 ))}
-                <tr className="bg-slate-50 dark:bg-slate-900/40 font-black"><td className="p-3">الإجمالي</td><td className="p-3 text-emerald-700">{totalIn.toFixed(2)}</td><td className="p-3 text-red-700">{totalOut.toFixed(2)}</td><td className="p-3">{(totalIn - totalOut).toFixed(2)}</td></tr>
+                <tr className="bg-slate-50 dark:bg-slate-900/40 font-black"><td className="p-3">الإجمالي</td><td className="p-3 text-emerald-700 dark:text-emerald-300">{totalIn.toFixed(2)}</td><td className="p-3 text-red-700 dark:text-red-300">{totalOut.toFixed(2)}</td><td className="p-3">{(totalIn - totalOut).toFixed(2)}</td></tr>
               </tbody>
             </table>
           </div>
@@ -271,7 +271,7 @@ export default function Reports() {
 function Stat({ label, value, green, red }: { label: string; value: string; green?: boolean; red?: boolean }) {
   return (
     <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 text-center">
-      <div className="text-[11px] font-bold text-slate-500">{label}</div>
+      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{label}</div>
       <div className={`text-lg font-black ${green ? 'text-emerald-600' : red ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}`}>{value}</div>
     </div>
   );

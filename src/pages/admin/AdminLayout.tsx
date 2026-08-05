@@ -1,7 +1,8 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Layers, Package, FileText, ShoppingCart, RotateCcw, Truck, Wallet, BarChart3, CreditCard, ArrowLeftRight, Users, Landmark, PiggyBank, DollarSign, Printer, Database, Moon, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Layers, Package, FileText, ShoppingCart, RotateCcw, Truck, Wallet, BarChart3, CreditCard, ArrowLeftRight, Users, Landmark, PiggyBank, DollarSign, Printer, Database, Moon, Sun, Settings, LogOut, Menu, X } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useEffect, useState } from 'react';
+import { useTheme } from '../../theme';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -10,35 +11,8 @@ export default function AdminLayout() {
   const canSee = (path: string) => isOwner || (adminPermissions || []).includes(path);
   const [hasCheckedReminders, setHasCheckedReminders] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof document !== 'undefined') {
-      return localStorage.getItem('theme') !== 'light';
-    }
-    return true;
-  });
-
-  const toggleDarkMode = () => {
-    const next = !isDarkMode;
-    setIsDarkMode(next);
-    if (next) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-      setIsDarkMode(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    }
-  }, []);
+  // الثيم بقى من ستور واحد مشترك — مفيش نسخة محلية هنا تتعارض مع POS.
+  const { isDark, toggle: toggleDarkMode } = useTheme();
 
   useEffect(() => {
     if (hasCheckedReminders || maintenanceAppointments.length === 0 || carSubscriptions.length === 0) return;
@@ -114,16 +88,17 @@ export default function AdminLayout() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed lg:static inset-y-0 right-0 w-72 max-w-[85vw] bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-40 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0 lg:w-64`}>
+      <div className={`fixed lg:static inset-y-0 right-0 w-72 max-w-[85vw] bg-white text-slate-600 border-l border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 flex flex-col shadow-2xl z-40 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0 lg:w-64`}>
         <div className="p-5 pb-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 bg-slate-800 p-3 rounded-2xl border border-slate-700 flex-1 min-w-0">
+          <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex-1 min-w-0">
+            {/* اللوجو بيفضل على خلفية بيضا في الوضعين — أغلب اللوجوهات شفافة/داكنة. */}
             <img src={storeSettings.logo} alt="Logo" className="h-10 w-auto max-w-[120px] rounded-xl bg-white object-contain" />
             <div className="flex flex-col flex-1 min-w-0">
-              <span className="font-bold text-white text-sm truncate" title={storeSettings.name}>{storeSettings.name}</span>
-              <span className="text-xs text-slate-400">لوحة الإدارة</span>
+              <span className="font-bold text-slate-900 dark:text-white text-sm truncate" title={storeSettings.name}>{storeSettings.name}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">لوحة الإدارة</span>
             </div>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-white rounded-xl shrink-0" aria-label="إغلاق القائمة">
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl shrink-0" aria-label="إغلاق القائمة">
             <X size={22} />
           </button>
         </div>
@@ -137,10 +112,22 @@ export default function AdminLayout() {
                 <button
                   key={item.name}
                   onClick={toggleDarkMode}
-                  className="flex items-center gap-3 w-full px-4 py-3 lg:py-2.5 rounded-xl transition text-sm hover:bg-slate-800 hover:text-white text-slate-300 font-bold"
+                  role="switch"
+                  aria-checked={isDark}
+                  aria-label={isDark ? 'إيقاف الوضع الداكن' : 'تفعيل الوضع الداكن'}
+                  className="flex items-center gap-3 w-full px-4 py-3 lg:py-2.5 rounded-xl transition text-sm font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                 >
-                  <item.icon size={18} />
-                  {item.name} {isDarkMode ? '(مفعل)' : ''}
+                  {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                  <span className="flex-1 text-right">{isDark ? 'الوضع الفاتح' : 'الوضع الداكن'}</span>
+                  {/* مؤشر بصري بدل كلمة «(مفعل)» */}
+                  <span
+                    aria-hidden="true"
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 ${isDark ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                  >
+                    <span
+                      className={`block w-4 h-4 rounded-full bg-white shadow transition-transform ${isDark ? '-translate-x-4' : 'translate-x-0'}`}
+                    />
+                  </span>
                 </button>
               );
             }
@@ -155,7 +142,7 @@ export default function AdminLayout() {
                   `flex items-center gap-3 px-4 py-3 lg:py-2.5 rounded-xl transition text-sm ${
                     isActive
                       ? 'text-white font-bold shadow-lg'
-                      : 'hover:bg-slate-800 hover:text-white text-slate-300'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
                   }`
                 }
               >
@@ -166,10 +153,10 @@ export default function AdminLayout() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-4 py-3 text-red-400 hover:bg-black/20 hover:text-red-300 rounded-xl transition"
+            className="flex items-center gap-2 w-full px-4 py-3 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-black/20 dark:hover:text-red-300 rounded-xl transition"
           >
             <LogOut size={20} />
             خروج من الإدارة
@@ -180,8 +167,8 @@ export default function AdminLayout() {
       {/* العمود الرئيسي */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* شريط علوي للموبايل */}
-        <header className="lg:hidden flex items-center gap-3 bg-slate-900 text-white px-3 py-2.5 shadow-md z-20 shrink-0">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-slate-800 rounded-xl" aria-label="فتح القائمة">
+        <header className="lg:hidden flex items-center gap-3 bg-white text-slate-900 border-b border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-800 px-3 py-2.5 shadow-md z-20 shrink-0">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl" aria-label="فتح القائمة">
             <Menu size={24} />
           </button>
           <img src={storeSettings.logo} alt="" className="h-8 w-auto max-w-[90px] rounded-lg bg-white object-contain" />

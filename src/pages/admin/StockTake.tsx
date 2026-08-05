@@ -251,11 +251,11 @@ export default function StockTake() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3"><ClipboardCheck className="text-indigo-600" size={30} /> الجرد والتسوية</h1>
-          <p className="text-slate-500 mt-1 text-sm font-medium">امسح القطع بالكاميرا (كل مسحة = قطعة) أو اكتب الكمية بإيدك، راجع الفرق، ثم احفظ التسوية</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm font-medium">امسح القطع بالكاميرا (كل مسحة = قطعة) أو اكتب الكمية بإيدك، راجع الفرق، ثم احفظ التسوية</p>
         </div>
         <div className="flex gap-3">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl px-4 py-2 text-center"><div className="text-[11px] font-bold text-red-600">قيمة العجز</div><div className="font-black text-red-700">{totalShortageVal.toFixed(2)} {cur}</div></div>
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl px-4 py-2 text-center"><div className="text-[11px] font-bold text-emerald-600">قيمة الزيادة</div><div className="font-black text-emerald-700">{totalSurplusVal.toFixed(2)} {cur}</div></div>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl px-4 py-2 text-center"><div className="text-[11px] font-bold text-red-600 dark:text-red-400">قيمة العجز</div><div className="font-black text-red-700 dark:text-red-300">{totalShortageVal.toFixed(2)} {cur}</div></div>
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl px-4 py-2 text-center"><div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">قيمة الزيادة</div><div className="font-black text-emerald-700 dark:text-emerald-300">{totalSurplusVal.toFixed(2)} {cur}</div></div>
         </div>
       </div>
 
@@ -279,14 +279,14 @@ export default function StockTake() {
           اتعدّ: <b>{countedPieces}</b> قطعة · <b>{countedItems.length}</b> صنف
         </div>
         {countedItems.length > 0 && (
-          <button onClick={clearCounts} className="text-xs font-bold text-slate-500 hover:text-red-600 underline">مسح ورقة الجرد</button>
+          <button onClick={clearCounts} className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-red-600 underline">مسح ورقة الجرد</button>
         )}
       </div>
 
       {/* فلاتر: الموسم + المخزن */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 w-fit">
-          <span className="text-xs font-bold text-slate-500 px-2">الموسم:</span>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 px-2">الموسم:</span>
           {([['all', 'الكل'], ['summer', 'صيفي'], ['winter', 'شتوي'], ['annual', 'سنوي']] as const).map(([k, label]) => (
             <button key={k} onClick={() => setSeasonFilter(k)}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition ${seasonFilter === k ? 'bg-amber-500 text-white shadow' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
@@ -295,7 +295,7 @@ export default function StockTake() {
           ))}
         </div>
         <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 w-fit">
-          <span className="text-xs font-bold text-slate-500 px-2">المخزن:</span>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 px-2">المخزن:</span>
           {([['all', 'الكل'], ['warehouse', 'المستودع'], ['display', 'المحل']] as const).map(([k, label]) => (
             <button key={k} onClick={() => setStockLocation(k)}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition ${stockLocation === k ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
@@ -321,7 +321,7 @@ export default function StockTake() {
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="overflow-x-auto max-h-[65vh]">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 sticky top-0">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 sticky top-0">
               <tr>
                 <th className="p-3">المنتج</th><th className="p-3">الباركود</th>
                 <th className="p-3 text-center">رصيد النظام{stockLocation !== 'all' ? ` (${LOCATION_LABEL[stockLocation]})` : ''}</th><th className="p-3 text-center">المجرود فعلياً</th>
@@ -332,8 +332,8 @@ export default function StockTake() {
               {rows.length === 0 ? <tr><td colSpan={6} className="text-center text-slate-400 py-8">لا توجد منتجات</td></tr>
                 : rows.map((r) => (
                   <tr key={r.p.id} className={`border-b border-slate-100 dark:border-slate-700/50 ${r.counted !== null && Math.abs(r.diff) > 0.0001 ? (r.diff < 0 ? 'bg-red-50/40 dark:bg-red-900/10' : 'bg-emerald-50/40 dark:bg-emerald-900/10') : ''}`}>
-                    <td className="p-3 font-bold text-slate-800 dark:text-slate-100">{r.p.name}{r.p.season ? <span className="mr-1 text-[10px] font-bold text-amber-600">· {SEASON_LABEL[r.p.season] || r.p.season}</span> : ''}</td>
-                    <td className="p-3 font-mono text-xs text-slate-500">{r.p.barcode || '-'}</td>
+                    <td className="p-3 font-bold text-slate-800 dark:text-slate-100">{r.p.name}{r.p.season ? <span className="mr-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">· {SEASON_LABEL[r.p.season] || r.p.season}</span> : ''}</td>
+                    <td className="p-3 font-mono text-xs text-slate-500 dark:text-slate-400">{r.p.barcode || '-'}</td>
                     <td className="p-3 text-center font-bold">{r.system}</td>
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -342,8 +342,8 @@ export default function StockTake() {
                         <button onClick={() => setCounts((c) => ({ ...c, [r.p.id]: String((parseFloat(c[r.p.id] || '0') || 0) + 1) }))} className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-black">+</button>
                       </div>
                     </td>
-                    <td className={`p-3 text-center font-black ${r.counted === null ? 'text-slate-300' : r.diff === 0 ? 'text-slate-400' : r.diff < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{r.counted === null ? '—' : (r.diff > 0 ? '+' : '') + r.diff}</td>
-                    <td className={`p-3 text-center font-bold ${r.diffValue < 0 ? 'text-red-600' : r.diffValue > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{r.counted === null || r.diff === 0 ? '—' : `${r.diffValue.toFixed(2)} ${cur}`}</td>
+                    <td className={`p-3 text-center font-black ${r.counted === null ? 'text-slate-300' : r.diff === 0 ? 'text-slate-400' : r.diff < 0 ? 'text-red-600' : 'text-emerald-600 dark:text-emerald-400'}`}>{r.counted === null ? '—' : (r.diff > 0 ? '+' : '') + r.diff}</td>
+                    <td className={`p-3 text-center font-bold ${r.diffValue < 0 ? 'text-red-600' : r.diffValue > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{r.counted === null || r.diff === 0 ? '—' : `${r.diffValue.toFixed(2)} ${cur}`}</td>
                   </tr>
                 ))}
             </tbody>
@@ -361,14 +361,14 @@ export default function StockTake() {
           الكاميرا بتحقن عناصرها جوه #stocktake-reader، ولو React شال الحاوية
           والمكتبة لسه بتنضّف بتحصل «الشاشة البيضا» بعد الخروج. */}
       <div className={`fixed inset-0 z-[200] bg-black flex-col ${scanOpen ? 'flex' : 'hidden'}`} dir="rtl">
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-900 text-white shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 bg-slate-900 dark:bg-slate-700 text-white shrink-0">
             <div>
               <h2 className="font-black flex items-center gap-2"><Camera size={20} /> جرد بالمسح</h2>
               <p className="text-[11px] text-white/60">بتعدّي في: {LOCATION_LABEL[stockLocation]} · {countedPieces} قطعة</p>
             </div>
             <div className="flex items-center gap-2">
               {torchSupported && (
-                <button onClick={toggleTorch} className={`p-2 rounded-xl ${torchOn ? 'bg-amber-400 text-slate-900' : 'bg-white/10 text-white'}`}><Zap size={20} /></button>
+                <button onClick={toggleTorch} className={`p-2 rounded-xl ${torchOn ? 'bg-amber-400 text-slate-900 dark:text-slate-50' : 'bg-white/10 text-white'}`}><Zap size={20} /></button>
               )}
               <button onClick={closeScanner} className="p-2 rounded-xl bg-white/10 hover:bg-white/20"><X size={22} /></button>
             </div>
@@ -376,7 +376,7 @@ export default function StockTake() {
 
           <div id="stocktake-reader" className="w-full flex-1 min-h-0 bg-black" />
 
-          <div className="bg-slate-900 text-white p-4 space-y-3 shrink-0 max-h-[45vh] overflow-y-auto">
+          <div className="bg-slate-900 dark:bg-slate-700 text-white p-4 space-y-3 shrink-0 max-h-[45vh] overflow-y-auto">
             {lastScan ? (
               lastScan.ok ? (
                 <div className="bg-emerald-500/15 border border-emerald-500/40 rounded-2xl p-3 flex items-center justify-between gap-3">

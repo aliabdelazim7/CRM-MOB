@@ -5,12 +5,28 @@
     <link id="app-favicon" rel="icon" type="image/svg+xml" href="/favicon-cashier.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>ADRIA — الكاشير</title>
+    <!--
+      تطبيق الثيم قبل أي رسم عشان مايحصلش وميض أبيض لحظة الفتح.
+      المنطق ده لازم يفضل مطابق لـ src/theme.ts.
+    -->
     <script>
-      if (localStorage.getItem('theme') === 'light') {
-        document.documentElement.classList.remove('dark');
-      } else {
-        document.documentElement.classList.add('dark');
-      }
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var mode = (stored === 'light' || stored === 'dark' || stored === 'system') ? stored : 'dark';
+          var dark = mode === 'system'
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            : mode === 'dark';
+          var root = document.documentElement;
+          root.classList.toggle('dark', dark);
+          root.dataset.theme = dark ? 'dark' : 'light';
+          root.style.colorScheme = dark ? 'dark' : 'light';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#020617' : '#f8fafc');
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
     </script>
 
     <!-- أيقونة الشاشة الرئيسية للآيفون (iOS بياخد الأيقونة من هنا مش من الـ manifest) -->

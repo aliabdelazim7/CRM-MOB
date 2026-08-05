@@ -81,17 +81,17 @@ export function HeldReturnModal({ held, onClose, onDone }: Props) {
       <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col">
         <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex items-start justify-between gap-3">
           <div>
-            <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-2"><Undo2 size={18} className="text-amber-600" /> مرتجع طلب أونلاين</h3>
-            <p className="text-xs text-slate-500 font-bold mt-0.5">{held.customer_name?.trim() || 'عميل'} · إجمالي {Number(held.total).toFixed(2)} {cur}</p>
+            <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-2"><Undo2 size={18} className="text-amber-600 dark:text-amber-400" /> مرتجع طلب أونلاين</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">{held.customer_name?.trim() || 'عميل'} · إجمالي {Number(held.total).toFixed(2)} {cur}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-red-50 hover:text-red-500"><X size={18} /></button>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-500"><X size={18} /></button>
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[11px] font-black text-slate-500 uppercase">الكمية المرتجعة لكل صنف</label>
-              <button onClick={returnAll} className="text-[11px] font-black text-amber-600 hover:underline">إرجاع الكل</button>
+              <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase">الكمية المرتجعة لكل صنف</label>
+              <button onClick={returnAll} className="text-[11px] font-black text-amber-600 dark:text-amber-400 hover:underline">إرجاع الكل</button>
             </div>
             <div className="space-y-2">
               {held.items.map((it) => (
@@ -123,7 +123,7 @@ export function HeldReturnModal({ held, onClose, onDone }: Props) {
           </div>
 
           <div>
-            <label className="text-[11px] font-black text-slate-500 uppercase mb-2 block">مصاريف شحن المرتجع (اختياري)</label>
+            <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase mb-2 block">مصاريف شحن المرتجع (اختياري)</label>
             <input type="number" dir="ltr" placeholder="0.00" value={shipCost} onChange={(e) => setShipCost(e.target.value)} className={input} />
             <p className="text-[11px] text-slate-400 font-bold mt-1">بتتسجّل مصروف من الخزنة بتاريخ دلوقتي (فئة «مصاريف شحن مرتجع»).</p>
             {cost > 0 && (

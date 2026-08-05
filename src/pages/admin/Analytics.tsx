@@ -328,7 +328,7 @@ export default function Analytics() {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-4">
         <RefreshCw className="w-12 h-12 text-indigo-600 animate-spin" />
-        <p className="text-slate-500 font-bold">جاري تحليل البيانات...</p>
+        <p className="text-slate-500 dark:text-slate-400 font-bold">جاري تحليل البيانات...</p>
       </div>
     );
   }
@@ -338,12 +338,12 @@ export default function Analytics() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2">التحليلات والتقارير</h1>
-          <p className="text-slate-500 font-medium">نظرة تفصيلية على أداء النشاط التجاري والأرباح</p>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-slate-50 mb-2">التحليلات والتقارير</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">نظرة تفصيلية على أداء النشاط التجاري والأرباح</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex gap-1">
+          <div className="bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex gap-1">
             {[
               { id: 'today', label: 'اليوم' },
               { id: '7d', label: '7 أيام' },
@@ -357,8 +357,8 @@ export default function Analytics() {
                 onClick={() => { setCustomDay(''); setTimeRange(btn.id as any); }}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                   !customDay && timeRange === btn.id
-                    ? 'bg-slate-900 text-white shadow-md'
-                    : 'text-slate-500 hover:bg-slate-50'
+                    ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-md'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 {btn.label}
@@ -367,18 +367,18 @@ export default function Analytics() {
           </div>
 
           {/* فلتر يوم محدد */}
-          <div className={`bg-white p-1.5 rounded-xl shadow-sm border flex items-center gap-2 transition-colors ${customDay ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200'}`}>
-            <span className="text-xs font-bold text-slate-500 pr-2">يوم محدد:</span>
+          <div className={`bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-sm border flex items-center gap-2 transition-colors ${customDay ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200 dark:border-slate-700'}`}>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 pr-2">يوم محدد:</span>
             <input
               type="date"
               value={customDay}
               onChange={(e) => setCustomDay(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-300"
             />
             {customDay && (
               <button
                 onClick={() => setCustomDay('')}
-                className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg w-7 h-7 flex items-center justify-center font-black transition"
+                className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg w-7 h-7 flex items-center justify-center font-black transition"
                 title="إلغاء فلتر اليوم"
               >
                 ✕
@@ -510,13 +510,13 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Products Chart */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
                 <TrendingUp size={20} />
               </div>
-              <h3 className="font-black text-slate-800 text-lg">المنتجات الأكثر مبيعاً (كمية)</h3>
+              <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">المنتجات الأكثر مبيعاً (كمية)</h3>
             </div>
           </div>
           
@@ -551,13 +551,13 @@ export default function Analytics() {
         </div>
 
         {/* Profit Chart */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+              <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                 <DollarSign size={20} />
               </div>
-              <h3 className="font-black text-slate-800 text-lg">المنتجات الأكثر ربحاً (صافي)</h3>
+              <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">المنتجات الأكثر ربحاً (صافي)</h3>
             </div>
           </div>
           
@@ -593,31 +593,31 @@ export default function Analytics() {
       </div>
 
       {/* Top Customers Table */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
+          <div className="w-10 h-10 bg-amber-50 dark:bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-400">
             <Users size={20} />
           </div>
-          <h3 className="font-black text-slate-800 text-lg">العملاء الأكثر شراءً</h3>
+          <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">العملاء الأكثر شراءً</h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-right">
             <thead>
-              <tr className="text-slate-500 text-sm border-b border-slate-100">
+              <tr className="text-slate-500 dark:text-slate-400 text-sm border-b border-slate-100 dark:border-slate-800">
                 <th className="pb-4 font-bold">العميل</th>
                 <th className="pb-4 font-bold">إجمالي المشتريات</th>
                 <th className="pb-4 font-bold">عدد الفواتير</th>
                 <th className="pb-4 font-bold">متوسط الفاتورة</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {stats.topCustomers.map((customer, idx) => (
-                <tr key={idx} className="group hover:bg-slate-50 transition-colors">
-                  <td className="py-4 font-bold text-slate-700">{customer.name}</td>
+                <tr key={idx} className="group hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <td className="py-4 font-bold text-slate-700 dark:text-slate-200">{customer.name}</td>
                   <td className="py-4 font-black text-indigo-600">{customer.total.toLocaleString()} {storeSettings.currency}</td>
-                  <td className="py-4 text-slate-500 font-medium">{customer.orders} فاتورة</td>
-                  <td className="py-4 text-slate-500 font-medium">{(customer.total / customer.orders).toFixed(0).toLocaleString()} {storeSettings.currency}</td>
+                  <td className="py-4 text-slate-500 dark:text-slate-400 font-medium">{customer.orders} فاتورة</td>
+                  <td className="py-4 text-slate-500 dark:text-slate-400 font-medium">{(customer.total / customer.orders).toFixed(0).toLocaleString()} {storeSettings.currency}</td>
                 </tr>
               ))}
               {stats.topCustomers.length === 0 && (
@@ -638,13 +638,13 @@ function StatCard({ title, value, unit, icon: Icon, color, increase, hint }: any
     indigo: 'bg-indigo-600',
     emerald: 'bg-emerald-600',
     amber: 'bg-amber-500',
-    slate: 'bg-slate-800',
+    slate: 'bg-slate-800 dark:bg-slate-700',
     red: 'bg-red-600'
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
-      <div className="absolute -right-4 -top-4 w-24 h-24 bg-slate-50 rounded-full group-hover:scale-150 transition-transform duration-500 -z-0"></div>
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+      <div className="absolute -right-4 -top-4 w-24 h-24 bg-slate-50 dark:bg-slate-900 rounded-full group-hover:scale-150 transition-transform duration-500 -z-0"></div>
       
       <div className="relative z-10 flex flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -652,7 +652,7 @@ function StatCard({ title, value, unit, icon: Icon, color, increase, hint }: any
             <Icon size={24} />
           </div>
           {increase !== undefined && (
-            <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg ${increase ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+            <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg ${increase ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-50 text-red-600'}`}>
               {increase ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
               {increase ? '+12%' : '-5%'} 
             </div>
@@ -660,9 +660,9 @@ function StatCard({ title, value, unit, icon: Icon, color, increase, hint }: any
         </div>
         
         <div>
-          <p className="text-slate-500 font-bold text-sm mb-1">{title}</p>
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm mb-1">{title}</p>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-slate-900">{typeof value === 'number' ? value.toLocaleString() : value}</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-slate-50">{typeof value === 'number' ? value.toLocaleString() : value}</span>
             {unit && <span className="text-xs font-bold text-slate-400">{unit}</span>}
           </div>
           {hint && <p className="text-[11px] font-bold text-slate-400 mt-1">{hint}</p>}

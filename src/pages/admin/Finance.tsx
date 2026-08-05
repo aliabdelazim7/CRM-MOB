@@ -1090,7 +1090,7 @@ export default function Finance() {
         <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-md flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
           <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-indigo-900 font-black text-xl animate-pulse">جاري تجهيز التقرير بالكامل...</p>
-          <p className="text-slate-500 font-medium">يرجى الانتظار ثواني قليلة</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">يرجى الانتظار ثواني قليلة</p>
         </div>
       )}
 
@@ -1155,14 +1155,14 @@ export default function Finance() {
           <div className="flex gap-2">
             <button 
               onClick={exportToExcel}
-              className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-2xl hover:bg-emerald-100 transition shadow-sm border border-emerald-100 dark:border-emerald-900/50"
+              className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-2xl hover:bg-emerald-100 dark:hover:bg-emerald-500/25 transition shadow-sm border border-emerald-100 dark:border-emerald-900/50"
               title="تصدير Excel"
             >
               <Download size={22} />
             </button>
             <button 
               onClick={exportToPDF}
-              className="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-2xl hover:bg-red-100 transition shadow-sm border border-red-100 dark:border-red-900/50"
+              className="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-2xl hover:bg-red-100 dark:hover:bg-red-500/25 transition shadow-sm border border-red-100 dark:border-red-900/50"
               title="تصدير PDF"
             >
               <FileText size={22} />
@@ -1260,7 +1260,7 @@ export default function Finance() {
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
           <p className="text-slate-400 font-bold text-xs mb-1 relative z-10">رصيد الإغلاق (الحالي)</p>
           <h3 className="text-2xl font-black text-white relative z-10">
-            {closingBalance.toLocaleString()} <span className="text-sm font-normal text-slate-500">{storeSettings.currency}</span>
+            {closingBalance.toLocaleString()} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">{storeSettings.currency}</span>
           </h3>
           <div className="mt-2 text-[10px] text-indigo-400 font-bold flex items-center gap-1 relative z-10">
             <TrendingUp size={12} /> رصيد الخزينة النهائي
@@ -1292,7 +1292,7 @@ export default function Finance() {
             <div>
               <p className={`text-[10px] font-bold ${isActive ? 'text-indigo-500' : 'text-slate-400'}`}>{m.label}</p>
               <p
-                className={`text-sm font-black ${m.value < 0 ? 'text-red-600 font-bold' : 'text-slate-700'}`}
+                className={`text-sm font-black ${m.value < 0 ? 'text-red-600 font-bold' : 'text-slate-700 dark:text-slate-200'}`}
                 dir={m.value < 0 ? 'ltr' : undefined}
               >
                 {m.value < 0 ? `-${Math.abs(m.value).toLocaleString()}` : m.value.toLocaleString()}
@@ -1397,7 +1397,7 @@ export default function Finance() {
                               </span>
                             )}
                             {t.split?.instapay > 0 && (
-                              <span className="text-[10px] font-black text-amber-600 flex items-center gap-1">
+                              <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                 <Zap size={12} /> {t.split.instapay.toLocaleString()}
                               </span>
                             )}
@@ -1413,7 +1413,7 @@ export default function Finance() {
                         )}
                       </div>
                     </td>
-                    <td className={`p-6 font-black text-lg ${t.isTransfer ? 'text-blue-600' : t.isOut ? 'text-red-600' : 'text-emerald-600'}`}>
+                    <td className={`p-6 font-black text-lg ${t.isTransfer ? 'text-blue-600' : t.isOut ? 'text-red-600' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       {t.isTransfer ? '↔' : t.isOut ? '-' : '+'}{t.amount.toLocaleString()}
                     </td>
                     <td className="p-6 text-left">
@@ -1479,38 +1479,38 @@ export default function Finance() {
             <div className="p-8 space-y-6 overflow-y-auto">
               {editingOrder && (
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">نوع المعاملة</label>
-                  <div className="w-full bg-slate-100 border border-slate-200 rounded-2xl p-4 font-bold text-slate-600">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">نوع المعاملة</label>
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 font-bold text-slate-600 dark:text-slate-300">
                     معاملة عميل ({editingOrder.type === 'payment' ? 'سداد مديونية' : 'فاتورة مبيعات'})
                   </div>
                 </div>
               )}
               {editingPurchase && (
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">نوع المعاملة</label>
-                  <div className="w-full bg-slate-100 border border-slate-200 rounded-2xl p-4 font-bold text-slate-600">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">نوع المعاملة</label>
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 font-bold text-slate-600 dark:text-slate-300">
                     معاملة مورد ({editingPurchase.total === 0 ? 'سداد مديونية مورد' : 'فاتورة شراء'})
                   </div>
                 </div>
               )}
               {!editingOrder && !editingPurchase && (
                 <>
-                  <div className="flex gap-2 mb-6 bg-slate-100 p-1 rounded-2xl">
+                  <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-slate-700 p-1 rounded-2xl">
                     <button
                       onClick={() => setFormData({...formData, transaction_type: 'expense'})}
-                      className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${formData.transaction_type === 'expense' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${formData.transaction_type === 'expense' ? 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                     >
                       مصروف
                     </button>
                     <button
                       onClick={() => setFormData({...formData, transaction_type: 'income'})}
-                      className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${formData.transaction_type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${formData.transaction_type === 'income' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                     >
                       إيراد
                     </button>
                     <button
                       onClick={() => setFormData({...formData, transaction_type: 'transfer'})}
-                      className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${formData.transaction_type === 'transfer' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${formData.transaction_type === 'transfer' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                     >
                       تحويل
                     </button>
@@ -1521,13 +1521,13 @@ export default function Finance() {
 
                   {!editingExpense && (
                     <div className="mb-4">
-                      <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ المعاملة</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">تاريخ المعاملة</label>
                       <input
                         type="date"
                         value={formData.date}
                         max={businessDateStr(storeSettings as any)}
                         onChange={e => setFormData({ ...formData, date: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
                       />
                     </div>
                   )}
@@ -1535,9 +1535,9 @@ export default function Finance() {
                   {formData.transaction_type === 'transfer' ? (
                     <>
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">من وسيلة الدفع</label>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">من وسيلة الدفع</label>
                         <select 
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
                           value={formData.transfer_from}
                           onChange={e => setFormData({...formData, transfer_from: e.target.value})}
                         >
@@ -1547,9 +1547,9 @@ export default function Finance() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">إلى وسيلة الدفع</label>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">إلى وسيلة الدفع</label>
                         <select 
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
                           value={formData.transfer_to}
                           onChange={e => setFormData({...formData, transfer_to: e.target.value})}
                         >
@@ -1559,16 +1559,16 @@ export default function Finance() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">مبلغ التحويل</label>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">مبلغ التحويل</label>
                         <input 
                           type="number" dir="ltr" placeholder="0.00"
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold text-right"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold text-right"
                           value={formData.transfer_amount}
                           onChange={e => setFormData({...formData, transfer_amount: e.target.value})}
                         />
                       </div>
                       {formData.transfer_from === formData.transfer_to && (
-                        <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-xl border border-red-100">
+                        <div className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold p-3 rounded-xl border border-red-100 dark:border-red-500/30">
                           ⚠️ لا يمكن التحويل لنفس وسيلة الدفع
                         </div>
                       )}
@@ -1576,10 +1576,10 @@ export default function Finance() {
                   ) : (
                     <>
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">{formData.transaction_type === 'expense' ? 'فئة المصروف' : 'فئة الإيراد'}</label>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">{formData.transaction_type === 'expense' ? 'فئة المصروف' : 'فئة الإيراد'}</label>
                         <div className="flex gap-2">
                         <select
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
                           value={formData.category}
                           onChange={e => setFormData({...formData, category: e.target.value})}
                         >
@@ -1607,10 +1607,10 @@ export default function Finance() {
               {formData.transaction_type !== 'transfer' && <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {activePaymentKeys(storeSettings as any).map((k) => (
                   <div key={k}>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide text-right">{payLabelOf(storeSettings as any, k)}</label>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide text-right">{payLabelOf(storeSettings as any, k)}</label>
                     <input
                       type="number" dir="ltr" placeholder="0.00"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-1 focus:outline-none font-bold text-right"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-1 focus:outline-none font-bold text-right"
                       value={(formData as any)['paid_' + k] || ''}
                       onChange={e => setFormData({ ...formData, ['paid_' + k]: e.target.value } as any)}
                     />
@@ -1618,10 +1618,10 @@ export default function Finance() {
                 ))}
               </div>}
 
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex justify-between items-center">
-                <span className="text-sm font-bold text-slate-500">{formData.transaction_type === 'transfer' ? 'مبلغ التحويل:' : 'إجمالي المبلغ:'}</span>
+              <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{formData.transaction_type === 'transfer' ? 'مبلغ التحويل:' : 'إجمالي المبلغ:'}</span>
                 <span className={`text-2xl font-black ${
-                  formData.transaction_type === 'transfer' ? 'text-blue-600' : (editingOrder || (formData.transaction_type === 'income' && !editingPurchase)) ? 'text-emerald-600' : 'text-red-600'
+                  formData.transaction_type === 'transfer' ? 'text-blue-600' : (editingOrder || (formData.transaction_type === 'income' && !editingPurchase)) ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'
                 }`}>
                   {formData.transaction_type === 'transfer'
                     ? (parseFloat(formData.transfer_amount) || 0).toLocaleString()
@@ -1631,10 +1631,10 @@ export default function Finance() {
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">ملاحظات</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 uppercase tracking-wide">ملاحظات</label>
                 <textarea 
                   placeholder="اكتب ملاحظاتك هنا..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 h-24 focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-24 focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium resize-none"
                   value={formData.note}
                   onChange={e => setFormData({...formData, note: e.target.value})}
                 />

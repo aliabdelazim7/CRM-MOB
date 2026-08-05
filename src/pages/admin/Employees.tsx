@@ -1294,15 +1294,15 @@ export default function Employees() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto h-[calc(100vh-2rem)] overflow-y-auto" dir="rtl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 bg-white dark:bg-slate-800 p-6 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
+          <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
             <div className="p-2 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
               <Users size={28} />
             </div>
             إدارة الموظفين والرواتب
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">سجل الموظفين، الرواتب، والسلف الشهرية</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">سجل الموظفين، الرواتب، والسلف الشهرية</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -1313,14 +1313,14 @@ export default function Employees() {
               placeholder="بحث عن موظف..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-2xl pr-12 pl-4 py-3 focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium w-64"
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pr-12 pl-4 py-3 focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium w-64"
             />
           </div>
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2">
             <input type="month" value={payrollMonth} onChange={(e) => setPayrollMonth(e.target.value)} className="bg-transparent text-sm font-bold outline-none" />
             <button onClick={exportPayroll} className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 transition"><Download size={16} /> كشف الرواتب Excel</button>
           </div>
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-2xl">
             {[
               { value: 'all', label: 'الكل' },
               { value: 'active', label: 'نشط' },
@@ -1331,8 +1331,8 @@ export default function Employees() {
                 onClick={() => setEmployeeStatusFilter(option.value as typeof employeeStatusFilter)}
                 className={`px-4 py-2 rounded-xl text-sm font-black transition ${
                   employeeStatusFilter === option.value
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {option.label}
@@ -1354,11 +1354,11 @@ export default function Employees() {
       {selectedProfileId && profileEmployee ? (
         <div className="space-y-6">
           {/* Profile Header */}
-          <div className="flex items-center justify-between bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-6 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setSelectedProfileId(null)}
-                className="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl text-slate-500 transition"
+                className="p-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl text-slate-500 dark:text-slate-400 transition"
               >
                 <ArrowRight size={20} />
               </button>
@@ -1367,12 +1367,12 @@ export default function Employees() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-black text-slate-800">{profileEmployee.name}</h2>
-                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border ${(profileEmployee.is_active ?? true) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">{profileEmployee.name}</h2>
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border ${(profileEmployee.is_active ?? true) ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/30' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                     {(profileEmployee.is_active ?? true) ? 'نشط' : 'غير نشط'}
                   </span>
                 </div>
-                <p className="text-slate-500 font-medium">{profileEmployee.job_title || 'بدون مسمى'} • {profileEmployee.phone}</p>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">{profileEmployee.job_title || 'بدون مسمى'} • {profileEmployee.phone}</p>
               </div>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -1386,14 +1386,14 @@ export default function Employees() {
               <button
                 onClick={() => handleOpenLeaveModal(profileEmployee)}
                 disabled={!(profileEmployee.is_active ?? true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-sky-50 text-sky-600 font-bold hover:bg-sky-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold hover:bg-sky-100 dark:hover:bg-sky-500/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CalendarDays size={20} /> إضافة إجازة
               </button>
               <button
                 onClick={() => handleOpenTransModal(profileEmployee, 'incentive')}
                 disabled={!(profileEmployee.is_active ?? true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold hover:bg-emerald-100 dark:hover:bg-emerald-500/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Gift size={20} /> إضافة حافز
               </button>
@@ -1402,21 +1402,21 @@ export default function Employees() {
               <button
                 onClick={() => handleOpenBonusModal(profileEmployee)}
                 disabled={!(profileEmployee.is_active ?? true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-sky-50 text-sky-600 font-bold hover:bg-sky-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold hover:bg-sky-100 dark:hover:bg-sky-500/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <PlusCircle size={20} /> إضافة مكافأة
               </button>
               <button
                 onClick={() => handleOpenDeductionModal(profileEmployee)}
                 disabled={!(profileEmployee.is_active ?? true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold hover:bg-rose-100 dark:hover:bg-rose-500/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <MinusCircle size={20} /> إضافة خصم
               </button>
               <button 
                 onClick={() => handleOpenTransModal(profileEmployee, 'advance')}
                 disabled={!(profileEmployee.is_active ?? true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-50 text-amber-600 font-bold hover:bg-amber-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold hover:bg-amber-100 dark:hover:bg-amber-500/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Wallet size={20} /> سحب سلفة
               </button>
@@ -1433,13 +1433,13 @@ export default function Employees() {
 
           {/* Profile Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
               <span className="text-slate-400 font-bold text-sm mb-1">الراتب الأساسي</span>
-              <span className="text-2xl font-black text-slate-800">{profileEmployee.monthly_salary.toLocaleString()} <span className="text-sm font-medium text-slate-400">{storeSettings.currency}</span></span>
+              <span className="text-2xl font-black text-slate-800 dark:text-slate-100">{profileEmployee.monthly_salary.toLocaleString()} <span className="text-sm font-medium text-slate-400">{storeSettings.currency}</span></span>
             </div>
 
             {/* مبيعاته — الأساس اللي بتتحسب عليه العمولة وقت صرف الراتب */}
-            <div className="bg-white p-6 rounded-3xl border-2 border-indigo-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-indigo-100 shadow-sm flex flex-col justify-center">
               <span className="text-indigo-500 font-bold text-sm mb-1">مبيعاته — {profileSales.periodLabel}</span>
               <span className="text-2xl font-black text-indigo-600">{profileSales.sales.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-sm font-medium text-indigo-400">{storeSettings.currency}</span></span>
               <span className="text-[11px] font-bold text-slate-400 mt-1">
@@ -1448,11 +1448,11 @@ export default function Employees() {
             </div>
 
             {/* العمولة بالنسبة المحفوظة — تقدير سريع قبل ما تفتح نافذة الصرف */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
               <span className="text-teal-500 font-bold text-sm mb-1">عمولة متوقعة</span>
               {Number(profileEmployee.commission_rate) > 0 ? (
                 <>
-                  <span className="text-2xl font-black text-teal-600">
+                  <span className="text-2xl font-black text-teal-600 dark:text-teal-400">
                     {(profileSales.sales * Number(profileEmployee.commission_rate) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-sm font-medium text-teal-400">{storeSettings.currency}</span>
                   </span>
                   <span className="text-[11px] font-bold text-slate-400 mt-1">{profileEmployee.commission_rate}% من مبيعاته</span>
@@ -1464,29 +1464,29 @@ export default function Employees() {
                 </>
               )}
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
               <span className="text-sky-500 font-bold text-sm mb-1">رصيد الإجازات المتبقي</span>
-              <span className="text-2xl font-black text-sky-600">{profileLeaveBalance?.remaining ?? 0} / {profileLeaveBalance?.monthlyBalance ?? 0} <span className="text-sm font-medium text-sky-400">يوم</span></span>
+              <span className="text-2xl font-black text-sky-600 dark:text-sky-400">{profileLeaveBalance?.remaining ?? 0} / {profileLeaveBalance?.monthlyBalance ?? 0} <span className="text-sm font-medium text-sky-400">يوم</span></span>
               <span className="text-[11px] font-bold text-slate-400 mt-1">شهري • يتجدد أول كل شهر</span>
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
               <span className="text-amber-500 font-bold text-sm mb-1">إجمالي السلف (للفترة)</span>
-              <span className="text-2xl font-black text-amber-600">{profileStats.advances.toLocaleString()} <span className="text-sm font-medium text-amber-400">{storeSettings.currency}</span></span>
+              <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{profileStats.advances.toLocaleString()} <span className="text-sm font-medium text-amber-400">{storeSettings.currency}</span></span>
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
               <span className="text-emerald-500 font-bold text-sm mb-1">حوافز (للفترة)</span>
-              <span className="text-2xl font-black text-emerald-600">{profileStats.incentives.toLocaleString()} <span className="text-sm font-medium text-emerald-400">{storeSettings.currency}</span></span>
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{profileStats.incentives.toLocaleString()} <span className="text-sm font-medium text-emerald-400">{storeSettings.currency}</span></span>
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
               <span className="text-emerald-500 font-bold text-sm mb-1">رواتب مدفوعة (للفترة)</span>
-              <span className="text-2xl font-black text-emerald-600">{profileStats.paidSalary.toLocaleString()} <span className="text-sm font-medium text-emerald-400">{storeSettings.currency}</span></span>
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{profileStats.paidSalary.toLocaleString()} <span className="text-sm font-medium text-emerald-400">{storeSettings.currency}</span></span>
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
               <span className="text-red-500 font-bold text-sm mb-1">خصومات (للفترة)</span>
-              <span className="text-2xl font-black text-red-600">{profileStats.deductions.toLocaleString()} <span className="text-sm font-medium text-red-400">{storeSettings.currency}</span></span>
+              <span className="text-2xl font-black text-red-600 dark:text-red-400">{profileStats.deductions.toLocaleString()} <span className="text-sm font-medium text-red-400">{storeSettings.currency}</span></span>
               {/* تفصيل الخصم بمصدره — الرقم المجمّع لوحده مش بيقول التأخير كام. */}
               {profileStats.deductions > 0.004 && (
-                <div className="mt-2 pt-2 border-t border-slate-100 space-y-0.5">
+                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-0.5">
                   {([
                     ['تأخير', profileStats.dedAttendance],
                     ['إجازات بخصم', profileStats.dedLeave],
@@ -1495,30 +1495,30 @@ export default function Employees() {
                   ] as const).filter(([, v]) => v > 0.004).map(([label, v]) => (
                     <div key={label} className="flex justify-between text-[11px] font-bold">
                       <span className="text-slate-400">{label}</span>
-                      <span className="text-slate-500">{v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span className="text-slate-500 dark:text-slate-400">{v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center">
               <span className="text-sky-500 font-bold text-sm mb-1">مكافآت (للفترة)</span>
-              <span className="text-2xl font-black text-sky-600">{profileStats.bonuses.toLocaleString()} <span className="text-sm font-medium text-sky-400">{storeSettings.currency}</span></span>
+              <span className="text-2xl font-black text-sky-600 dark:text-sky-400">{profileStats.bonuses.toLocaleString()} <span className="text-sm font-medium text-sky-400">{storeSettings.currency}</span></span>
             </div>
           </div>
 
           {/* Profile Transactions */}
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <FileText size={20} className="text-slate-400" />
                 سجل حركات الموظف
               </h3>
-              <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200 px-2">
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 px-2">
                 <select
                   value={profileTimeFilter}
                   onChange={(e) => setProfileTimeFilter(e.target.value as any)}
-                  className="bg-transparent text-sm font-bold text-slate-700 py-2 focus:outline-none"
+                  className="bg-transparent text-sm font-bold text-slate-700 dark:text-slate-200 py-2 focus:outline-none"
                 >
                   <option value="week">هذا الأسبوع</option>
                   <option value="month">الشهر الحالي</option>
@@ -1548,7 +1548,7 @@ export default function Employees() {
             <div className="overflow-x-auto">
               <table className="w-full text-right">
                 <thead>
-                  <tr className="bg-white text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                  <tr className="bg-white dark:bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                     <th className="p-6">التاريخ</th>
                     <th className="p-6">النوع</th>
                     <th className="p-6">الشهر</th>
@@ -1557,28 +1557,28 @@ export default function Employees() {
                     <th className="p-6 text-left">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {profileTransactions.map((t: any) => (
                     <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-6 text-slate-400 text-xs font-bold">{new Date(t.created_at).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</td>
                       <td className="p-6">
                         <span className={`px-2.5 py-1 rounded-lg font-bold text-[10px] ${
-                          t.type === 'salary' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : t.type === 'incentive' ? 'bg-sky-50 text-sky-600 border border-sky-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
+                          t.type === 'salary' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/30' : t.type === 'incentive' ? 'bg-sky-50 text-sky-600 border border-sky-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
                         }`}>
                           {t.type === 'salary' ? 'راتب' : t.type === 'incentive' ? 'حافز' : 'سلفة'}
                         </span>
                       </td>
-                      <td className="p-6 text-slate-500 font-medium">{t.month}</td>
+                      <td className="p-6 text-slate-500 dark:text-slate-400 font-medium">{t.month}</td>
                       <td className="p-6">
                         <div className="flex flex-col gap-1">
-                          {t.paid_cash > 0 && <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1"><Landmark size={12} /> كاش</span>}
-                          {t.paid_visa > 0 && <span className="text-[10px] font-black text-blue-600 flex items-center gap-1"><CreditCard size={12} /> فيزا</span>}
-                          {t.paid_instapay > 0 && <span className="text-[10px] font-black text-amber-600 flex items-center gap-1"><Zap size={12} /> انستا</span>}
+                          {t.paid_cash > 0 && <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Landmark size={12} /> كاش</span>}
+                          {t.paid_visa > 0 && <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 flex items-center gap-1"><CreditCard size={12} /> فيزا</span>}
+                          {t.paid_instapay > 0 && <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1"><Zap size={12} /> انستا</span>}
                         </div>
                       </td>
                       <td className="p-6 text-left">
                         <div className="flex flex-col items-left">
-                          <span className="font-black text-lg text-slate-800">
+                          <span className="font-black text-lg text-slate-800 dark:text-slate-100">
                             {t.amount.toLocaleString()} <span className="text-xs font-normal text-slate-400">{storeSettings.currency}</span>
                           </span>
                           {t.deductions > 0 && (
@@ -1609,9 +1609,9 @@ export default function Employees() {
               </table>
             </div>
           </div>
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <CalendarDays size={20} className="text-sky-500" />
                 سجل الإجازات والغيابات
               </h3>
@@ -1622,7 +1622,7 @@ export default function Employees() {
             <div className="overflow-x-auto">
               <table className="w-full text-right">
                 <thead>
-                  <tr className="bg-white text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                  <tr className="bg-white dark:bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                     <th className="p-6">من</th>
                     <th className="p-6">إلى</th>
                     <th className="p-6">الأيام</th>
@@ -1631,22 +1631,22 @@ export default function Employees() {
                     <th className="p-6 text-left">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {profileLeaves.map((leave) => (
                     <tr key={leave.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-6 text-slate-500 font-bold">{leave.start_date}</td>
-                      <td className="p-6 text-slate-500 font-bold">{leave.end_date}</td>
-                      <td className="p-6 text-slate-800 font-black">{leave.days_count} يوم</td>
+                      <td className="p-6 text-slate-500 dark:text-slate-400 font-bold">{leave.start_date}</td>
+                      <td className="p-6 text-slate-500 dark:text-slate-400 font-bold">{leave.end_date}</td>
+                      <td className="p-6 text-slate-800 dark:text-slate-100 font-black">{leave.days_count} يوم</td>
                       <td className="p-6">
                         <span className={`px-2.5 py-1 rounded-lg font-bold text-[10px] ${
                           leave.leave_type === 'paid' ? 'bg-sky-50 text-sky-600 border border-sky-100'
-                          : leave.leave_type === 'granted' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          : leave.leave_type === 'granted' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/30'
                           : 'bg-red-50 text-red-600 border border-red-100'
                         }`}>
                           {leave.leave_type === 'paid' ? 'من الرصيد' : leave.leave_type === 'granted' ? 'بدون خصم' : 'بخصم مرتب'}
                         </span>
                       </td>
-                      <td className="p-6 font-black text-red-600">
+                      <td className="p-6 font-black text-red-600 dark:text-red-400">
                         {leave.deduction_amount > 0 ? `${leave.deduction_amount.toLocaleString()} ${storeSettings.currency}` : '-'}
                       </td>
                       <td className="p-6">
@@ -1672,9 +1672,9 @@ export default function Employees() {
           </div>
 
           {/* Manual Deductions */}
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <MinusCircle size={20} className="text-rose-500" />
                 سجل الخصومات اليدوية
               </h3>
@@ -1685,7 +1685,7 @@ export default function Employees() {
             <div className="overflow-x-auto">
               <table className="w-full text-right">
                 <thead>
-                  <tr className="bg-white text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                  <tr className="bg-white dark:bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                     <th className="p-6">التاريخ</th>
                     <th className="p-6">الشهر</th>
                     <th className="p-6">الأيام</th>
@@ -1694,18 +1694,18 @@ export default function Employees() {
                     <th className="p-6 text-left">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {profileDeductions.map((d) => (
                     <tr key={d.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-6 text-slate-500 font-bold">{d.date}</td>
-                      <td className="p-6 text-slate-500 font-bold">{d.month}</td>
+                      <td className="p-6 text-slate-500 dark:text-slate-400 font-bold">{d.date}</td>
+                      <td className="p-6 text-slate-500 dark:text-slate-400 font-bold">{d.month}</td>
                       <td className="p-6">
                         {Number(d.days) > 0
-                          ? <span className="px-2.5 py-1 rounded-lg font-black text-[10px] bg-rose-50 text-rose-600 border border-rose-100">{Number(d.days)} يوم</span>
+                          ? <span className="px-2.5 py-1 rounded-lg font-black text-[10px] bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/30">{Number(d.days)} يوم</span>
                           : <span className="text-slate-300">—</span>}
                       </td>
-                      <td className="p-6 text-slate-600 font-medium">{d.reason || '-'}</td>
-                      <td className="p-6 font-black text-rose-600">{Number(d.amount).toLocaleString()} {storeSettings.currency}</td>
+                      <td className="p-6 text-slate-600 dark:text-slate-300 font-medium">{d.reason || '-'}</td>
+                      <td className="p-6 font-black text-rose-600 dark:text-rose-400">{Number(d.amount).toLocaleString()} {storeSettings.currency}</td>
                       <td className="p-6">
                         <div className="flex items-center justify-end gap-2">
                           <button
@@ -1730,9 +1730,9 @@ export default function Employees() {
           </div>
 
           {/* Manual Bonuses */}
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <PlusCircle size={20} className="text-sky-500" />
                 سجل المكافآت
               </h3>
@@ -1743,7 +1743,7 @@ export default function Employees() {
             <div className="overflow-x-auto">
               <table className="w-full text-right">
                 <thead>
-                  <tr className="bg-white text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                  <tr className="bg-white dark:bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                     <th className="p-6">التاريخ</th>
                     <th className="p-6">الشهر</th>
                     <th className="p-6">السبب</th>
@@ -1751,13 +1751,13 @@ export default function Employees() {
                     <th className="p-6 text-left">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {profileBonuses.map((b) => (
                     <tr key={b.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-6 text-slate-500 font-bold">{b.date}</td>
-                      <td className="p-6 text-slate-500 font-bold">{b.month}</td>
-                      <td className="p-6 text-slate-600 font-medium">{b.reason || '-'}</td>
-                      <td className="p-6 font-black text-sky-600">+{Number(b.amount).toLocaleString()} {storeSettings.currency}</td>
+                      <td className="p-6 text-slate-500 dark:text-slate-400 font-bold">{b.date}</td>
+                      <td className="p-6 text-slate-500 dark:text-slate-400 font-bold">{b.month}</td>
+                      <td className="p-6 text-slate-600 dark:text-slate-300 font-medium">{b.reason || '-'}</td>
+                      <td className="p-6 font-black text-sky-600 dark:text-sky-400">+{Number(b.amount).toLocaleString()} {storeSettings.currency}</td>
                       <td className="p-6">
                         <div className="flex items-center justify-end gap-2">
                           <button
@@ -1782,24 +1782,24 @@ export default function Employees() {
           </div>
 
           {/* Attendance / Lateness */}
-          <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Clock size={20} className="text-indigo-500" />
                 سجل الحضور والتأخير
               </h3>
               <div className="flex items-center gap-2 text-[11px] font-black flex-wrap">
-                <span className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">حضور: {profileAttendance.present}</span>
-                <span className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-600 border border-sky-100">إجازة: {profileAttendance.leave}</span>
-                <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 border border-slate-200">راحة: {profileAttendance.off}</span>
-                <span className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100">غياب: {profileAttendance.absent}</span>
-                <span className="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-100">تأخير: {profileStats.lateDays} يوم / {profileStats.lateMinutes} د</span>
+                <span className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/30">حضور: {profileAttendance.present}</span>
+                <span className="px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-500/30">إجازة: {profileAttendance.leave}</span>
+                <span className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">راحة: {profileAttendance.off}</span>
+                <span className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/30">غياب: {profileAttendance.absent}</span>
+                <span className="px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/30">تأخير: {profileStats.lateDays} يوم / {profileStats.lateMinutes} د</span>
               </div>
             </div>
             <div className="overflow-x-auto max-h-[440px] overflow-y-auto">
               <table className="w-full text-right">
-                <thead className="sticky top-0 bg-white z-10">
-                  <tr className="bg-white text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                <thead className="sticky top-0 bg-white dark:bg-slate-800 z-10">
+                  <tr className="bg-white dark:bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                     <th className="p-5">اليوم</th>
                     <th className="p-5">التاريخ</th>
                     <th className="p-5">الشفت</th>
@@ -1811,7 +1811,7 @@ export default function Employees() {
                     <th className="p-5 text-left">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {profileAttendance.days.map((d) => {
                     const rec = d.record;
                     const dayName = new Date(`${d.date}T00:00:00`).toLocaleDateString('ar-EG', { weekday: 'long' });
@@ -1820,16 +1820,16 @@ export default function Employees() {
                       : '—';
                     return (
                       <tr key={d.date} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-5 text-slate-500 font-bold">{dayName}</td>
+                        <td className="p-5 text-slate-500 dark:text-slate-400 font-bold">{dayName}</td>
                         <td className="p-5 text-slate-400 text-xs font-bold tabular-nums">{d.date}</td>
                         <td className="p-5 text-slate-400 text-xs font-bold tabular-nums" dir="ltr">{d.shift}</td>
-                        <td className="p-5 text-emerald-600 font-black tabular-nums">{rec ? fmt(rec.check_in) : '—'}</td>
-                        <td className="p-5 text-rose-600 font-black tabular-nums">{rec ? fmt(rec.check_out || null) : '—'}</td>
+                        <td className="p-5 text-emerald-600 dark:text-emerald-400 font-black tabular-nums">{rec ? fmt(rec.check_in) : '—'}</td>
+                        <td className="p-5 text-rose-600 dark:text-rose-400 font-black tabular-nums">{rec ? fmt(rec.check_out || null) : '—'}</td>
                         <td className="p-5">
                           {rec && rec.late_minutes > 0
-                            ? <span className="px-2.5 py-1 rounded-lg font-bold text-[10px] bg-red-50 text-red-600 border border-red-100">{rec.late_minutes} دقيقة</span>
+                            ? <span className="px-2.5 py-1 rounded-lg font-bold text-[10px] bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/30">{rec.late_minutes} دقيقة</span>
                             : rec
-                              ? <span className="px-2.5 py-1 rounded-lg font-bold text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100">في الميعاد</span>
+                              ? <span className="px-2.5 py-1 rounded-lg font-bold text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/30">في الميعاد</span>
                               : <span className="text-slate-300">—</span>}
                         </td>
                         <td className="p-5">
@@ -1838,8 +1838,8 @@ export default function Employees() {
                               onClick={() => handleEditAttendanceFine(rec)}
                               className={`flex items-center gap-2 font-black px-3 py-1.5 rounded-lg transition group ${
                                 rec.deduction_amount > 0
-                                  ? 'text-red-600 bg-red-50 hover:bg-red-100'
-                                  : 'text-slate-400 hover:bg-slate-100'
+                                  ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 hover:bg-red-100'
+                                  : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                               }`}
                               title="تعديل غرامة التأخير"
                             >
@@ -1852,7 +1852,7 @@ export default function Employees() {
                         </td>
                         <td className="p-5">
                           <span className={`px-2.5 py-1 rounded-lg font-black text-[10px] border ${
-                            d.status === 'present' ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            d.status === 'present' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/30'
                             : d.status === 'leave' ? 'bg-sky-50 text-sky-600 border-sky-100'
                             : d.status === 'off' ? 'bg-slate-100 text-slate-600 border-slate-200'
                             : 'bg-red-50 text-red-600 border-red-100'
@@ -1901,16 +1901,16 @@ export default function Employees() {
       ) : (
         <>
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 bg-slate-100 p-1.5 rounded-2xl w-fit">
+          <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-slate-700 p-1.5 rounded-2xl w-fit">
             <button 
               onClick={() => setActiveTab('employees')}
-              className={`px-6 py-2.5 rounded-xl font-bold transition ${activeTab === 'employees' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-6 py-2.5 rounded-xl font-bold transition ${activeTab === 'employees' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
             >
               قائمة الموظفين
             </button>
             <button 
               onClick={() => setActiveTab('transactions')}
-              className={`px-6 py-2.5 rounded-xl font-bold transition ${activeTab === 'transactions' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-6 py-2.5 rounded-xl font-bold transition ${activeTab === 'transactions' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
             >
               سجل العمليات
             </button>
@@ -1925,13 +1925,13 @@ export default function Employees() {
             const isActive = emp.is_active ?? true;
             
             return (
-              <div key={emp.id} className={`bg-white rounded-[32px] p-6 shadow-sm border transition-all group ${isActive ? 'border-slate-100 hover:border-indigo-200' : 'border-slate-200 opacity-75 grayscale-[0.25]'}`}>
+              <div key={emp.id} className={`bg-white dark:bg-slate-800 rounded-[32px] p-6 shadow-sm border transition-all group ${isActive ? 'border-slate-100 dark:border-slate-800 hover:border-indigo-200' : 'border-slate-200 opacity-75 grayscale-[0.25]'}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${isActive ? 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${isActive ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
                       <Briefcase size={28} />
                     </div>
-                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border ${isActive ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/30' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                       {isActive ? 'نشط' : 'غير نشط'}
                     </span>
                   </div>
@@ -1947,8 +1947,8 @@ export default function Employees() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-black text-slate-800 mb-1">{emp.name}</h3>
-                <p className="text-slate-500 text-sm font-medium mb-4 flex flex-col gap-1">
+                <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-1">{emp.name}</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-4 flex flex-col gap-1">
                    <span>{emp.job_title || 'بدون مسمى وظيفي'}</span>
                    {emp.phone && <span className="text-indigo-600 flex items-center gap-1"><Phone size={12} /> {emp.phone}</span>}
                 </p>
@@ -1956,11 +1956,11 @@ export default function Employees() {
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400 flex items-center gap-1"><DollarSign size={14} /> الراتب الأساسي</span>
-                    <span className="font-black text-slate-800">{emp.monthly_salary.toLocaleString()} {storeSettings.currency}</span>
+                    <span className="font-black text-slate-800 dark:text-slate-100">{emp.monthly_salary.toLocaleString()} {storeSettings.currency}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400 flex items-center gap-1"><CalendarDays size={14} /> إجازة الشهر</span>
-                    <span className="font-black text-sky-600">{leaveStats.remaining} / {leaveStats.monthlyBalance} يوم</span>
+                    <span className="font-black text-sky-600 dark:text-sky-400">{leaveStats.remaining} / {leaveStats.monthlyBalance} يوم</span>
                   </div>
                   {stats.paidSalary > 0 && (
                     <div className="flex items-center justify-between text-sm">
@@ -1971,16 +1971,16 @@ export default function Employees() {
                   {stats.deductions > 0 && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-400 flex items-center gap-1">خصومات</span>
-                      <span className="font-black text-red-600">{stats.deductions.toLocaleString()} {storeSettings.currency}</span>
+                      <span className="font-black text-red-600 dark:text-red-400">{stats.deductions.toLocaleString()} {storeSettings.currency}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-sm p-3 bg-amber-50 rounded-xl border border-amber-100">
-                    <span className="text-amber-600 font-bold flex items-center gap-1">سلف الشهر</span>
-                    <span className="font-black text-amber-700">{stats.advances.toLocaleString()} {storeSettings.currency}</span>
+                  <div className="flex items-center justify-between text-sm p-3 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-100 dark:border-amber-500/30">
+                    <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">سلف الشهر</span>
+                    <span className="font-black text-amber-700 dark:text-amber-300">{stats.advances.toLocaleString()} {storeSettings.currency}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm p-3 bg-emerald-50 rounded-xl border border-emerald-100 mt-2">
-                    <span className="text-emerald-600 font-bold flex items-center gap-1">المتبقي صرفه ({currentMonth})</span>
-                    <span className="font-black text-emerald-700">{stats.remaining.toLocaleString()} {storeSettings.currency}</span>
+                  <div className="flex items-center justify-between text-sm p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-100 dark:border-emerald-500/30 mt-2">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">المتبقي صرفه ({currentMonth})</span>
+                    <span className="font-black text-emerald-700 dark:text-emerald-300">{stats.remaining.toLocaleString()} {storeSettings.currency}</span>
                   </div>
                 </div>
 
@@ -1988,21 +1988,21 @@ export default function Employees() {
                   <button 
                     onClick={() => handleOpenLeaveModal(emp)}
                     disabled={!isActive}
-                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-sky-50 text-sky-700 font-bold hover:bg-sky-100 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 font-bold hover:bg-sky-100 dark:hover:bg-sky-500/25 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <CalendarDays size={16} /> إجازة
                   </button>
                   <button 
                     onClick={() => handleOpenTransModal(emp, 'incentive')}
                     disabled={!isActive}
-                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold hover:bg-emerald-100 dark:hover:bg-emerald-500/25 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Gift size={16} /> حافز
                   </button>
                   <button 
                     onClick={() => handleOpenTransModal(emp, 'advance')}
                     disabled={!isActive}
-                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Wallet size={16} /> صرف سلفة
                   </button>
@@ -2024,7 +2024,7 @@ export default function Employees() {
                 </button>
                 <button
                   onClick={() => setSelectedProfileId(emp.id)}
-                  className="w-full mt-3 py-3 border-2 border-slate-100 rounded-xl text-slate-500 font-bold hover:border-indigo-200 hover:text-indigo-600 transition flex items-center justify-center gap-2 text-sm"
+                  className="w-full mt-3 py-3 border-2 border-slate-100 dark:border-slate-800 rounded-xl text-slate-500 dark:text-slate-400 font-bold hover:border-indigo-200 hover:text-indigo-600 transition flex items-center justify-center gap-2 text-sm"
                 >
                   <FileText size={16} /> عرض البروفايل والشيت
                 </button>
@@ -2033,18 +2033,18 @@ export default function Employees() {
           })}
 
           {filteredEmployees.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-white rounded-[32px] border border-dashed border-slate-200 opacity-50">
+            <div className="col-span-full py-20 text-center bg-white dark:bg-slate-800 rounded-[32px] border border-dashed border-slate-200 dark:border-slate-700 opacity-50">
               <Users size={64} className="mx-auto mb-4 text-slate-300" />
               <p className="text-xl font-bold">لا يوجد موظفون مضافون بعد</p>
             </div>
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right">
               <thead>
-                <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                   <th className="p-6">التاريخ</th>
                   <th className="p-6">الموظف</th>
                   <th className="p-6">النوع</th>
@@ -2054,31 +2054,31 @@ export default function Employees() {
                   <th className="p-6 text-left">إجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {filteredTransactions.map(t => {
                   const emp = employees.find(e => e.id === t.employee_id);
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-6 text-slate-400 text-xs font-bold">{new Date(t.created_at).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</td>
-                      <td className="p-6 font-bold text-slate-800">{emp?.name || 'موظف محذوف'}</td>
+                      <td className="p-6 font-bold text-slate-800 dark:text-slate-100">{emp?.name || 'موظف محذوف'}</td>
                       <td className="p-6">
                         <span className={`px-2.5 py-1 rounded-lg font-bold text-[10px] ${
-                          t.type === 'salary' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : t.type === 'incentive' ? 'bg-sky-50 text-sky-600 border border-sky-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
+                          t.type === 'salary' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/30' : t.type === 'incentive' ? 'bg-sky-50 text-sky-600 border border-sky-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
                         }`}>
                           {t.type === 'salary' ? 'راتب' : t.type === 'incentive' ? 'حافز' : 'سلفة'}
                         </span>
                       </td>
-                      <td className="p-6 text-slate-500 font-medium">{t.month}</td>
+                      <td className="p-6 text-slate-500 dark:text-slate-400 font-medium">{t.month}</td>
                       <td className="p-6">
                         <div className="flex flex-col gap-1">
-                          {t.paid_cash > 0 && <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1"><Landmark size={12} /> كاش: {t.paid_cash.toLocaleString()}</span>}
-                          {t.paid_visa > 0 && <span className="text-[10px] font-black text-blue-600 flex items-center gap-1"><CreditCard size={12} /> فيزا: {t.paid_visa.toLocaleString()}</span>}
-                          {t.paid_instapay > 0 && <span className="text-[10px] font-black text-amber-600 flex items-center gap-1"><Zap size={12} /> انستا: {t.paid_instapay.toLocaleString()}</span>}
+                          {t.paid_cash > 0 && <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Landmark size={12} /> كاش: {t.paid_cash.toLocaleString()}</span>}
+                          {t.paid_visa > 0 && <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 flex items-center gap-1"><CreditCard size={12} /> فيزا: {t.paid_visa.toLocaleString()}</span>}
+                          {t.paid_instapay > 0 && <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1"><Zap size={12} /> انستا: {t.paid_instapay.toLocaleString()}</span>}
                         </div>
                       </td>
                       <td className="p-6 text-left">
                         <div className="flex flex-col items-left">
-                          <span className="font-black text-lg text-slate-800">
+                          <span className="font-black text-lg text-slate-800 dark:text-slate-100">
                             {t.amount.toLocaleString()} <span className="text-xs font-normal text-slate-400">{storeSettings.currency}</span>
                           </span>
                           {t.deductions > 0 && (
@@ -2114,7 +2114,7 @@ export default function Employees() {
       {/* Employee Modal */}
       {showEmpModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="p-8 text-white flex justify-between items-center shrink-0" style={{ backgroundColor: tc }}>
               <div>
                 <h2 className="text-2xl font-black">{editingEmployee ? 'تعديل بيانات موظف' : 'إضافة موظف جديد'}</h2>
@@ -2124,18 +2124,18 @@ export default function Employees() {
             </div>
             <div className="p-8 space-y-6 overflow-y-auto">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">اسم الموظف</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">اسم الموظف</label>
                 <input 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
                   value={empFormData.name}
                   onChange={e => setEmpFormData({...empFormData, name: e.target.value})}
                   placeholder="مثال: أحمد محمد"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رقم الهاتف</label>
                 <input 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
                   value={empFormData.phone}
                   onChange={e => setEmpFormData({...empFormData, phone: e.target.value})}
                   placeholder="01xxxxxxxxx"
@@ -2143,18 +2143,18 @@ export default function Employees() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">المسمى الوظيفي</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">المسمى الوظيفي</label>
                   <input 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
                     value={empFormData.job_title}
                     onChange={e => setEmpFormData({...empFormData, job_title: e.target.value})}
                     placeholder="شيف، كاشير..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">مواعيد العمل</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">مواعيد العمل</label>
                   <input 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
                     value={empFormData.working_hours}
                     onChange={e => setEmpFormData({...empFormData, working_hours: e.target.value})}
                     placeholder="10ص - 10م"
@@ -2162,10 +2162,10 @@ export default function Employees() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">الراتب الشهري</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">الراتب الشهري</label>
                 <input 
                   type="number"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-black text-xl"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-black text-xl"
                   value={empFormData.monthly_salary}
                   onChange={e => setEmpFormData({...empFormData, monthly_salary: e.target.value})}
                   placeholder="0.00"
@@ -2173,10 +2173,10 @@ export default function Employees() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">رصيد الإجازة الشهري (أيام)</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رصيد الإجازة الشهري (أيام)</label>
                   <input
                     type="number"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-black"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-black"
                     value={empFormData.monthly_leave_days}
                     onChange={e => setEmpFormData({...empFormData, monthly_leave_days: e.target.value})}
                     placeholder="مثال: 4"
@@ -2184,42 +2184,42 @@ export default function Employees() {
                   <p className="text-[10px] text-slate-400 mt-1">يتجدد أول كل شهر. الزيادة تتخصم من الراتب حسب سعر اليوم.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ التعيين</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">تاريخ التعيين</label>
                   <input
                     type="date"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-black"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500/20 outline-none font-black"
                     value={empFormData.hire_date}
                     onChange={e => setEmpFormData({...empFormData, hire_date: e.target.value})}
                   />
                 </div>
               </div>
 
-              <div className="bg-sky-50/60 border border-sky-100 rounded-2xl p-4 space-y-3">
-                <p className="text-sm font-black text-sky-700 flex items-center gap-2"><Clock size={16} /> مواعيد الدوام وحساب التأخير</p>
+              <div className="bg-sky-50/60 border border-sky-100 dark:border-sky-500/30 rounded-2xl p-4 space-y-3">
+                <p className="text-sm font-black text-sky-700 dark:text-sky-300 flex items-center gap-2"><Clock size={16} /> مواعيد الدوام وحساب التأخير</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">بداية الدوام</label>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">بداية الدوام</label>
                     <input
                       type="time"
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold"
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none font-bold"
                       value={empFormData.shift_start}
                       onChange={e => setEmpFormData({...empFormData, shift_start: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">نهاية الدوام</label>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">نهاية الدوام</label>
                     <input
                       type="time"
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold"
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none font-bold"
                       value={empFormData.shift_end}
                       onChange={e => setEmpFormData({...empFormData, shift_end: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">دقائق سماح</label>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">دقائق سماح</label>
                     <input
                       type="number"
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold"
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none font-bold"
                       value={empFormData.late_grace_minutes}
                       onChange={e => setEmpFormData({...empFormData, late_grace_minutes: e.target.value})}
                       placeholder="0"
@@ -2229,16 +2229,16 @@ export default function Employees() {
                 <p className="text-[10px] text-slate-400">التأخير = وقت الحضور − بداية الدوام − دقائق السماح, ويُخصم من الراتب بالتناسب مع طول يوم العمل.</p>
 
                 {/* شفت الجمعة المستقل (db/60) */}
-                <div className="border-t border-sky-100 pt-3 space-y-3">
+                <div className="border-t border-sky-100 dark:border-sky-500/30 pt-3 space-y-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <p className="text-xs font-black text-sky-700">دوام يوم الجمعة</p>
+                    <p className="text-xs font-black text-sky-700 dark:text-sky-300">دوام يوم الجمعة</p>
                     <button
                       type="button"
                       onClick={() => setEmpFormData({ ...empFormData, friday_is_off: !empFormData.friday_is_off })}
                       className={`px-3 py-1.5 rounded-xl text-[11px] font-black border transition ${
                         empFormData.friday_is_off
                           ? 'bg-slate-800 text-white border-slate-800'
-                          : 'bg-white text-slate-600 border-slate-200'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                       }`}
                     >
                       {empFormData.friday_is_off ? '✓ الجمعة راحة' : 'اجعل الجمعة راحة'}
@@ -2247,19 +2247,19 @@ export default function Employees() {
                   {!empFormData.friday_is_off && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1">بداية الدوام (الجمعة)</label>
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">بداية الدوام (الجمعة)</label>
                         <input
                           type="time"
-                          className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold"
+                          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none font-bold"
                           value={empFormData.friday_shift_start}
                           onChange={e => setEmpFormData({ ...empFormData, friday_shift_start: e.target.value })}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1">نهاية الدوام (الجمعة)</label>
+                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">نهاية الدوام (الجمعة)</label>
                         <input
                           type="time"
-                          className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold"
+                          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none font-bold"
                           value={empFormData.friday_shift_end}
                           onChange={e => setEmpFormData({ ...empFormData, friday_shift_end: e.target.value })}
                         />
@@ -2280,26 +2280,26 @@ export default function Employees() {
                   type="text"
                   dir="ltr"
                   inputMode="numeric"
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3.5 outline-none font-black text-center text-xl tracking-widest"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 outline-none font-black text-center text-xl tracking-widest"
                   value={empFormData.attendance_pin}
                   onChange={e => setEmpFormData({...empFormData, attendance_pin: e.target.value})}
                   placeholder="مثال: 1234"
                 />
-                <p className="text-[10px] text-slate-500">يستخدمه الموظف في صفحة تسجيل الحضور <span className="font-mono text-indigo-500">/attendance</span> — اتركه فارغاً لتعطيل التسجيل الذاتي له.</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">يستخدمه الموظف في صفحة تسجيل الحضور <span className="font-mono text-indigo-500">/attendance</span> — اتركه فارغاً لتعطيل التسجيل الذاتي له.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">حالة الموظف</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">حالة الموظف</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setEmpFormData({...empFormData, is_active: true})}
-                    className={`py-4 rounded-2xl font-black border transition ${empFormData.is_active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                    className={`py-4 rounded-2xl font-black border transition ${empFormData.is_active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
                   >
                     نشط
                   </button>
                   <button
                     onClick={() => setEmpFormData({...empFormData, is_active: false})}
-                    className={`py-4 rounded-2xl font-black border transition ${!empFormData.is_active ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                    className={`py-4 rounded-2xl font-black border transition ${!empFormData.is_active ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
                   >
                     غير نشط
                   </button>
@@ -2317,7 +2317,7 @@ export default function Employees() {
       {showTransModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           {/* صرف الراتب فيه كشف بنود بيتفتح — محتاج عرض أوسع من السلفة/الحافز. */}
-          <div className={`bg-white rounded-[40px] shadow-2xl w-full ${transType === 'salary' ? 'max-w-2xl' : 'max-w-lg'} overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]`}>
+          <div className={`bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full ${transType === 'salary' ? 'max-w-2xl' : 'max-w-lg'} overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]`}>
             <div className="p-8 text-white flex justify-between items-center shrink-0" style={{ backgroundColor: transType === 'salary' ? '#059669' : transType === 'incentive' ? '#0284c7' : '#d97706' }}>
               <div>
                 <h2 className="text-2xl font-black">
@@ -2396,9 +2396,9 @@ export default function Employees() {
                 ].filter(r => r.value > 0.004 || r.details.some(d => d.waived > 0.004));
 
                 return (
-                  <div className="bg-slate-50 rounded-[24px] border border-slate-200 overflow-hidden">
-                    <div className="px-5 py-3 bg-white border-b border-slate-200 flex items-center justify-between">
-                      <p className="text-sm font-black text-slate-700">كشف راتب {transFormData.month}</p>
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="px-5 py-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-200">كشف راتب {transFormData.month}</p>
                       {stats.presentDays > 0 && (
                         <span className="text-[10px] font-bold text-slate-400">{num(stats.presentDays)} يوم حضور مسجّل</span>
                       )}
@@ -2406,8 +2406,8 @@ export default function Employees() {
 
                     <div className="px-5 py-3 space-y-1.5">
                       <div className="flex justify-between text-sm">
-                        <span className="font-bold text-slate-600">الراتب الأساسي</span>
-                        <span className="font-black text-slate-700">{money(stats.salary)}</span>
+                        <span className="font-bold text-slate-600 dark:text-slate-300">الراتب الأساسي</span>
+                        <span className="font-black text-slate-700 dark:text-slate-200">{money(stats.salary)}</span>
                       </div>
                       {stats.bonuses > 0.004 && (
                         <div>
@@ -2415,33 +2415,33 @@ export default function Employees() {
                             className="flex justify-between text-sm cursor-pointer hover:opacity-70"
                             onClick={() => setExpandedSalaryRow(expandedSalaryRow === 'bonuses' ? null : 'bonuses')}
                           >
-                            <span className="font-bold text-emerald-600">
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
                               <span className="text-emerald-400 ml-1">{expandedSalaryRow === 'bonuses' ? '▾' : '▸'}</span>
                               + مكافآت الشهر
                             </span>
-                            <span className="font-black text-emerald-600">{money(stats.bonuses)}</span>
+                            <span className="font-black text-emerald-600 dark:text-emerald-400">{money(stats.bonuses)}</span>
                           </div>
                           {expandedSalaryRow === 'bonuses' && (
-                            <div className="mt-1.5 mb-1 mr-3 pr-3 border-r-2 border-emerald-200 space-y-1">
+                            <div className="mt-1.5 mb-1 mr-3 pr-3 border-r-2 border-emerald-200 dark:border-emerald-500/40 space-y-1">
                               {det.bonuses.map((b) => (
                                 <div key={b.id} className="flex justify-between items-center gap-2 bg-emerald-50/60 rounded-lg px-2.5 py-1.5">
-                                  <span className="text-[11px] font-bold text-slate-500">
+                                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                                     <span className="text-slate-400">{shortDate(b.date)}</span> · {b.reason || 'مكافأة'}
                                   </span>
-                                  <span className="text-[11px] font-black text-emerald-600">{money(Number(b.amount || 0))}</span>
+                                  <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">{money(Number(b.amount || 0))}</span>
                                 </div>
                               ))}
                             </div>
                           )}
                         </div>
                       )}
-                      <div className="flex justify-between text-sm pt-1.5 border-t border-slate-200">
-                        <span className="font-black text-slate-700">إجمالي المستحق</span>
-                        <span className="font-black text-slate-800">{money(gross)} <span className="text-[10px] text-slate-400">{cur}</span></span>
+                      <div className="flex justify-between text-sm pt-1.5 border-t border-slate-200 dark:border-slate-700">
+                        <span className="font-black text-slate-700 dark:text-slate-200">إجمالي المستحق</span>
+                        <span className="font-black text-slate-800 dark:text-slate-100">{money(gross)} <span className="text-[10px] text-slate-400">{cur}</span></span>
                       </div>
                     </div>
 
-                    <div className="px-5 py-3 bg-red-50/60 border-y border-red-100 space-y-1.5">
+                    <div className="px-5 py-3 bg-red-50/60 border-y border-red-100 dark:border-red-500/30 space-y-1.5">
                       {dedRows.length === 0 ? (
                         <p className="text-xs font-bold text-slate-400 text-center py-1">مفيش أي خصومات على الشهر ده</p>
                       ) : (
@@ -2455,44 +2455,44 @@ export default function Employees() {
                                   className={`flex justify-between items-start gap-3 text-sm ${hasDetails ? 'cursor-pointer hover:opacity-70' : ''}`}
                                   onClick={hasDetails ? () => setExpandedSalaryRow(open ? null : r.key) : undefined}
                                 >
-                                  <span className="font-bold text-slate-600">
+                                  <span className="font-bold text-slate-600 dark:text-slate-300">
                                     {hasDetails && <span className="text-slate-400 ml-1">{open ? '▾' : '▸'}</span>}
                                     {r.label}
                                     {r.hint && <span className="block text-[10px] font-bold text-slate-400 mt-0.5">{r.hint}</span>}
                                   </span>
                                   {/* بند اتسامح فيه بالكامل: «-0.00» بيبان غلط، فبنقولها صريحة. */}
                                   {r.value <= 0.004 ? (
-                                    <span className="font-black text-emerald-600 whitespace-nowrap text-[11px]">متسامح فيه بالكامل</span>
+                                    <span className="font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap text-[11px]">متسامح فيه بالكامل</span>
                                   ) : (
-                                    <span className="font-black text-red-600 whitespace-nowrap">-{money(r.value)}</span>
+                                    <span className="font-black text-red-600 dark:text-red-400 whitespace-nowrap">-{money(r.value)}</span>
                                   )}
                                 </div>
 
                                 {/* صفوف البند نفسها + المسامحة على صف بعينه */}
                                 {open && (
-                                  <div className="mt-1.5 mb-2 mr-3 pr-3 border-r-2 border-red-200 space-y-1">
+                                  <div className="mt-1.5 mb-2 mr-3 pr-3 border-r-2 border-red-200 dark:border-red-500/40 space-y-1">
                                     {r.details.map((d) => (
-                                      <div key={d.id} className="flex justify-between items-center gap-2 bg-white rounded-lg px-2.5 py-1.5">
-                                        <span className="text-[11px] font-bold text-slate-500 min-w-0">
+                                      <div key={d.id} className="flex justify-between items-center gap-2 bg-white dark:bg-slate-800 rounded-lg px-2.5 py-1.5">
+                                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 min-w-0">
                                           <span className="text-slate-400">{d.when}</span> · {d.text}
                                           {d.waived > 0.004 && (
-                                            <span className="block text-[10px] font-black text-emerald-600 mt-0.5">متسامح فيه: {money(d.waived)} {cur}</span>
+                                            <span className="block text-[10px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5">متسامح فيه: {money(d.waived)} {cur}</span>
                                           )}
                                         </span>
                                         <span className="flex items-center gap-1.5 shrink-0">
-                                          <span className="text-[11px] font-black text-red-600">{money(d.amount)}</span>
+                                          <span className="text-[11px] font-black text-red-600 dark:text-red-400">{money(d.amount)}</span>
                                           {d.kind && d.amount > 0.004 && (
                                             <button
                                               type="button"
                                               onClick={() => handleWaiveDeduction(d.kind!, { id: d.id, live: d.amount, waived: d.waived }, `${r.label} — ${d.when}`, empId, mon)}
-                                              className="text-[10px] font-black px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100"
+                                              className="text-[10px] font-black px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 border border-emerald-100 dark:border-emerald-500/30"
                                             >سامح</button>
                                           )}
                                           {d.kind && d.waived > 0.004 && (
                                             <button
                                               type="button"
                                               onClick={() => handleUndoWaive(d.kind!, { id: d.id, live: d.amount, waived: d.waived }, `${r.label} — ${d.when}`)}
-                                              className="text-[10px] font-black px-2 py-1 rounded-md bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200"
+                                              className="text-[10px] font-black px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-700"
                                             >تراجع</button>
                                           )}
                                         </span>
@@ -2503,9 +2503,9 @@ export default function Employees() {
                               </div>
                             );
                           })}
-                          <div className="flex justify-between text-sm pt-1.5 border-t border-red-200">
-                            <span className="font-black text-red-700">إجمالي الخصومات</span>
-                            <span className="font-black text-red-700">-{money(totalDed)} <span className="text-[10px] text-red-400">{cur}</span></span>
+                          <div className="flex justify-between text-sm pt-1.5 border-t border-red-200 dark:border-red-500/40">
+                            <span className="font-black text-red-700 dark:text-red-300">إجمالي الخصومات</span>
+                            <span className="font-black text-red-700 dark:text-red-300">-{money(totalDed)} <span className="text-[10px] text-red-400">{cur}</span></span>
                           </div>
                         </>
                       )}
@@ -2519,26 +2519,26 @@ export default function Employees() {
                     {/* الحوافز مصروفة كاش وقت تسجيلها — مش بتتخصم من الراتب ولا بتتضاف
                         عليه. بتتعرض هنا للعلم بس عشان ما تتلخبطش مع «مكافأة». */}
                     {stats.incentives > 0.004 && (
-                      <div className="px-5 py-3 bg-sky-50 border-t border-sky-100">
+                      <div className="px-5 py-3 bg-sky-50 dark:bg-sky-500/10 border-t border-sky-100 dark:border-sky-500/30">
                         <div
                           className="flex justify-between items-center text-sm cursor-pointer hover:opacity-70"
                           onClick={() => setExpandedSalaryRow(expandedSalaryRow === 'incentives' ? null : 'incentives')}
                         >
-                          <span className="font-bold text-sky-700">
+                          <span className="font-bold text-sky-700 dark:text-sky-300">
                             <span className="text-sky-400 ml-1">{expandedSalaryRow === 'incentives' ? '▾' : '▸'}</span>
                             حوافز مصروفة هذا الشهر
                           </span>
-                          <span className="font-black text-sky-700">{money(stats.incentives)} <span className="text-[10px] text-sky-400">{cur}</span></span>
+                          <span className="font-black text-sky-700 dark:text-sky-300">{money(stats.incentives)} <span className="text-[10px] text-sky-400">{cur}</span></span>
                         </div>
                         <p className="text-[10px] font-bold text-sky-500 mt-1">اتصرفت كاش وقتها — مش داخلة في حساب الراتب فوق (لا خصم ولا إضافة).</p>
                         {expandedSalaryRow === 'incentives' && (
-                          <div className="mt-1.5 mr-3 pr-3 border-r-2 border-sky-200 space-y-1">
+                          <div className="mt-1.5 mr-3 pr-3 border-r-2 border-sky-200 dark:border-sky-500/40 space-y-1">
                             {det.incentives.map((t) => (
-                              <div key={t.id} className="flex justify-between items-center gap-2 bg-white rounded-lg px-2.5 py-1.5">
-                                <span className="text-[11px] font-bold text-slate-500">
+                              <div key={t.id} className="flex justify-between items-center gap-2 bg-white dark:bg-slate-800 rounded-lg px-2.5 py-1.5">
+                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                                   <span className="text-slate-400">{shortDate(t.created_at?.slice(0, 10))}</span> · {t.note || 'حافز'}
                                 </span>
-                                <span className="text-[11px] font-black text-sky-600">{money(Number(t.amount || 0))}</span>
+                                <span className="text-[11px] font-black text-sky-600 dark:text-sky-400">{money(Number(t.amount || 0))}</span>
                               </div>
                             ))}
                           </div>
@@ -2550,17 +2550,17 @@ export default function Employees() {
               })()}
 
               {transType === 'salary' && (
-                <div className="space-y-4 bg-slate-50 p-6 rounded-[24px] border border-slate-100">
-                  <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <div className="space-y-4 bg-slate-50 dark:bg-slate-900 p-6 rounded-[24px] border border-slate-100 dark:border-slate-800">
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                     <Trash2 size={16} className="text-red-500" /> تطبيق خصومات إضافية
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">بعدد الأيام</label>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">بعدد الأيام</label>
                       <input 
                         type="number" 
                         placeholder="0 يوم"
-                        className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold" 
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none font-bold" 
                         value={transFormData.dedDays} 
                         onChange={e => {
                           const days = e.target.value;
@@ -2579,11 +2579,11 @@ export default function Employees() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">بمبلغ محدد</label>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">بمبلغ محدد</label>
                       <input 
                         type="number" 
                         placeholder="0.00"
-                        className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold" 
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none font-bold" 
                         value={transFormData.dedAmount} 
                         onChange={e => {
                           const amt = e.target.value;
@@ -2610,12 +2610,12 @@ export default function Employees() {
                   دايماً حتى لو الصرف حصل من كام يوم. «الشهر المستهدف» تحت حاجة تانية
                   خالص: الشهر اللي الراتب بتاعه. */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
                   تاريخ الصرف {transType === 'salary' ? '(الراتب)' : transType === 'incentive' ? '(الحافز)' : '(السلفة)'}
                 </label>
                 <input
                   type="date"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-1 outline-none font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-1 outline-none font-bold"
                   value={transFormData.date}
                   onChange={e => setTransFormData({ ...transFormData, date: e.target.value })}
                 />
@@ -2626,10 +2626,10 @@ export default function Employees() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1">الشهر المستهدف</label>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">الشهر المستهدف</label>
                   <input 
                     type="month"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-1 outline-none font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-1 outline-none font-bold"
                     value={transFormData.month}
                     onChange={e => {
                       const newMonth = e.target.value;
@@ -2651,10 +2651,10 @@ export default function Employees() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1">المبلغ الإجمالي</label>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">المبلغ الإجمالي</label>
                   <input 
                     type="number"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-1 outline-none font-black text-indigo-600"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-1 outline-none font-black text-indigo-600"
                     value={transFormData.amount}
                     onChange={e => setTransFormData({...transFormData, amount: e.target.value, paid_cash: e.target.value, paid_visa: '', paid_wallet: '', paid_instapay: ''})}
                   />
@@ -2667,16 +2667,16 @@ export default function Employees() {
                 const rate = parseFloat(transFormData.commissionRate) || 0;
                 const commission = sales * rate / 100;
                 return (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2">
-                    <div className="flex items-center justify-between text-sm font-black text-emerald-800">
+                  <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/40 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between text-sm font-black text-emerald-800 dark:text-emerald-300">
                       <span>عمولة المبيعات</span>
                       <span>مبيعات الشهر: {sales.toFixed(2)} {storeSettings.currency}</span>
                     </div>
-                    <div className="text-[11px] font-bold text-emerald-700 -mt-1">الأرباح المحققة للشركة من مبيعاته: {stats.profit.toFixed(2)} {storeSettings.currency}</div>
+                    <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 -mt-1">الأرباح المحققة للشركة من مبيعاته: {stats.profit.toFixed(2)} {storeSettings.currency}</div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <label className="text-xs font-bold text-slate-600">نسبة العمولة %</label>
-                      <input type="number" min="0" step="0.1" className="w-20 bg-white border border-emerald-200 rounded-lg p-2 text-center font-bold" value={transFormData.commissionRate} onChange={e => setTransFormData({ ...transFormData, commissionRate: e.target.value })} />
-                      <span className="text-sm font-black text-emerald-700">= {commission.toFixed(2)} {storeSettings.currency}</span>
+                      <label className="text-xs font-bold text-slate-600 dark:text-slate-300">نسبة العمولة %</label>
+                      <input type="number" min="0" step="0.1" className="w-20 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/40 rounded-lg p-2 text-center font-bold" value={transFormData.commissionRate} onChange={e => setTransFormData({ ...transFormData, commissionRate: e.target.value })} />
+                      <span className="text-sm font-black text-emerald-700 dark:text-emerald-300">= {commission.toFixed(2)} {storeSettings.currency}</span>
                       <button type="button" disabled={commission <= 0}
                         onClick={() => setTransFormData({
                           ...transFormData,
@@ -2688,46 +2688,46 @@ export default function Employees() {
                         + أضف العمولة للراتب
                       </button>
                     </div>
-                    <p className="text-[10px] text-slate-500">تُحسب على مبيعات هذا الشهر فقط؛ بعد صرف الشهر تبدأ مبيعات الشهر التالي من الصفر تلقائياً.</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">تُحسب على مبيعات هذا الشهر فقط؛ بعد صرف الشهر تبدأ مبيعات الشهر التالي من الصفر تلقائياً.</p>
                   </div>
                 );
               })()}
 
               {!editingTransaction && (
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">مصدر الصرف</label>
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">مصدر الصرف</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setTransTreasury('shop')}
-                      className={`py-2.5 rounded-xl font-black text-sm ${transTreasury === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                      className={`py-2.5 rounded-xl font-black text-sm ${transTreasury === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
                       خزنة المحل (الكاشير)
                     </button>
                     <button type="button" onClick={() => setTransTreasury('main')}
-                      className={`py-2.5 rounded-xl font-black text-sm ${transTreasury === 'main' ? 'bg-amber-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                      className={`py-2.5 rounded-xl font-black text-sm ${transTreasury === 'main' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
                       الخزنة الرئيسية
                     </button>
                   </div>
                   {transTreasury === 'main' && (
-                    <p className="text-[11px] text-amber-700 font-bold mt-2">سيتم طلب OTP من المدير، والمبلغ يتخصم من الخزنة الرئيسية ولن يظهر في خزينة الكاشير.</p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 font-bold mt-2">سيتم طلب OTP من المدير، والمبلغ يتخصم من الخزنة الرئيسية ولن يظهر في خزينة الكاشير.</p>
                   )}
                 </div>
               )}
 
               <div className="space-y-4">
-                <p className="text-sm font-bold text-slate-700 border-b border-slate-100 pb-2">تفاصيل الدفع (طرق الدفع)</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2">تفاصيل الدفع (طرق الدفع)</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {payKeys.map((k) => (
                     <div key={k}>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">{payLabelOf(storeSettings as any, k)}</label>
-                      <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none font-bold" value={(transFormData as any)['paid_' + k] || ''} onChange={e => setTransFormData({ ...transFormData, ['paid_' + k]: e.target.value })} />
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">{payLabelOf(storeSettings as any, k)}</label>
+                      <input type="number" className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none font-bold" value={(transFormData as any)['paid_' + k] || ''} onChange={e => setTransFormData({ ...transFormData, ['paid_' + k]: e.target.value })} />
                     </div>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-1">ملاحظات</label>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">ملاحظات</label>
                 <textarea 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 h-20 outline-none font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-20 outline-none font-medium resize-none"
                   value={transFormData.note}
                   onChange={e => setTransFormData({...transFormData, note: e.target.value})}
                   placeholder="اكتب ملاحظات إضافية..."
@@ -2748,7 +2748,7 @@ export default function Employees() {
 
       {showLeaveModal && selectedEmployee && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="p-8 text-white flex justify-between items-center shrink-0 bg-sky-600">
               <div>
                 <h2 className="text-2xl font-black">{editingLeave ? 'تعديل إجازة' : 'إضافة إجازة / غياب'}</h2>
@@ -2763,21 +2763,21 @@ export default function Employees() {
                 const balance = getLeaveBalanceStats(selectedEmployee, startMonth, editingLeave?.id);
                 const alloc = buildLeaveAllocation(selectedEmployee, leaveFormData.start_date, leaveFormData.end_date, leaveFormData.leave_type, editingLeave?.id);
                 return (
-                  <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="bg-sky-50 dark:bg-sky-500/10 rounded-2xl p-4 border border-sky-100 dark:border-sky-500/30 grid grid-cols-2 md:grid-cols-3 gap-3">
                     <div>
                       <p className="text-[10px] font-bold text-sky-500">رصيد شهر {startMonth}</p>
-                      <p className="text-lg font-black text-sky-700">{balance.remaining} / {balance.monthlyBalance} يوم</p>
+                      <p className="text-lg font-black text-sky-700 dark:text-sky-300">{balance.remaining} / {balance.monthlyBalance} يوم</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500">مدة الإجازة</p>
-                      <p className="text-lg font-black text-slate-800">{daysCount} يوم</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">مدة الإجازة</p>
+                      <p className="text-lg font-black text-slate-800 dark:text-slate-100">{daysCount} يوم</p>
                       {alloc.totalUnpaid > 0 && (
                         <p className="text-[10px] font-bold text-red-500 mt-1">{alloc.totalPaid} من الرصيد • {alloc.totalUnpaid} بخصم</p>
                       )}
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-red-500">خصم متوقع</p>
-                      <p className="text-lg font-black text-red-600">{alloc.totalDeduction.toLocaleString()} <span className="text-xs">{storeSettings.currency}</span></p>
+                      <p className="text-lg font-black text-red-600 dark:text-red-400">{alloc.totalDeduction.toLocaleString()} <span className="text-xs">{storeSettings.currency}</span></p>
                     </div>
                   </div>
                 );
@@ -2785,19 +2785,19 @@ export default function Employees() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">من تاريخ</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">من تاريخ</label>
                   <input
                     type="date"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-bold"
                     value={leaveFormData.start_date}
                     onChange={e => setLeaveFormData({...leaveFormData, start_date: e.target.value, end_date: leaveFormData.end_date < e.target.value ? e.target.value : leaveFormData.end_date})}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">إلى تاريخ</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">إلى تاريخ</label>
                   <input
                     type="date"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-bold"
                     value={leaveFormData.end_date}
                     min={leaveFormData.start_date}
                     onChange={e => setLeaveFormData({...leaveFormData, end_date: e.target.value})}
@@ -2806,23 +2806,23 @@ export default function Employees() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">نوع الإجازة</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">نوع الإجازة</label>
                 <div className="grid grid-cols-3 gap-3">
                   <button
                     onClick={() => setLeaveFormData({...leaveFormData, leave_type: 'paid'})}
-                    className={`py-4 rounded-2xl font-black text-sm border transition ${leaveFormData.leave_type === 'paid' ? 'bg-sky-600 text-white border-sky-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                    className={`py-4 rounded-2xl font-black text-sm border transition ${leaveFormData.leave_type === 'paid' ? 'bg-sky-600 text-white border-sky-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
                   >
                     من الرصيد
                   </button>
                   <button
                     onClick={() => setLeaveFormData({...leaveFormData, leave_type: 'granted'})}
-                    className={`py-4 rounded-2xl font-black text-sm border transition ${leaveFormData.leave_type === 'granted' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                    className={`py-4 rounded-2xl font-black text-sm border transition ${leaveFormData.leave_type === 'granted' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
                   >
                     بدون خصم
                   </button>
                   <button
                     onClick={() => setLeaveFormData({...leaveFormData, leave_type: 'unpaid'})}
-                    className={`py-4 rounded-2xl font-black text-sm border transition ${leaveFormData.leave_type === 'unpaid' ? 'bg-red-600 text-white border-red-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                    className={`py-4 rounded-2xl font-black text-sm border transition ${leaveFormData.leave_type === 'unpaid' ? 'bg-red-600 text-white border-red-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
                   >
                     بخصم مرتب
                   </button>
@@ -2837,9 +2837,9 @@ export default function Employees() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">ملاحظات</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">ملاحظات</label>
                 <textarea
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 h-24 outline-none font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-24 outline-none font-medium resize-none"
                   value={leaveFormData.note}
                   onChange={e => setLeaveFormData({...leaveFormData, note: e.target.value})}
                   placeholder="سبب الإجازة أو ملاحظة داخل سجل الغياب"
@@ -2857,7 +2857,7 @@ export default function Employees() {
       {/* Attendance Edit / Manual Entry Modal (db/60) */}
       {attModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="p-8 text-white flex justify-between items-center shrink-0 bg-indigo-600">
               <div>
                 <h2 className="text-2xl font-black">{attModal.record ? 'تعديل الحضور والانصراف' : 'تسجيل حضور يدوي'}</h2>
@@ -2879,12 +2879,12 @@ export default function Employees() {
                       <p className="text-sm font-black text-indigo-700" dir="ltr">{shiftLabel(attModal.employee, attModal.date)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500">التأخير المحسوب</p>
-                      <p className="text-sm font-black text-slate-800">{off ? '—' : `${preview.lateMinutes} دقيقة`}</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">التأخير المحسوب</p>
+                      <p className="text-sm font-black text-slate-800 dark:text-slate-100">{off ? '—' : `${preview.lateMinutes} دقيقة`}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-red-500">الخصم</p>
-                      <p className="text-sm font-black text-red-600">{off ? 'يوم راحة' : `${preview.deduction.toLocaleString()} ${storeSettings.currency}`}</p>
+                      <p className="text-sm font-black text-red-600 dark:text-red-400">{off ? 'يوم راحة' : `${preview.deduction.toLocaleString()} ${storeSettings.currency}`}</p>
                     </div>
                   </div>
                 );
@@ -2892,19 +2892,19 @@ export default function Employees() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">وقت الحضور</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">وقت الحضور</label>
                   <input
                     type="time"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-black"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-black"
                     value={attModal.checkIn}
                     onChange={e => setAttModal({ ...attModal, checkIn: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">وقت الانصراف</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">وقت الانصراف</label>
                   <input
                     type="time"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-black"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-black"
                     value={attModal.checkOut}
                     onChange={e => setAttModal({ ...attModal, checkOut: e.target.value })}
                   />
@@ -2916,9 +2916,9 @@ export default function Employees() {
               </p>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">ملاحظة</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">ملاحظة</label>
                 <input
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-medium"
                   value={attModal.note}
                   onChange={e => setAttModal({ ...attModal, note: e.target.value })}
                   placeholder="سبب التعديل أو التسجيل اليدوي"
@@ -2936,7 +2936,7 @@ export default function Employees() {
       {/* Deduction Modal */}
       {showDeductionModal && selectedEmployee && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="p-8 text-white flex justify-between items-center shrink-0 bg-rose-600">
               <div>
                 <h2 className="text-2xl font-black">إضافة خصم</h2>
@@ -2952,21 +2952,21 @@ export default function Employees() {
                 const after = Math.max(0, stats.remaining - amount);
                 const clamped = amount > stats.remaining;
                 return (
-                  <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100 grid grid-cols-3 gap-3">
+                  <div className="bg-rose-50 dark:bg-rose-500/10 rounded-2xl p-4 border border-rose-100 dark:border-rose-500/30 grid grid-cols-3 gap-3">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500">إجمالي الخصم</p>
-                      <p className="text-lg font-black text-rose-600">{amount.toLocaleString()}</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">إجمالي الخصم</p>
+                      <p className="text-lg font-black text-rose-600 dark:text-rose-400">{amount.toLocaleString()}</p>
                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">سعر اليوم {dailyRateOf(selectedEmployee).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500">المتبقي حالياً</p>
-                      <p className="text-lg font-black text-slate-800">{stats.remaining.toLocaleString()}</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">المتبقي حالياً</p>
+                      <p className="text-lg font-black text-slate-800 dark:text-slate-100">{stats.remaining.toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-rose-500">المتبقي بعد الخصم</p>
-                      <p className="text-lg font-black text-rose-600">{after.toLocaleString()} <span className="text-xs">{storeSettings.currency}</span></p>
+                      <p className="text-lg font-black text-rose-600 dark:text-rose-400">{after.toLocaleString()} <span className="text-xs">{storeSettings.currency}</span></p>
                       {clamped && amount > 0 && (
-                        <p className="text-[10px] font-bold text-amber-600 mt-1">الخصم أكبر من المتبقي — الزيادة مش هتترحّل</p>
+                        <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1">الخصم أكبر من المتبقي — الزيادة مش هتترحّل</p>
                       )}
                     </div>
                   </div>
@@ -2975,10 +2975,10 @@ export default function Employees() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">بعدد الأيام</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">بعدد الأيام</label>
                   <input
                     type="number" min="0" step="0.5"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-rose-500"
                     value={deductionFormData.days}
                     onChange={e => setDeductionFormData({ ...deductionFormData, days: e.target.value })}
                     placeholder="0"
@@ -2987,10 +2987,10 @@ export default function Employees() {
                   <p className="text-[10px] text-slate-400 mt-1">بيقبل نص يوم (0.5) — بيتحوّل لمبلغ بسعر اليوم</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">بمبلغ محدد</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">بمبلغ محدد</label>
                   <input
                     type="number" min="0" step="0.01"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-rose-500"
                     value={deductionFormData.amount}
                     onChange={e => setDeductionFormData({ ...deductionFormData, amount: e.target.value })}
                     placeholder="0"
@@ -3001,10 +3001,10 @@ export default function Employees() {
 
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ الخصم</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">تاريخ الخصم</label>
                   <input
                     type="date"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-rose-500"
                     value={deductionFormData.date}
                     onChange={e => setDeductionFormData({ ...deductionFormData, date: e.target.value })}
                   />
@@ -3013,17 +3013,17 @@ export default function Employees() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">السبب</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">السبب</label>
                 <textarea
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 h-24 outline-none font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-24 outline-none font-medium resize-none"
                   value={deductionFormData.reason}
                   onChange={e => setDeductionFormData({ ...deductionFormData, reason: e.target.value })}
                   placeholder="سبب الخصم — هيظهر في سجل حركات الموظف"
                 />
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                <p className="text-xs font-bold text-slate-500 leading-relaxed">
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
                   ℹ️ الخصم مش بيطلّع فلوس من الخزنة — بيتجمّع على الموظف وبيتخصم تلقائياً من المتبقي وقت صرف الراتب.
                 </p>
               </div>
@@ -3043,7 +3043,7 @@ export default function Employees() {
       {/* Bonus Modal */}
       {showBonusModal && selectedEmployee && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="p-8 text-white flex justify-between items-center shrink-0 bg-sky-600">
               <div>
                 <h2 className="text-2xl font-black">إضافة مكافأة</h2>
@@ -3057,28 +3057,28 @@ export default function Employees() {
                 const stats = getEmployeeMonthStats(selectedEmployee.id, month);
                 const amount = Math.round((parseFloat(bonusFormData.amount) || 0) * 100) / 100;
                 return (
-                  <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 grid grid-cols-3 gap-3">
+                  <div className="bg-sky-50 dark:bg-sky-500/10 rounded-2xl p-4 border border-sky-100 dark:border-sky-500/30 grid grid-cols-3 gap-3">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500">قيمة المكافأة</p>
-                      <p className="text-lg font-black text-sky-600">{amount.toLocaleString()}</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">قيمة المكافأة</p>
+                      <p className="text-lg font-black text-sky-600 dark:text-sky-400">{amount.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500">المتبقي حالياً</p>
-                      <p className="text-lg font-black text-slate-800">{stats.remaining.toLocaleString()}</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">المتبقي حالياً</p>
+                      <p className="text-lg font-black text-slate-800 dark:text-slate-100">{stats.remaining.toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-sky-500">المتبقي بعد المكافأة</p>
-                      <p className="text-lg font-black text-sky-600">{(stats.remaining + amount).toLocaleString()} <span className="text-xs">{storeSettings.currency}</span></p>
+                      <p className="text-lg font-black text-sky-600 dark:text-sky-400">{(stats.remaining + amount).toLocaleString()} <span className="text-xs">{storeSettings.currency}</span></p>
                     </div>
                   </div>
                 );
               })()}
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">المبلغ</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">المبلغ</label>
                 <input
                   type="number" min="0" step="0.01"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-sky-500"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-sky-500"
                   value={bonusFormData.amount}
                   onChange={e => setBonusFormData({ ...bonusFormData, amount: e.target.value })}
                   placeholder="0"
@@ -3087,10 +3087,10 @@ export default function Employees() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ المكافأة</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">تاريخ المكافأة</label>
                 <input
                   type="date"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-sky-500"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 outline-none font-bold focus:ring-2 focus:ring-sky-500"
                   value={bonusFormData.date}
                   onChange={e => setBonusFormData({ ...bonusFormData, date: e.target.value })}
                 />
@@ -3098,17 +3098,17 @@ export default function Employees() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">السبب</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">السبب</label>
                 <textarea
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 h-24 outline-none font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-24 outline-none font-medium resize-none"
                   value={bonusFormData.reason}
                   onChange={e => setBonusFormData({ ...bonusFormData, reason: e.target.value })}
                   placeholder="سبب المكافأة — هيظهر في سجل حركات الموظف"
                 />
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                <p className="text-xs font-bold text-slate-500 leading-relaxed">
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 leading-relaxed">
                   ℹ️ المكافأة مش بتطلّع فلوس من الخزنة دلوقتي — بتتجمّع للموظف وبتتضاف تلقائياً على المتبقي وبتتصرف مع الراتب.
                   <br />
                   <span className="text-slate-400">لو عايزة تديله فلوس في إيده دلوقتي استخدمي «إضافة حافز» — دي بتخرج من الدرج فوراً.</span>

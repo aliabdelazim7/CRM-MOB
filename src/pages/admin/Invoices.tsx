@@ -490,8 +490,8 @@ export default function Invoices() {
     <div className="p-4 md:p-8">
       <div className="flex flex-wrap gap-3 justify-between items-end mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800">فواتير البيع والمرتجعات</h1>
-          <p className="text-slate-500 mt-2">مراجعة فواتير البيع وعمليات الاسترجاع مع الفلاتر المتقدمة</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100">فواتير البيع والمرتجعات</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">مراجعة فواتير البيع وعمليات الاسترجاع مع الفلاتر المتقدمة</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -627,7 +627,7 @@ export default function Invoices() {
                 className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition ${
                   viewMode === 'active'
                     ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 <FileText size={16} /> الفواتير الحالية
@@ -638,7 +638,7 @@ export default function Invoices() {
                 className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition ${
                   viewMode === 'deleted'
                     ? 'bg-red-600 text-white shadow-sm'
-                    : 'bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/25'
                 }`}
               >
                 <Archive size={16} /> سلة المهملات ({deletedOrders.length})
@@ -650,7 +650,7 @@ export default function Invoices() {
                 className="rounded-2xl border p-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-slate-500">إجمالي النتائج</p>
+                  <p className="text-[11px] font-black text-slate-500 dark:text-slate-400">إجمالي النتائج</p>
                   <FileText size={18} style={{ color: storeSettings.themeColor }} />
                 </div>
                 <p className="text-2xl font-black mt-2" style={{ color: storeSettings.themeColor }}>{filteredOrders.length}</p>
@@ -758,14 +758,14 @@ export default function Invoices() {
                 <th className="p-4">تفاصيل المنتجات</th>
                 <th className="p-4 text-center border-x border-slate-100 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-900/50">الإجمالي</th>
                 <th className="p-4 text-center text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30">الربح</th>
-                <th className="p-4 text-center text-orange-600">قيمة المرتجع</th>
-                <th className="p-4 text-center text-green-600">المدفوع</th>
+                <th className="p-4 text-center text-orange-600 dark:text-orange-400">قيمة المرتجع</th>
+                <th className="p-4 text-center text-green-600 dark:text-green-400">المدفوع</th>
                 <th className="p-4 text-center text-red-500 font-black">الباقي عليه</th>
                 <th className="p-4 text-center">الحالة</th>
                 <th className="p-4 text-center">إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
               {filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={15} className="p-12 text-center text-slate-400 text-lg font-bold">
@@ -782,13 +782,13 @@ export default function Invoices() {
                   const profit = calculateInvoiceProfit(order);
 
                   return (
-                    <tr key={order.id} className={`hover:bg-slate-50 transition ${order.is_deleted ? 'bg-red-50/40 opacity-80' : hasReturns ? 'bg-red-50/20' : ''}`}>
+                    <tr key={order.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800 transition ${order.is_deleted ? 'bg-red-50/40 opacity-80' : hasReturns ? 'bg-red-50/20' : ''}`}>
                       <td className="p-4 font-mono font-bold" style={{ color: storeSettings.themeColor }}>{order.id}</td>
                       <td className="p-4">
                         {order.customer ? (
                           <div className="flex flex-col">
                             <span className="font-bold flex items-center gap-1"><User size={14} style={{ color: storeSettings.themeColor }} /> {order.customer.name}</span>
-                            <span className="text-xs text-slate-500 font-mono mt-1" dir="ltr">{order.customer.phone}</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1" dir="ltr">{order.customer.phone}</span>
                             {(() => {
                               const cDebt = activeOrders.filter(o => o.customer?.id === order.customer!.id)
                                 .reduce((sum, o) => {
@@ -799,15 +799,15 @@ export default function Invoices() {
                                   return sum + (eTotal - o.paid_amount);
                                 }, 0);
                               return cDebt > 0 ? (
-                                <span className="text-[10px] font-black text-red-500 mt-1 bg-red-50 px-2 py-0.5 rounded border border-red-100 w-fit">إجمالي الأجل: {cDebt.toFixed(2)}</span>
+                                <span className="text-[10px] font-black text-red-500 mt-1 bg-red-50 dark:bg-red-500/10 px-2 py-0.5 rounded border border-red-100 dark:border-red-500/30 w-fit">إجمالي الأجل: {cDebt.toFixed(2)}</span>
                               ) : null;
                             })()}
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-xs font-bold bg-slate-100 px-2 py-1 rounded">عميل نقدي</span>
+                          <span className="text-slate-400 text-xs font-bold bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">عميل نقدي</span>
                         )}
                       </td>
-                      <td className="p-4 text-slate-500">{new Date(order.date).toLocaleString('ar-EG', { calendar: 'gregory' })}</td>
+                      <td className="p-4 text-slate-500 dark:text-slate-400">{new Date(order.date).toLocaleString('ar-EG', { calendar: 'gregory' })}</td>
                       <td className="p-4">
                         {(() => {
                           const refundedAt = (order as any).refunded_at as string | null | undefined;
@@ -821,11 +821,11 @@ export default function Invoices() {
                           const sameDay = new Date(refundedAt).toDateString() === new Date(order.date).toDateString();
                           return (
                             <div className="flex flex-col gap-1">
-                              <span className="text-xs font-black text-rose-600">
+                              <span className="text-xs font-black text-rose-600 dark:text-rose-400">
                                 {new Date(refundedAt).toLocaleString('ar-EG', { calendar: 'gregory' })}
                               </span>
                               {!sameDay && (
-                                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 w-fit">
+                                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-500/30 w-fit">
                                   يوم مختلف عن الفاتورة
                                 </span>
                               )}
@@ -842,11 +842,11 @@ export default function Invoices() {
                           const sameDay = new Date(xd.date).toDateString() === new Date(order.date).toDateString();
                           return (
                             <div className="flex flex-col gap-1">
-                              <span className="text-xs font-black text-amber-600">
+                              <span className="text-xs font-black text-amber-600 dark:text-amber-400">
                                 {new Date(xd.date).toLocaleString('ar-EG', { calendar: 'gregory' })}
                               </span>
                               {!sameDay && (
-                                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 w-fit">
+                                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-500/30 w-fit">
                                   يوم مختلف عن الفاتورة
                                 </span>
                               )}
@@ -857,11 +857,11 @@ export default function Invoices() {
                       <td className="p-4 text-center font-bold text-indigo-600">{order.cashier_name || 'غير معروف'}</td>
                       <td className="p-4 text-center font-bold text-purple-600">
                         {(order as any).salesperson_name || '—'}
-                        {(order as any).exchange_data && <div className="mt-1"><span className="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">↺ استبدال</span></div>}
+                        {(order as any).exchange_data && <div className="mt-1"><span className="text-[10px] font-black bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">↺ استبدال</span></div>}
                       </td>
                       <td className="p-4 text-right">
                         {order.is_deleted ? (
-                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-lg text-xs font-bold">
+                          <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-lg text-xs font-bold">
                             <Archive size={14} /> فاتورة محذوفة
                           </span>
                         ) : order.type === 'payment' ? (
@@ -873,24 +873,24 @@ export default function Invoices() {
                             {order.items.map(i => (
                               <li key={i.id} className={`flex items-center gap-2 ${i.returned_quantity > 0 ? 'text-red-500' : ''}`}>
                                 • {i.name} <span className="text-xs text-slate-400">(الكمية: {i.quantity})</span> 
-                                {i.returned_quantity > 0 && <span className="font-bold text-[10px] bg-red-100 px-1.5 py-0.5 rounded text-red-600">مرتجع: {i.returned_quantity}</span>}
+                                {i.returned_quantity > 0 && <span className="font-bold text-[10px] bg-red-100 dark:bg-red-500/20 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400">مرتجع: {i.returned_quantity}</span>}
                               </li>
                             ))}
                           </ul>
                         )}
                       </td>
-                       <td className="p-4 text-center font-black border-x border-slate-100 bg-slate-50/50" style={order.type === 'payment' ? { color: storeSettings.themeColor } : {}}>
+                       <td className="p-4 text-center font-black border-x border-slate-100 dark:border-slate-800 bg-slate-50/50" style={order.type === 'payment' ? { color: storeSettings.themeColor } : {}}>
                         {order.type === 'payment' ? `+ ${order.paid_amount.toFixed(2)}` : order.total.toFixed(2)} {storeSettings.currency}
                       </td>
                       <td className={`p-4 text-center font-black ${
-                        profit >= 0 ? 'text-emerald-600 bg-emerald-50/30' : 'text-red-600 bg-red-50/30'
+                        profit >= 0 ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/30' : 'text-red-600 bg-red-50/30'
                       }`}>
                         {order.type === 'payment' ? '—' : profit.toFixed(2)}
                       </td>
-                      <td className="p-4 text-center font-bold text-orange-600">
+                      <td className="p-4 text-center font-bold text-orange-600 dark:text-orange-400">
                         {returnedValue > 0 ? returnedValue.toFixed(2) : '-'}
                       </td>
-                      <td className="p-4 text-center font-black text-green-600">
+                      <td className="p-4 text-center font-black text-green-600 dark:text-green-400">
                         {order.paid_amount.toFixed(2)} {storeSettings.currency}
                       </td>
                       <td className="p-4 text-center font-black text-red-500">
@@ -902,15 +902,15 @@ export default function Invoices() {
                             سداد آجل
                           </span>
                         ) : hasReturns ? (
-                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-lg text-xs font-bold">
+                          <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-lg text-xs font-bold">
                             <ArrowRightLeft size={14} /> مرتجع جزئي/كلي
                           </span>
                         ) : order.total - order.paid_amount > 0 ? (
-                          <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-xs font-bold">
+                          <span className="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-lg text-xs font-bold">
                             فاتورة أجل
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 bg-green-100 text-green-600 px-3 py-1 rounded-lg text-xs font-bold">
+                          <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 px-3 py-1 rounded-lg text-xs font-bold">
                             فاتورة مكتملة
                           </span>
                         )}
@@ -919,7 +919,7 @@ export default function Invoices() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => window.open(`/view-invoice/${order.id}`, '_blank')}
-                            className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 transition-all shadow-sm border border-slate-100"
+                            className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all shadow-sm border border-slate-100 dark:border-slate-800"
                             title="عرض تفاصيل الفاتورة"
                           >
                             <Eye size={18} />
@@ -935,7 +935,7 @@ export default function Invoices() {
                           {order.customer?.phone && (
                             <button
                               onClick={() => handleSendWhatsApp(order)}
-                              className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all shadow-sm border border-emerald-100"
+                              className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 transition-all shadow-sm border border-emerald-100 dark:border-emerald-500/30"
                               title="إرسال الفاتورة عبر واتساب"
                             >
                               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -956,7 +956,7 @@ export default function Invoices() {
                           {!order.is_deleted && (order.items || []).some((it: any) => (Number(it.returned_quantity) || 0) > 0) && (
                             <button
                               onClick={() => handleUndoReturn(order)}
-                              className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all shadow-sm border border-amber-100"
+                              className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/25 transition-all shadow-sm border border-amber-100 dark:border-amber-500/30"
                               title="إلغاء المرتجع (يرجّع الفاتورة لحالتها قبل الإرجاع)"
                             >
                               <Undo2 size={18} />
@@ -965,7 +965,7 @@ export default function Invoices() {
                           {!order.is_deleted && (
                             <button
                               onClick={() => handleDeleteOrder(order)}
-                              className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all shadow-sm border border-red-100"
+                              className="p-2 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/25 transition-all shadow-sm border border-red-100 dark:border-red-500/30"
                               title="حذف الفاتورة"
                             >
                               <Trash2 size={18} />

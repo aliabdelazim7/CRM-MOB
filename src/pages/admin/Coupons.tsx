@@ -120,7 +120,7 @@ export default function Coupons() {
           </div>
           <button 
             onClick={() => { resetForm(); setIsModalOpen(true); }}
-            className="bg-white text-rose-600 px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-rose-50 transition-colors shadow-md"
+            className="bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors shadow-md"
           >
             <Plus size={20} />
             كوبون جديد
@@ -129,7 +129,7 @@ export default function Coupons() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+      <div className="flex flex-col sm:flex-row gap-4 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="relative flex-1">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <input
@@ -137,7 +137,7 @@ export default function Coupons() {
             placeholder="ابحث بكود الخصم..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pr-12 pl-4 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-500 font-medium"
+            className="w-full pr-12 pl-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-rose-500 font-medium"
           />
         </div>
       </div>
@@ -149,51 +149,51 @@ export default function Coupons() {
           const isFullyUsed = coupon.max_uses_total && coupon.used_count >= coupon.max_uses_total;
           
           return (
-            <div key={coupon.id} className={`bg-white rounded-3xl p-6 border transition-all ${!coupon.is_active || isExpired || isFullyUsed ? 'border-slate-200 opacity-75' : 'border-rose-100 shadow-sm hover:shadow-md'}`}>
+            <div key={coupon.id} className={`bg-white dark:bg-slate-800 rounded-3xl p-6 border transition-all ${!coupon.is_active || isExpired || isFullyUsed ? 'border-slate-200 dark:border-slate-700 opacity-75' : 'border-rose-100 shadow-sm hover:shadow-md'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-800 font-black px-4 py-2 rounded-xl text-lg tracking-wider mb-2">
+                  <div className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-black px-4 py-2 rounded-xl text-lg tracking-wider mb-2">
                     {coupon.code}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {coupon.is_active ? (
-                      <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1"><Check size={12}/> نشط</span>
+                      <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1"><Check size={12}/> نشط</span>
                     ) : (
-                      <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1"><X size={12}/> معطل</span>
+                      <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1"><X size={12}/> معطل</span>
                     )}
                     {isExpired && (
-                      <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1"><AlertCircle size={12}/> منتهي</span>
+                      <span className="bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1"><AlertCircle size={12}/> منتهي</span>
                     )}
                     {isFullyUsed && (
-                      <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1"><AlertCircle size={12}/> اكتمل العدد</span>
+                      <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1"><AlertCircle size={12}/> اكتمل العدد</span>
                     )}
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="block text-2xl font-black text-rose-600">
+                  <span className="block text-2xl font-black text-rose-600 dark:text-rose-400">
                     {coupon.discount_value} {coupon.discount_type === 'percentage' ? '%' : 'ج'}
                   </span>
                   <span className="text-xs text-slate-400 font-medium">قيمة الخصم</span>
                 </div>
               </div>
 
-              <div className="space-y-3 mt-6 bg-slate-50 p-4 rounded-2xl">
+              <div className="space-y-3 mt-6 bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl">
                 <div className="flex items-center justify-between text-sm font-medium">
-                  <span className="text-slate-500 flex items-center gap-2"><Calendar size={16}/> الصلاحية</span>
-                  <span className="text-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Calendar size={16}/> الصلاحية</span>
+                  <span className="text-slate-800 dark:text-slate-100">
                     {coupon.start_date ? new Date(coupon.start_date).toLocaleDateString() : 'مفتوح'} - {coupon.end_date ? new Date(coupon.end_date).toLocaleDateString() : 'مفتوح'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm font-medium">
-                  <span className="text-slate-500 flex items-center gap-2"><Users size={16}/> إجمالي الاستخدام</span>
-                  <span className="text-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Users size={16}/> إجمالي الاستخدام</span>
+                  <span className="text-slate-800 dark:text-slate-100">
                     {coupon.used_count} / {coupon.max_uses_total || '∞'}
                   </span>
                 </div>
                 {coupon.max_uses_per_customer && (
                   <div className="flex items-center justify-between text-sm font-medium">
-                    <span className="text-slate-500 flex items-center gap-2"><Users size={16}/> حد العميل</span>
-                    <span className="text-slate-800">{coupon.max_uses_per_customer} مرات</span>
+                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Users size={16}/> حد العميل</span>
+                    <span className="text-slate-800 dark:text-slate-100">{coupon.max_uses_per_customer} مرات</span>
                   </div>
                 )}
               </div>
@@ -201,20 +201,20 @@ export default function Coupons() {
               <div className="mt-6 flex gap-2">
                 <button
                   onClick={() => handleEdit(coupon)}
-                  className="px-4 py-2 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                  className="px-4 py-2 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/25 transition-colors"
                   title="تعديل"
                 >
                   <Edit2 size={18} />
                 </button>
                 <button
                   onClick={() => toggleStatus(coupon.id, coupon.is_active)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${coupon.is_active ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${coupon.is_active ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'}`}
                 >
                   {coupon.is_active ? 'تعطيل' : 'تفعيل'}
                 </button>
                 <button
                   onClick={() => handleDelete(coupon.id)}
-                  className="px-4 py-2 rounded-xl text-sm font-bold bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-bold bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/25 transition-colors"
                 >
                   حذف
                 </button>
@@ -227,18 +227,18 @@ export default function Coupons() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white rounded-[32px] w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-2xl font-black flex items-center gap-4 text-slate-800">
-                <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm">
+            <div className="flex justify-between items-center p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50">
+              <h2 className="text-2xl font-black flex items-center gap-4 text-slate-800 dark:text-slate-100">
+                <div className="w-12 h-12 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center shadow-sm">
                   <Ticket size={24} />
                 </div>
                 {editingCouponId ? 'تعديل بيانات الكوبون' : 'إضافة كوبون خصم جديد'}
               </h2>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
+                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-full transition-colors"
               >
                 <X size={24} />
               </button>
@@ -248,33 +248,33 @@ export default function Coupons() {
             <div className="p-6 sm:p-8 overflow-y-auto space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">كود الخصم</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">كود الخصم</label>
                   <input
                     type="text"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500 uppercase tracking-widest font-black text-slate-800"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500 uppercase tracking-widest font-black text-slate-800 dark:text-slate-100"
                     placeholder="مثال: SUMMER2024"
                   />
                 </div>
                 
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">القيمة</label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">القيمة</label>
                     <input
                       type="number"
                       min="0"
                       value={discountValue}
                       onChange={(e) => setDiscountValue(Number(e.target.value))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500 font-bold"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500 font-bold"
                     />
                   </div>
                   <div className="w-32">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">النوع</label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">النوع</label>
                     <select
                       value={discountType}
                       onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500 font-bold appearance-none"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500 font-bold appearance-none"
                     >
                       <option value="percentage">% نسبة</option>
                       <option value="fixed">مبلغ ثابت</option>
@@ -285,58 +285,58 @@ export default function Coupons() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ البداية (اختياري)</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">تاريخ البداية (اختياري)</label>
                   <input
                     type="datetime-local"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ النهاية (اختياري)</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">تاريخ النهاية (اختياري)</label>
                   <input
                     type="datetime-local"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">حد الاستخدام للعميل الواحد (اختياري)</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">حد الاستخدام للعميل الواحد (اختياري)</label>
                   <input
                     type="number"
                     min="1"
                     value={maxUsesCustomer}
                     onChange={(e) => setMaxUsesCustomer(e.target.value ? Number(e.target.value) : '')}
                     placeholder="بدون حد"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">إجمالي عدد مرات الاستخدام المسموحة (اختياري)</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">إجمالي عدد مرات الاستخدام المسموحة (اختياري)</label>
                   <input
                     type="number"
                     min="1"
                     value={maxUsesTotal}
                     onChange={(e) => setMaxUsesTotal(e.target.value ? Number(e.target.value) : '')}
                     placeholder="بدون حد"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 bg-rose-50 border border-rose-100 p-5 rounded-2xl text-rose-800 transition-colors hover:bg-rose-100/80 cursor-pointer" onClick={() => setIsActive(!isActive)}>
+              <div className="flex items-center gap-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/30 p-5 rounded-2xl text-rose-800 dark:text-rose-300 transition-colors hover:bg-rose-100/80 cursor-pointer" onClick={() => setIsActive(!isActive)}>
                 <div className="relative flex items-center">
                   <input
                     type="checkbox"
                     id="isActive"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="peer w-6 h-6 text-rose-600 rounded-lg focus:ring-rose-500 focus:ring-offset-rose-50 border-rose-300 cursor-pointer transition-all"
+                    className="peer w-6 h-6 text-rose-600 dark:text-rose-400 rounded-lg focus:ring-rose-500 focus:ring-offset-rose-50 border-rose-300 cursor-pointer transition-all"
                   />
                 </div>
                 <label htmlFor="isActive" className="font-bold cursor-pointer flex-1 text-lg select-none">
@@ -346,10 +346,10 @@ export default function Coupons() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 sm:p-8 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row gap-4">
+            <div className="p-6 sm:p-8 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 flex flex-col-reverse sm:flex-row gap-4">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm"
               >
                 إلغاء التغييرات
               </button>

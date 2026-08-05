@@ -130,7 +130,7 @@ export default function Manufacturing() {
           <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
             <Scissors className="text-indigo-600" size={30} /> التصنيع
           </h1>
-          <p className="text-slate-500 mt-1 font-medium text-sm">الخامات (بمورد ودفع مقسّم/آجل) وتصنيع المنتجات وتوزيعها على المخازن</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">الخامات (بمورد ودفع مقسّم/آجل) وتصنيع المنتجات وتوزيعها على المخازن</p>
         </div>
         <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl px-5 py-3 text-center">
           <div className="text-[11px] font-bold text-purple-600 dark:text-purple-300 flex items-center gap-1"><Warehouse size={14} /> قيمة مخزون المصنع</div>
@@ -142,7 +142,7 @@ export default function Manufacturing() {
         {/* ── Materials ──────────────────────────────── */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="bg-amber-50 dark:bg-amber-900/20 px-5 py-3 border-b border-amber-100 dark:border-amber-800 flex items-center gap-2">
-            <Package size={20} className="text-amber-600" />
+            <Package size={20} className="text-amber-600 dark:text-amber-400" />
             <h2 className="text-base font-black text-amber-800 dark:text-amber-300">شراء خامة</h2>
           </div>
           <div className="p-5">
@@ -163,19 +163,19 @@ export default function Manufacturing() {
             <div className="mt-3 bg-slate-50 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-black text-slate-700 dark:text-slate-200">الدفع</span>
-                <button type="button" onClick={() => setMSplit({ cash: String(mTotal || ''), visa: '', wallet: '', instapay: '' })} className="text-[11px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-lg">الكل كاش</button>
+                <button type="button" onClick={() => setMSplit({ cash: String(mTotal || ''), visa: '', wallet: '', instapay: '' })} className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-lg">الكل كاش</button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {PAY_METHODS.map((p) => (
                   <div key={p.value}>
-                    <label className="text-[11px] font-bold text-slate-500">{p.label}</label>
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{p.label}</label>
                     <input className={input} type="number" placeholder="0" value={mSplit[p.value]} onChange={(e) => setMSplit((s) => ({ ...s, [p.value]: e.target.value }))} />
                   </div>
                 ))}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-3 text-center text-xs">
                 <div className="bg-white dark:bg-slate-800 rounded-lg p-2"><div className="text-slate-400 font-bold">الإجمالي</div><div className="font-black text-slate-800 dark:text-slate-100">{mTotal.toFixed(2)}</div></div>
-                <div className="bg-white dark:bg-slate-800 rounded-lg p-2"><div className="text-slate-400 font-bold">المدفوع</div><div className="font-black text-emerald-600">{mPaid.toFixed(2)}</div></div>
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-2"><div className="text-slate-400 font-bold">المدفوع</div><div className="font-black text-emerald-600 dark:text-emerald-400">{mPaid.toFixed(2)}</div></div>
                 <div className="bg-white dark:bg-slate-800 rounded-lg p-2"><div className="text-slate-400 font-bold">آجل (متبقّي)</div><div className={`font-black ${mRemaining > 0.01 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}`}>{mRemaining.toFixed(2)}</div></div>
               </div>
               {mRemaining > 0.01 && mSupplier && <p className="text-[11px] text-red-500 mt-2 font-bold">المتبقّي {mRemaining.toFixed(2)} {cur} هيتسجّل دين على المورد ويتسدّد من صفحة الموردين.</p>}
@@ -194,9 +194,9 @@ export default function Manufacturing() {
                   <div key={m.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
                     <div>
                       <p className="font-bold text-slate-800 dark:text-slate-100">{m.name}</p>
-                      <p className="text-[11px] text-slate-500">{m.cost_per_unit} {cur}/{m.unit} · متاح: <b>{m.stock_quantity}</b> {m.unit}{sup ? <> · مورد: <b>{sup.name}</b></> : null}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{m.cost_per_unit} {cur}/{m.unit} · متاح: <b>{m.stock_quantity}</b> {m.unit}{sup ? <> · مورد: <b>{sup.name}</b></> : null}</p>
                     </div>
-                    <button onClick={() => { if (confirm('حذف الخامة؟')) deleteMaterial(m.id); }} className="text-red-500 hover:bg-red-50 p-2 rounded-lg"><Trash2 size={16} /></button>
+                    <button onClick={() => { if (confirm('حذف الخامة؟')) deleteMaterial(m.id); }} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 p-2 rounded-lg"><Trash2 size={16} /></button>
                   </div>
                 );
               })}
@@ -227,7 +227,7 @@ export default function Manufacturing() {
                 <Field label="للمستودع"><input className={input} type="number" placeholder="0" value={pWarehouse} onChange={(e) => setPWarehouse(e.target.value)} /></Field>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-3 text-center text-xs">
-                <div className="bg-white dark:bg-slate-800 rounded-lg p-2"><div className="text-emerald-600 font-bold">متاح للبيع</div><div className="font-black text-slate-800 dark:text-slate-100">{sellableNum}</div></div>
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-2"><div className="text-emerald-600 dark:text-emerald-400 font-bold">متاح للبيع</div><div className="font-black text-slate-800 dark:text-slate-100">{sellableNum}</div></div>
                 <div className="bg-white dark:bg-slate-800 rounded-lg p-2"><div className="text-slate-400 font-bold">منها عرض</div><div className="font-black text-slate-800 dark:text-slate-100">{Math.min(dispNum, qtyNum)}</div></div>
                 <div className="bg-white dark:bg-slate-800 rounded-lg p-2"><div className="text-purple-600 font-bold">مخزن المصنع</div><div className="font-black text-purple-700">{factoryNum}</div></div>
               </div>
@@ -252,9 +252,9 @@ export default function Manufacturing() {
                           {materials.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.cost_per_unit} {cur}/{m.unit})</option>)}
                         </select>
                         <input className={input + ' w-24'} type="number" placeholder="كمية" value={r.quantity} onChange={(e) => setRows((rs) => rs.map((x, j) => (j === i ? { ...x, quantity: e.target.value } : x)))} />
-                        {rows.length > 1 && <button onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} className="text-red-500 hover:bg-red-50 p-2 rounded-lg shrink-0"><Trash2 size={16} /></button>}
+                        {rows.length > 1 && <button onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 p-2 rounded-lg shrink-0"><Trash2 size={16} /></button>}
                       </div>
-                      {mat && <div className="text-[11px] text-slate-500 mt-1 pr-1">المختار: <b className="text-slate-700 dark:text-slate-200">{mat.name}</b> · متاح {mat.stock_quantity} {mat.unit} · تكلفة السطر: <b className="text-amber-700">{lineCost.toFixed(2)} {cur}</b></div>}
+                      {mat && <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 pr-1">المختار: <b className="text-slate-700 dark:text-slate-200">{mat.name}</b> · متاح {mat.stock_quantity} {mat.unit} · تكلفة السطر: <b className="text-amber-700 dark:text-amber-300">{lineCost.toFixed(2)} {cur}</b></div>}
                     </div>
                   );
                 })}
@@ -272,12 +272,12 @@ export default function Manufacturing() {
                   <div key={i} className="flex gap-2 items-center">
                     <input className={input + ' flex-1'} placeholder="نوع التكلفة" value={c.label} onChange={(e) => setCosts((cs) => cs.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
                     <input className={input + ' w-24'} type="number" placeholder={cur} value={c.amount} onChange={(e) => setCosts((cs) => cs.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} />
-                    {costs.length > 1 && <button onClick={() => setCosts((cs) => cs.filter((_, j) => j !== i))} className="text-red-500 hover:bg-red-50 p-2 rounded-lg shrink-0"><Trash2 size={16} /></button>}
+                    {costs.length > 1 && <button onClick={() => setCosts((cs) => cs.filter((_, j) => j !== i))} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 p-2 rounded-lg shrink-0"><Trash2 size={16} /></button>}
                   </div>
                 ))}
               </div>
               <div className="mt-2 flex items-center gap-2">
-                <label className="text-[11px] font-bold text-slate-500 shrink-0">دفع التكاليف بـ</label>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">دفع التكاليف بـ</label>
                 <select className={selectCls} value={pExtraPay} onChange={(e) => setPExtraPay(e.target.value)}>
                   {PAY_METHODS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
@@ -290,11 +290,11 @@ export default function Manufacturing() {
             {/* Live cost summary */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-slate-100 dark:bg-slate-900/40 rounded-xl p-3 text-center">
-                <div className="text-[10px] font-bold text-slate-500">تكلفة الخامات</div>
+                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">تكلفة الخامات</div>
                 <div className="font-black text-slate-800 dark:text-slate-100">{materialsCost.toFixed(2)}</div>
               </div>
               <div className="bg-slate-100 dark:bg-slate-900/40 rounded-xl p-3 text-center">
-                <div className="text-[10px] font-bold text-slate-500">إجمالي التكلفة</div>
+                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">إجمالي التكلفة</div>
                 <div className="font-black text-slate-800 dark:text-slate-100">{totalCost.toFixed(2)}</div>
               </div>
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 text-center border border-amber-200 dark:border-amber-800">
@@ -320,7 +320,7 @@ export default function Manufacturing() {
           <h2 className="text-base font-black text-purple-800 dark:text-purple-300 mb-4 flex items-center gap-2"><Warehouse size={18} /> مخزن المصنع (قطع محتجزة) — قيمته {factoryValue.toFixed(2)} {cur}</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-right text-sm">
-              <thead><tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700"><th className="p-2">المنتج</th><th className="p-2">الكود</th><th className="p-2">بالمصنع</th><th className="p-2">تكلفة القطعة</th><th className="p-2">القيمة</th><th className="p-2">تحويل للبيع</th></tr></thead>
+              <thead><tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700"><th className="p-2">المنتج</th><th className="p-2">الكود</th><th className="p-2">بالمصنع</th><th className="p-2">تكلفة القطعة</th><th className="p-2">القيمة</th><th className="p-2">تحويل للبيع</th></tr></thead>
               <tbody>
                 {factoryItems.map((p) => {
                   const c = Number(p.average_purchase_price ?? p.purchase_price) || 0;
@@ -345,14 +345,14 @@ export default function Manufacturing() {
                           <td colSpan={6} className="p-3">
                             <div className="flex flex-wrap items-end gap-2">
                               <div>
-                                <label className="block text-[11px] font-bold text-slate-500 mb-1">للعرض</label>
+                                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">للعرض</label>
                                 <input className={input + ' w-24'} type="number" min="0" placeholder="0" value={transfer!.display} onChange={(e) => setTransfer((t) => t && { ...t, display: e.target.value })} />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-bold text-slate-500 mb-1">للمستودع</label>
+                                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">للمستودع</label>
                                 <input className={input + ' w-24'} type="number" min="0" placeholder="0" value={transfer!.warehouse} onChange={(e) => setTransfer((t) => t && { ...t, warehouse: e.target.value })} />
                               </div>
-                              <span className="text-xs text-slate-500 pb-2">المتاح بالمصنع: <b className="text-purple-700">{q}</b></span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 pb-2">المتاح بالمصنع: <b className="text-purple-700">{q}</b></span>
                               <button
                                 onClick={async () => {
                                   const ok = await transferFromFactory(p.id, Number(transfer!.display) || 0, Number(transfer!.warehouse) || 0);
@@ -380,7 +380,7 @@ export default function Manufacturing() {
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
             <thead>
-              <tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700">
+              <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                 <th className="p-2">المنتج</th><th className="p-2">اللون</th><th className="p-2">الكود</th>
                 <th className="p-2">العدد</th><th className="p-2">إجمالي التكلفة</th><th className="p-2">تكلفة القطعة</th><th className="p-2">سعر البيع</th>
               </tr>
@@ -395,8 +395,8 @@ export default function Manufacturing() {
                   <td className="p-2 font-mono text-xs">{p.code || '-'}</td>
                   <td className="p-2">{p.quantity}</td>
                   <td className="p-2">{Number(p.total_cost).toFixed(2)} {cur}</td>
-                  <td className="p-2 font-bold text-amber-700">{Number(p.cost_per_piece).toFixed(2)} {cur}</td>
-                  <td className="p-2 font-bold text-emerald-700">{Number(p.sale_price).toFixed(2)} {cur}</td>
+                  <td className="p-2 font-bold text-amber-700 dark:text-amber-300">{Number(p.cost_per_piece).toFixed(2)} {cur}</td>
+                  <td className="p-2 font-bold text-emerald-700 dark:text-emerald-300">{Number(p.sale_price).toFixed(2)} {cur}</td>
                 </tr>
               ))}
             </tbody>

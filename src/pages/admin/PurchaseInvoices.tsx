@@ -202,7 +202,7 @@ export default function PurchaseInvoices() {
             <form onSubmit={handleSaveInvoice} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">المورد</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">المورد</label>
                   <select
                     value={invSupplierId}
                     onChange={(e) => setInvSupplierId(e.target.value)}
@@ -215,7 +215,7 @@ export default function PurchaseInvoices() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">المخزن المستقبل</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">المخزن المستقبل</label>
                   <select
                     value={invWarehouseId}
                     onChange={(e) => setInvWarehouseId(e.target.value)}
@@ -232,7 +232,7 @@ export default function PurchaseInvoices() {
               {/* Items Table */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-500">بنود الفاتورة والتكلفة الأسرية</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400">بنود الفاتورة والتكلفة الأسرية</label>
                   <button
                     type="button"
                     onClick={handleAddItem}
@@ -305,7 +305,7 @@ export default function PurchaseInvoices() {
               {/* Extra Costs breakdown */}
               <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">مصاريف الشحن واللوجستيات</label>
+                  <label className="block font-bold text-slate-500 dark:text-slate-400 mb-1">مصاريف الشحن واللوجستيات</label>
                   <input
                     type="number"
                     value={freightCost}
@@ -314,7 +314,7 @@ export default function PurchaseInvoices() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">الضرائب</label>
+                  <label className="block font-bold text-slate-500 dark:text-slate-400 mb-1">الضرائب</label>
                   <input
                     type="number"
                     value={taxAmount}
@@ -323,7 +323,7 @@ export default function PurchaseInvoices() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">الخصم المكتسب</label>
+                  <label className="block font-bold text-slate-500 dark:text-slate-400 mb-1">الخصم المكتسب</label>
                   <input
                     type="number"
                     value={discount}

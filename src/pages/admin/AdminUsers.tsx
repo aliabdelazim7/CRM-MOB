@@ -105,7 +105,7 @@ export default function AdminUsers() {
             <Shield className="text-indigo-600" size={28} />
             إدارة المستخدمين والموظفين (Users & Staff)
           </h1>
-          <p className="text-slate-500 mt-1 text-sm font-medium">
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm font-medium">
             إضافة وتعديل مستخدمي لوحة التحكم وموظفي الكاشير (المحاسبين)
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function AdminUsers() {
           className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 ${
             activeTab === 'admins'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Shield size={18} />
@@ -140,7 +140,7 @@ export default function AdminUsers() {
           className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 ${
             activeTab === 'cashiers'
               ? 'bg-emerald-600 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <UserCheck size={18} />
@@ -163,7 +163,7 @@ export default function AdminUsers() {
                     </div>
                     <div>
                       <p className="font-black text-slate-800 dark:text-slate-100">{u.name}</p>
-                      <p className="text-[11px] text-slate-500 font-medium">{(u.permissions || []).length} صلاحية</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{(u.permissions || []).length} صلاحية</p>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -247,11 +247,11 @@ export default function AdminUsers() {
             <div className="p-6 overflow-y-auto space-y-4 text-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-500 block mb-1">اسم المستخدم *</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">اسم المستخدم *</label>
                   <input value={adminName} onChange={(e) => setAdminName(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 font-bold" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-500 block mb-1">{editingAdmin ? 'كلمة سر جديدة (اختياري)' : 'كلمة السر *'}</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">{editingAdmin ? 'كلمة سر جديدة (اختياري)' : 'كلمة السر *'}</label>
                   <input type="text" dir="ltr" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder={editingAdmin ? '••••' : ''} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 font-bold" />
                 </div>
               </div>
@@ -295,7 +295,7 @@ export default function AdminUsers() {
             </div>
             <div className="p-6 space-y-4 text-sm">
               <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">اسم موظف الكاشير *</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">اسم موظف الكاشير *</label>
                 <input
                   type="text"
                   required
@@ -307,7 +307,7 @@ export default function AdminUsers() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">كلمة المرور (Password) *</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">كلمة المرور (Password) *</label>
                 <input
                   type="text"
                   dir="ltr"
@@ -320,7 +320,7 @@ export default function AdminUsers() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">رقم الهاتف</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">رقم الهاتف</label>
                 <input
                   type="text"
                   dir="ltr"

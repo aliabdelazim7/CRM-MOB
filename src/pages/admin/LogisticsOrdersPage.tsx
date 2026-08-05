@@ -177,7 +177,7 @@ export default function LogisticsOrdersPage() {
             <h3 className="text-lg font-black text-slate-800 dark:text-white">ربط طلب بشحنة جديدة</h3>
             <form onSubmit={handleSubmit} className="space-y-3 text-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">رقم الفاتورة / الطلب</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">رقم الفاتورة / الطلب</label>
                 <input
                   type="text"
                   required
@@ -189,7 +189,7 @@ export default function LogisticsOrdersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">شركة الشحن</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">شركة الشحن</label>
                 <select
                   value={form.carrier_id}
                   onChange={(e) => setForm({ ...form, carrier_id: e.target.value })}
@@ -203,7 +203,7 @@ export default function LogisticsOrdersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">رقم التتبع (Tracking Number)</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">رقم التتبع (Tracking Number)</label>
                 <input
                   type="text"
                   value={form.tracking_number}
@@ -213,7 +213,7 @@ export default function LogisticsOrdersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">تكلفة الشحن (ج.م)</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">تكلفة الشحن (ج.م)</label>
                 <input
                   type="number"
                   value={form.shipping_cost}
@@ -244,7 +244,7 @@ export default function LogisticsOrdersPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-slate-100 dark:border-slate-700 text-center">
             <h3 className="text-lg font-black text-slate-800 dark:text-white">تفاصيل تتبع الشحنة</h3>
-            <p className="text-sm text-slate-500 font-mono">رقم التتبع: {trackingModal.tn}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-mono">رقم التتبع: {trackingModal.tn}</p>
 
             <a
               href={trackingModal.url}
@@ -258,7 +258,7 @@ export default function LogisticsOrdersPage() {
             <div>
               <button
                 onClick={() => setTrackingModal(null)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-bold mt-2"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold mt-2"
               >
                 إغلاق
               </button>

@@ -110,7 +110,7 @@ export default function CategoryAnalyticsPage() {
         {/* Card 2: Total Products */}
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-teal-500 shadow-sm text-center relative overflow-hidden">
           <span className="text-slate-500 dark:text-slate-400 text-base font-bold flex items-center justify-center gap-2 mb-3">
-            <Package className="text-teal-600" size={22} />
+            <Package className="text-teal-600 dark:text-teal-400" size={22} />
             إجمالي المنتجات
           </span>
           <span className="text-4xl font-black text-slate-800 dark:text-white">{totalProducts}</span>
@@ -119,7 +119,7 @@ export default function CategoryAnalyticsPage() {
         {/* Card 3: Total Sales */}
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-emerald-500 shadow-sm text-center relative overflow-hidden">
           <span className="text-slate-500 dark:text-slate-400 text-base font-bold flex items-center justify-center gap-2 mb-3">
-            <TrendingUp className="text-emerald-600" size={22} />
+            <TrendingUp className="text-emerald-600 dark:text-emerald-400" size={22} />
             إجمالي المبيعات
           </span>
           <span className="text-4xl font-black text-slate-800 dark:text-white">
@@ -220,7 +220,7 @@ export default function CategoryAnalyticsPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4 text-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">اسم الكوليكشن (مثل: ساعات، سلاسل، أساور، شنط) *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">اسم الكوليكشن (مثل: ساعات، سلاسل، أساور، شنط) *</label>
                 <input
                   type="text"
                   required
@@ -231,7 +231,7 @@ export default function CategoryAnalyticsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">رابط صورة الكوليكشن (اختياري)</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">رابط صورة الكوليكشن (اختياري)</label>
                 <input
                   type="url"
                   placeholder="https://example.com/image.jpg"

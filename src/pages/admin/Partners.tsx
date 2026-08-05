@@ -117,7 +117,7 @@ export default function Partners() {
     <div className="p-6 md:p-8 space-y-6 animate-fade-in">
       <div>
         <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3"><Handshake className="text-indigo-600" size={30} /> الشركاء</h1>
-        <p className="text-slate-500 mt-1 font-medium text-sm">نِسب الشركاء، الرصيد الافتتاحي، والإيداع/السحب لكل شريك</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">نِسب الشركاء، الرصيد الافتتاحي، والإيداع/السحب لكل شريك</p>
       </div>
 
       {totalShare !== 100 && partners.length > 0 && (
@@ -142,9 +142,9 @@ export default function Partners() {
             <button onClick={() => setTxType('withdraw')} className={`py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-1 ${txType === 'withdraw' ? 'bg-red-600 text-white' : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300'}`}><ArrowUpCircle size={16} /> سحب</button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div><label className="text-[11px] font-bold text-slate-500">المبلغ</label><input className={input} type="number" placeholder="0" value={txAmount} onChange={(e) => setTxAmount(e.target.value)} /></div>
-            <div><label className="text-[11px] font-bold text-slate-500">الطريقة</label><select className={input} value={txMethod} onChange={(e) => setTxMethod(e.target.value)}>{METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}</select></div>
-            <div><label className="text-[11px] font-bold text-slate-500">ملاحظة</label><input className={input} value={txNote} onChange={(e) => setTxNote(e.target.value)} placeholder="اختياري" /></div>
+            <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">المبلغ</label><input className={input} type="number" placeholder="0" value={txAmount} onChange={(e) => setTxAmount(e.target.value)} /></div>
+            <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">الطريقة</label><select className={input} value={txMethod} onChange={(e) => setTxMethod(e.target.value)}>{METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}</select></div>
+            <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">ملاحظة</label><input className={input} value={txNote} onChange={(e) => setTxNote(e.target.value)} placeholder="اختياري" /></div>
           </div>
           <p className="text-[11px] text-slate-400">كل معاملات الشركاء (إيداع/سحب) تتم على <span className="font-black text-indigo-600">الخزنة الرئيسية</span> فقط — لا تؤثر على خزنة الكاشير. السحب يخصم من رصيد الرئيسية والإيداع يضيف له.</p>
           <button onClick={submitTx} disabled={saving} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black py-3 rounded-xl">{saving ? 'جاري...' : editingTx ? 'حفظ التعديل' : 'تسجيل المعاملة'}</button>
@@ -156,8 +156,8 @@ export default function Partners() {
           <div className="grid grid-cols-1 gap-2">
             <input className={input} placeholder="اسم الشريك" value={pName} onChange={(e) => setPName(e.target.value)} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div><label className="text-[11px] font-bold text-slate-500">النسبة %</label><input className={input} type="number" placeholder="0" value={pShare} onChange={(e) => setPShare(e.target.value)} /></div>
-              <div><label className="text-[11px] font-bold text-slate-500">رصيد افتتاحي</label><input className={input} type="number" placeholder="0" value={pOpening} onChange={(e) => setPOpening(e.target.value)} /></div>
+              <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">النسبة %</label><input className={input} type="number" placeholder="0" value={pShare} onChange={(e) => setPShare(e.target.value)} /></div>
+              <div><label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">رصيد افتتاحي</label><input className={input} type="number" placeholder="0" value={pOpening} onChange={(e) => setPOpening(e.target.value)} /></div>
             </div>
           </div>
           <button onClick={addPartner} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg flex items-center justify-center gap-2"><Plus size={18} /> إضافة شريك</button>
@@ -169,7 +169,7 @@ export default function Partners() {
         <h2 className="text-base font-black text-slate-800 dark:text-white mb-4">الشركاء</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead><tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700">
+            <thead><tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
               <th className="p-2">الشريك</th><th className="p-2">النسبة</th><th className="p-2">رصيد افتتاحي</th><th className="p-2">إجمالي الإيداع</th><th className="p-2">إجمالي السحب</th><th className="p-2">الرصيد الحالي</th><th className="p-2"></th>
             </tr></thead>
             <tbody>
@@ -182,12 +182,12 @@ export default function Partners() {
                       <td className="p-2 font-black text-slate-800 dark:text-slate-100">{p.name}</td>
                       <td className="p-2 font-bold">{p.share_percent || 0}%</td>
                       <td className="p-2">{(Number(p.opening_balance) || 0).toFixed(2)}</td>
-                      <td className="p-2 font-bold text-emerald-600">{s.deposits.toFixed(2)}</td>
-                      <td className="p-2 font-bold text-red-600">{s.withdrawals.toFixed(2)}</td>
+                      <td className="p-2 font-bold text-emerald-600 dark:text-emerald-400">{s.deposits.toFixed(2)}</td>
+                      <td className="p-2 font-bold text-red-600 dark:text-red-400">{s.withdrawals.toFixed(2)}</td>
                       <td className="p-2 font-black text-indigo-600">{s.net.toFixed(2)} {cur}</td>
                       <td className="p-2 whitespace-nowrap">
-                        <button onClick={(e) => { e.stopPropagation(); editPartner(p); }} className="text-slate-500 hover:bg-slate-100 p-1.5 rounded-lg"><Edit2 size={15} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); removePartner(p); }} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg"><Trash2 size={15} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); editPartner(p); }} className="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 p-1.5 rounded-lg"><Edit2 size={15} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); removePartner(p); }} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 p-1.5 rounded-lg"><Trash2 size={15} /></button>
                       </td>
                     </tr>
                   );
@@ -206,26 +206,26 @@ export default function Partners() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-indigo-200 dark:border-indigo-800 p-5">
             <h2 className="text-base font-black text-slate-800 dark:text-white mb-1">بروفايل الشريك: {p.name} <span className="text-sm font-bold text-slate-400">({p.share_percent || 0}%)</span></h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-4">
-              <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 text-center"><div className="text-[11px] font-bold text-slate-500">رصيد افتتاحي</div><div className="font-black text-slate-800 dark:text-slate-100">{(Number(p.opening_balance) || 0).toFixed(2)}</div></div>
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center"><div className="text-[11px] font-bold text-emerald-600">إجمالي الإيراد منه</div><div className="font-black text-emerald-700">{s.deposits.toFixed(2)}</div></div>
-              <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center"><div className="text-[11px] font-bold text-red-600">إجمالي السحوبات</div><div className="font-black text-red-700">{s.withdrawals.toFixed(2)}</div></div>
+              <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 text-center"><div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">رصيد افتتاحي</div><div className="font-black text-slate-800 dark:text-slate-100">{(Number(p.opening_balance) || 0).toFixed(2)}</div></div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center"><div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">إجمالي الإيراد منه</div><div className="font-black text-emerald-700 dark:text-emerald-300">{s.deposits.toFixed(2)}</div></div>
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center"><div className="text-[11px] font-bold text-red-600 dark:text-red-400">إجمالي السحوبات</div><div className="font-black text-red-700 dark:text-red-300">{s.withdrawals.toFixed(2)}</div></div>
               <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3 text-center"><div className="text-[11px] font-bold text-indigo-600">الرصيد الحالي</div><div className="font-black text-indigo-700">{s.net.toFixed(2)} {cur}</div></div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-right text-sm">
-                <thead><tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700"><th className="p-2">التاريخ</th><th className="p-2">النوع</th><th className="p-2">المبلغ</th><th className="p-2">الخزنة</th><th className="p-2">الطريقة</th><th className="p-2">ملاحظة</th><th className="p-2"></th></tr></thead>
+                <thead><tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700"><th className="p-2">التاريخ</th><th className="p-2">النوع</th><th className="p-2">المبلغ</th><th className="p-2">الخزنة</th><th className="p-2">الطريقة</th><th className="p-2">ملاحظة</th><th className="p-2"></th></tr></thead>
                 <tbody>
                   {s.rows.length === 0 ? <tr><td colSpan={7} className="text-center text-slate-400 py-6">لا توجد معاملات</td></tr>
                     : s.rows.map((t) => (
                       <tr key={t.id} className="border-b border-slate-100 dark:border-slate-700/50">
                         <td className="p-2">{new Date(t.created_at).toLocaleString('ar-EG')}</td>
-                        <td className="p-2 font-bold"><span className={t.type === 'deposit' ? 'text-emerald-600' : 'text-red-600'}>{t.type === 'deposit' ? 'إيداع' : 'سحب'}</span></td>
-                        <td className={`p-2 font-black ${t.type === 'deposit' ? 'text-emerald-600' : 'text-red-600'}`}>{Number(t.amount).toFixed(2)} {cur}</td>
+                        <td className="p-2 font-bold"><span className={t.type === 'deposit' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>{t.type === 'deposit' ? 'إيداع' : 'سحب'}</span></td>
+                        <td className={`p-2 font-black ${t.type === 'deposit' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}>{Number(t.amount).toFixed(2)} {cur}</td>
                         <td className="p-2">{TREASURIES.find((x) => x.key === t.treasury)?.label || t.treasury}</td>
                         <td className="p-2">{METHODS.find((x) => x.key === t.method)?.label || t.method}</td>
                         <td className="p-2 text-slate-600 dark:text-slate-300">{t.note || '-'}</td>
                         <td className="p-2 whitespace-nowrap">
-                          <button onClick={() => startEditTx(t)} className="text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 p-1.5 rounded-lg" title="تعديل"><Edit2 size={15} /></button>
+                          <button onClick={() => startEditTx(t)} className="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 p-1.5 rounded-lg" title="تعديل"><Edit2 size={15} /></button>
                           <button onClick={() => removeTx(t)} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg" title="حذف"><Trash2 size={15} /></button>
                         </td>
                       </tr>

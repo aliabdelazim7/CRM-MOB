@@ -297,7 +297,7 @@ export default function Savings() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3"><PiggyBank className="text-indigo-600" size={30} /> الخزنة الرئيسية</h1>
-          <p className="text-slate-500 mt-1 font-medium text-sm">تحويل + إيراد/مصروف للخزنة الرئيسية (حسابات مستقلة عن خزينة الكاشير) — بتأكيد OTP للمدير</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">تحويل + إيراد/مصروف للخزنة الرئيسية (حسابات مستقلة عن خزينة الكاشير) — بتأكيد OTP للمدير</p>
         </div>
         <div className="bg-gradient-to-l from-indigo-600 to-purple-600 text-white rounded-2xl px-5 py-3 text-center">
           <div className="text-[11px] font-bold opacity-90">إجمالي الخزنة الرئيسية</div>
@@ -309,7 +309,7 @@ export default function Savings() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {METHODS.map((m) => (
           <div key={m.key} className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 text-center">
-            <div className="text-[11px] font-bold text-slate-500">{m.label}</div>
+            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{m.label}</div>
             <div className="text-lg font-black text-indigo-600">{(savingsBal[m.key] || 0).toFixed(2)}</div>
             <div className="text-[10px] text-slate-400 mt-1">بالمحل: {(shopAvail[m.key] || 0).toFixed(2)}</div>
           </div>
@@ -318,12 +318,12 @@ export default function Savings() {
 
       {/* الرصيد الافتتاحي للخزنة الرئيسية */}
       <details className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-        <summary className="cursor-pointer font-black text-slate-800 dark:text-white flex items-center gap-2"><Banknote size={18} className="text-emerald-600" /> الرصيد الافتتاحي للخزنة الرئيسية</summary>
+        <summary className="cursor-pointer font-black text-slate-800 dark:text-white flex items-center gap-2"><Banknote size={18} className="text-emerald-600 dark:text-emerald-400" /> الرصيد الافتتاحي للخزنة الرئيسية</summary>
         <p className="text-[11px] text-slate-400 mt-2 mb-3">الفلوس اللي كانت موجودة في الخزنة الرئيسية لكل وسيلة قبل ما تبدئي على النظام. بتتضاف لرصيد الخزنة الرئيسية (مستقلة عن خزنة المحل).</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {METHODS.map((m) => (
             <div key={m.key}>
-              <label className="text-xs font-bold text-slate-500 block mb-1 truncate">{m.label}</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 truncate">{m.label}</label>
               <input type="number" value={openDraft[m.key] ?? ''} onChange={(e) => setOpenDraft((d) => ({ ...d, [m.key]: e.target.value }))} className={input} />
             </div>
           ))}
@@ -351,7 +351,7 @@ export default function Savings() {
         </div>
 
         <div>
-          <label className="text-[11px] font-bold text-slate-500 block mb-1">تاريخ العملية <span className="text-slate-400">(تُسجَّل في حسابات هذا اليوم)</span></label>
+          <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">تاريخ العملية <span className="text-slate-400">(تُسجَّل في حسابات هذا اليوم)</span></label>
           <input className={input} type="date" value={txDate} onChange={(e) => { setTxDate(e.target.value); setOtpSent(false); }} />
         </div>
 
@@ -360,20 +360,20 @@ export default function Savings() {
             <p className="text-[11px] text-slate-400">تحويل رصيد داخل الخزنة الرئيسية من طريقة لطريقة تانية (مثلاً: نقدي ➜ بنك بعد ما تودّعي الكاش في البنك). الإجمالي ما بيتغيّرش — بس شكل الفلوس بيتحوّل.</p>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[11px] font-bold text-slate-500">من <span className="text-slate-400">(متاح {convCap.toFixed(2)})</span></label>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">من <span className="text-slate-400">(متاح {convCap.toFixed(2)})</span></label>
                 <select className={input} value={convFrom} onChange={(e) => { setConvFrom(e.target.value); setOtpSent(false); }}>
                   {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[11px] font-bold text-slate-500">إلى</label>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">إلى</label>
                 <select className={input} value={convTo} onChange={(e) => { setConvTo(e.target.value); setOtpSent(false); }}>
                   {METHODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <label className="text-[11px] font-bold text-slate-500">المبلغ</label>
+              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">المبلغ</label>
               <div className="flex gap-2">
                 <input className={input} type="number" min="0" placeholder="0" value={convAmt} onChange={(e) => { setConvAmt(e.target.value); setOtpSent(false); }} />
                 <button onClick={() => { setConvAmt(String(Math.max(0, convCap) || '')); setOtpSent(false); }} className="shrink-0 text-[11px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-3 rounded-lg">كل المتاح</button>
@@ -386,7 +386,7 @@ export default function Savings() {
         <>
         {isFinancial && (
           <div>
-            <label className="text-[11px] font-bold text-slate-500 block mb-1">{mode === 'income' ? 'فئة الإيراد' : 'فئة المصروف'}</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">{mode === 'income' ? 'فئة الإيراد' : 'فئة المصروف'}</label>
             {/* نفس مصدر الفئات المستخدم في خزينة الكاشير وشاشة الميزانية
                 (financeCategories) — كانت هنا نسخة ثابتة مكتوبة بالإيد، فالفئة
                 اللي المستخدم بيضيفها من أي شاشة تانية ماكانتش بتظهر هنا خالص. */}
@@ -411,7 +411,7 @@ export default function Savings() {
         <div className="grid grid-cols-2 gap-2">
           {METHODS.map((m) => (
             <div key={m.key}>
-              <label className="text-[11px] font-bold text-slate-500">{m.label} {hasCap && <span className="text-slate-400">(متاح {(cap[m.key] || 0).toFixed(0)})</span>}</label>
+              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{m.label} {hasCap && <span className="text-slate-400">(متاح {(cap[m.key] || 0).toFixed(0)})</span>}</label>
               <input className={input} type="number" min="0" placeholder="0" value={amt[m.key] || ''} onChange={(e) => { setAmt((a) => ({ ...a, [m.key]: e.target.value })); setOtpSent(false); }} />
             </div>
           ))}
@@ -430,7 +430,7 @@ export default function Savings() {
               <input className={input + ' text-center tracking-widest'} dir="ltr" placeholder="الرمز" value={otpInput} onChange={(e) => setOtpInput(e.target.value)} />
               <button onClick={confirmTransfer} disabled={busy} className="shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black px-5 rounded-xl">تأكيد التحويل</button>
             </div>
-            <button onClick={requestOtp} disabled={busy} className="text-[11px] font-bold text-amber-700">إعادة إرسال الرمز</button>
+            <button onClick={requestOtp} disabled={busy} className="text-[11px] font-bold text-amber-700 dark:text-amber-300">إعادة إرسال الرمز</button>
           </div>
         )}
       </div>
@@ -456,27 +456,27 @@ export default function Savings() {
 
         {fMode !== 'all' && (
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2.5 text-center"><div className="text-[10px] font-bold text-emerald-600">داخل</div><div className="text-sm font-black text-emerald-700 dark:text-emerald-400">{fIn.toFixed(2)}</div></div>
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-2.5 text-center"><div className="text-[10px] font-bold text-red-600">خارج</div><div className="text-sm font-black text-red-700 dark:text-red-400">{fOut.toFixed(2)}</div></div>
-            <div className="bg-slate-100 dark:bg-slate-900/40 rounded-xl p-2.5 text-center"><div className="text-[10px] font-bold text-slate-500">الصافي</div><div className="text-sm font-black text-slate-800 dark:text-slate-100">{(fIn - fOut).toFixed(2)}</div></div>
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2.5 text-center"><div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">داخل</div><div className="text-sm font-black text-emerald-700 dark:text-emerald-400">{fIn.toFixed(2)}</div></div>
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-2.5 text-center"><div className="text-[10px] font-bold text-red-600 dark:text-red-400">خارج</div><div className="text-sm font-black text-red-700 dark:text-red-400">{fOut.toFixed(2)}</div></div>
+            <div className="bg-slate-100 dark:bg-slate-900/40 rounded-xl p-2.5 text-center"><div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">الصافي</div><div className="text-sm font-black text-slate-800 dark:text-slate-100">{(fIn - fOut).toFixed(2)}</div></div>
           </div>
         )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead><tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700"><th className="p-2">التاريخ</th><th className="p-2">النوع</th><th className="p-2">المبلغ</th><th className="p-2">الطريقة</th><th className="p-2">المصدر</th><th className="p-2">ملاحظة</th><th className="p-2 text-center">حذف</th></tr></thead>
+            <thead><tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700"><th className="p-2">التاريخ</th><th className="p-2">النوع</th><th className="p-2">المبلغ</th><th className="p-2">الطريقة</th><th className="p-2">المصدر</th><th className="p-2">ملاحظة</th><th className="p-2 text-center">حذف</th></tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={7} className="text-center text-slate-400 py-6">جاري التحميل...</td></tr>
                 : filteredTxs.length === 0 ? <tr><td colSpan={7} className="text-center text-slate-400 py-6">{txs.length === 0 ? 'لا توجد معاملات' : 'لا توجد معاملات في هذه الفترة'}</td></tr>
                 : filteredTxs.map((t) => {
-                  const directionColor = t.direction === 'in' ? 'text-emerald-600' : 'text-red-600';
+                  const directionColor = t.direction === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
                   return (
                     <tr key={t.id} className="border-b border-slate-100 dark:border-slate-700/50">
                       <td className="p-2">{new Date(t.created_at).toLocaleString('ar-EG')}</td>
                       <td className="p-2 font-bold"><span className={directionColor}>{t.source === 'convert' ? (t.direction === 'in' ? 'دخول (تحويل بين الطرق)' : 'خروج (تحويل بين الطرق)') : t.source === 'partner' ? (t.direction === 'in' ? 'إيداع شريك' : 'سحب شريك') : t.source === 'main_income' ? 'إيراد للرئيسية' : t.source === 'main_expense' ? 'مصروف من الرئيسية' : t.direction === 'in' ? 'إيداع للرئيسية' : 'سحب للمحل'}</span></td>
                       <td className={`p-2 font-black ${directionColor}`}>{t.direction === 'in' ? '+' : '−'}{Number(t.amount).toFixed(2)} {cur}</td>
                       <td className="p-2">{METHODS.find((m) => m.key === t.method)?.label || t.method}</td>
-                      <td className="p-2 text-xs text-slate-500">{t.source === 'day_closing' ? 'تقفيل اليوم' : t.source === 'shop_transfer' ? 'تحويل من المحل' : t.source === 'to_shop' ? 'تحويل للمحل' : t.source === 'convert' ? 'تحويل بين الطرق' : t.source === 'partner' ? 'شركاء' : (t.source === 'main_income' || t.source === 'main_expense') ? 'معاملة مالية' : 'يدوي'}</td>
+                      <td className="p-2 text-xs text-slate-500 dark:text-slate-400">{t.source === 'day_closing' ? 'تقفيل اليوم' : t.source === 'shop_transfer' ? 'تحويل من المحل' : t.source === 'to_shop' ? 'تحويل للمحل' : t.source === 'convert' ? 'تحويل بين الطرق' : t.source === 'partner' ? 'شركاء' : (t.source === 'main_income' || t.source === 'main_expense') ? 'معاملة مالية' : 'يدوي'}</td>
                       <td className="p-2 text-slate-600 dark:text-slate-300">{t.note || '-'}</td>
                       <td className="p-2 text-center">
                         {t.source === 'day_closing' ? (
@@ -497,12 +497,12 @@ export default function Savings() {
       {delTx && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => { if (!delBusy) { setDelTx(null); setDelOtp(''); } }}>
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-black text-red-600 flex items-center gap-2"><Trash2 size={20} /> تأكيد حذف معاملة</h3>
+            <h3 className="text-lg font-black text-red-600 dark:text-red-400 flex items-center gap-2"><Trash2 size={20} /> تأكيد حذف معاملة</h3>
             <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-slate-500">النوع</span><span className="font-bold">{txTypeLabel(delTx)}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">المبلغ</span><span className="font-black text-red-600">{Number(delTx.amount).toFixed(2)} {cur}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">الطريقة</span><span className="font-bold">{labelOfKey(delTx.method)}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">التاريخ</span><span className="font-bold text-xs">{new Date(delTx.created_at).toLocaleString('ar-EG')}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">النوع</span><span className="font-bold">{txTypeLabel(delTx)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">المبلغ</span><span className="font-black text-red-600 dark:text-red-400">{Number(delTx.amount).toFixed(2)} {cur}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">الطريقة</span><span className="font-bold">{labelOfKey(delTx.method)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">التاريخ</span><span className="font-bold text-xs">{new Date(delTx.created_at).toLocaleString('ar-EG')}</span></div>
             </div>
             <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">سيتم حذف كل صفوف هذه العملية وعكس أثرها على الحسابات (خزنة المحل / التقارير). وصل رمز التأكيد للمدير على تليجرام.</p>
             <div className="flex gap-2">
@@ -510,8 +510,8 @@ export default function Savings() {
               <button onClick={confirmDelete} disabled={delBusy} className="shrink-0 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black px-5 rounded-xl">{delBusy ? '...' : 'حذف نهائي'}</button>
             </div>
             <div className="flex justify-between items-center">
-              <button onClick={() => requestDeleteOtp(delTx)} disabled={delBusy} className="text-[11px] font-bold text-amber-700">إعادة إرسال الرمز</button>
-              <button onClick={() => { setDelTx(null); setDelOtp(''); }} disabled={delBusy} className="text-[11px] font-bold text-slate-500">إلغاء</button>
+              <button onClick={() => requestDeleteOtp(delTx)} disabled={delBusy} className="text-[11px] font-bold text-amber-700 dark:text-amber-300">إعادة إرسال الرمز</button>
+              <button onClick={() => { setDelTx(null); setDelOtp(''); }} disabled={delBusy} className="text-[11px] font-bold text-slate-500 dark:text-slate-400">إلغاء</button>
             </div>
           </div>
         </div>

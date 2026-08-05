@@ -138,7 +138,7 @@ export default function Managers() {
         <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
           <Briefcase className="text-indigo-600" size={30} /> المدراء والسحوبات
         </h1>
-        <p className="text-slate-500 mt-1 font-medium text-sm">سحب أموال من الخزنة باسم المدير (يُخصم من وسيلة الدفع ولا يُحذف)</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">سحب أموال من الخزنة باسم المدير (يُخصم من وسيلة الدفع ولا يُحذف)</p>
       </div>
 
       {/* اختيار الخزنة — بيغيّر الأرقام المعروضة وسقف السحب ومكان القيد */}
@@ -172,8 +172,8 @@ export default function Managers() {
           const neg = v < 0;
           return (
             <div key={m.key} className={`bg-white dark:bg-slate-800 rounded-2xl p-4 border text-center ${neg ? 'border-red-300 dark:border-red-700' : 'border-slate-200 dark:border-slate-700'}`}>
-              <div className="text-[11px] font-bold text-slate-500">المتاح — {m.label}</div>
-              <div className={`text-xl font-black ${neg ? 'text-red-600' : 'text-emerald-600'}`}>{v.toFixed(2)} {cur}</div>
+              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">المتاح — {m.label}</div>
+              <div className={`text-xl font-black ${neg ? 'text-red-600' : 'text-emerald-600 dark:text-emerald-400'}`}>{v.toFixed(2)} {cur}</div>
               {neg && <div className="text-[9px] font-bold text-red-500 mt-1">مسحوب منها أكثر من رصيدها</div>}
             </div>
           );
@@ -193,7 +193,7 @@ export default function Managers() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {METHODS.map((m) => (
               <div key={m.key}>
-                <label className="text-[11px] font-bold text-slate-500">{m.label} <span className="text-slate-400">(متاح {(avail[m.key] || 0).toFixed(0)})</span></label>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{m.label} <span className="text-slate-400">(متاح {(avail[m.key] || 0).toFixed(0)})</span></label>
                 <input className={inputCls} type="number" min="0" placeholder="0" value={amt[m.key] || ''} onChange={(e) => setAmt((a) => ({ ...a, [m.key]: e.target.value }))} />
               </div>
             ))}
@@ -231,7 +231,7 @@ export default function Managers() {
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
             <thead>
-              <tr className="text-slate-500 border-b border-slate-200 dark:border-slate-700">
+              <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                 <th className="p-2">التاريخ</th><th className="p-2">المدير</th><th className="p-2">من</th><th className="p-2">المبلغ</th><th className="p-2">الوسيلة</th><th className="p-2 text-center">حذف</th>
               </tr>
             </thead>
@@ -247,10 +247,10 @@ export default function Managers() {
                   <td className="p-2 font-bold text-slate-800 dark:text-slate-100">{stripTreasuryMarkers(w.note)}</td>
                   <td className="p-2">
                     {isMainTreasuryExpense(w)
-                      ? <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">الرئيسية</span>
-                      : <span className="text-[10px] font-black bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">المحل</span>}
+                      ? <span className="text-[10px] font-black bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">الرئيسية</span>
+                      : <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">المحل</span>}
                   </td>
-                  <td className="p-2 font-black text-red-600">{Number(w.amount).toFixed(2)} {cur}</td>
+                  <td className="p-2 font-black text-red-600 dark:text-red-400">{Number(w.amount).toFixed(2)} {cur}</td>
                   <td className="p-2">{METHODS.find((m) => m.key === w.payment_method)?.label || w.payment_method}</td>
                   <td className="p-2 text-center"><button onClick={() => delWithdrawal(w)} title="حذف السحب" className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg"><Trash2 size={15} /></button></td>
                 </tr>

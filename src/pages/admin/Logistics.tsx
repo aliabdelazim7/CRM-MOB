@@ -320,7 +320,7 @@ export default function Logistics() {
             <h3 className="text-lg font-black text-slate-800 dark:text-white">إضافة شركة شحن جديدة</h3>
             <form onSubmit={handleSaveCarrier} className="space-y-3 text-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">اسم شركة الشحن *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">اسم شركة الشحن *</label>
                 <input
                   type="text"
                   required
@@ -331,7 +331,7 @@ export default function Logistics() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">مسؤول التواصل</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">مسؤول التواصل</label>
                   <input
                     type="text"
                     value={carrierForm.contact_person}
@@ -340,7 +340,7 @@ export default function Logistics() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">الهاتف</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الهاتف</label>
                   <input
                     type="text"
                     value={carrierForm.phone}
@@ -351,7 +351,7 @@ export default function Logistics() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">الرسوم الثابتة (ج.م)</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الرسوم الثابتة (ج.م)</label>
                   <input
                     type="number"
                     value={carrierForm.base_fee}
@@ -360,7 +360,7 @@ export default function Logistics() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">السعر لكل كجم</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">السعر لكل كجم</label>
                   <input
                     type="number"
                     value={carrierForm.rate_per_kg}
@@ -370,7 +370,7 @@ export default function Logistics() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">قالب رابط التتبع</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">قالب رابط التتبع</label>
                 <input
                   type="text"
                   placeholder="https://carrier.com/track/{TN}"
@@ -406,7 +406,7 @@ export default function Logistics() {
             <h3 className="text-lg font-black text-slate-800 dark:text-white">تسجيل شحنة جديدة</h3>
             <form onSubmit={handleSaveShipment} className="space-y-3 text-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">شركة الشحن</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">شركة الشحن</label>
                 <select
                   value={shipmentForm.carrier_id}
                   onChange={(e) => setShipmentForm({ ...shipmentForm, carrier_id: e.target.value })}
@@ -420,7 +420,7 @@ export default function Logistics() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">رقم التتبع</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">رقم التتبع</label>
                   <input
                     type="text"
                     value={shipmentForm.tracking_number}
@@ -429,7 +429,7 @@ export default function Logistics() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">رقم الفاتورة المرتبطة</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">رقم الفاتورة المرتبطة</label>
                   <input
                     type="text"
                     value={shipmentForm.invoice_id}
@@ -440,7 +440,7 @@ export default function Logistics() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">اسم المستلم</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">اسم المستلم</label>
                   <input
                     type="text"
                     value={shipmentForm.recipient_name}
@@ -449,7 +449,7 @@ export default function Logistics() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">تكلفة الشحن (ج.م)</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">تكلفة الشحن (ج.م)</label>
                   <input
                     type="number"
                     value={shipmentForm.shipping_cost}

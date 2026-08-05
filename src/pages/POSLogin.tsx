@@ -31,7 +31,7 @@ export default function POSLogin() {
         <div className="text-center mb-8">
            {storeSettings.logo && <img src={storeSettings.logo} alt="Logo" className="h-20 w-auto max-w-[220px] mx-auto rounded-3xl shadow-xl mb-4 p-1 bg-white object-contain" />}
            <h1 className="text-3xl font-black text-slate-800 dark:text-white mb-2">{storeSettings.name}</h1>
-           <p className="text-slate-500 font-bold">نظام الكاشير الذكي</p>
+           <p className="text-slate-500 dark:text-slate-400 font-bold">نظام الكاشير الذكي</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-10 rounded-[40px] shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden">

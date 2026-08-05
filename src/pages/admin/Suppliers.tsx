@@ -76,11 +76,11 @@ function ProductSearchSelect({
   return (
     <div className="relative flex-1" ref={wrapperRef}>
       <div 
-        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm cursor-text flex justify-between items-center font-medium focus-within:ring-2 focus-within:ring-indigo-400 transition"
+        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm cursor-text flex justify-between items-center font-medium focus-within:ring-2 focus-within:ring-indigo-400 transition"
         onClick={() => setIsOpen(true)}
       >
         {!isOpen ? (
-           <span className={selectedProduct ? 'text-slate-800' : 'text-slate-400'}>
+           <span className={selectedProduct ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400'}>
              {selectedProduct ? selectedProduct.name : '-- ابحث عن منتج --'}
            </span>
         ) : (
@@ -113,9 +113,9 @@ function ProductSearchSelect({
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
           <div 
-            className="px-4 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50 cursor-pointer flex items-center gap-2 border-b border-slate-100"
+            className="px-4 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50 cursor-pointer flex items-center gap-2 border-b border-slate-100 dark:border-slate-800"
             onClick={() => {
               onChange('NEW_PRODUCT');
               setIsOpen(false);
@@ -130,7 +130,7 @@ function ProductSearchSelect({
             filtered.map(p => (
               <div 
                 key={p.id}
-                className="px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer flex justify-between items-center"
+                className="px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer flex justify-between items-center"
                 onClick={() => {
                   onChange(p.id);
                   setIsOpen(false);
@@ -969,26 +969,26 @@ export default function Suppliers() {
                       ><Eye size={16} /></button>
                       <button
                         onClick={() => { const ob = openingBalanceOf(supplier.id); setEditingSupplier(supplier); setFormData({ name: supplier.name, phone: supplier.phone || '', address: supplier.address || '', openingBalance: ob ? String(Math.abs(ob)) : '', openingDirection: ob < 0 ? 'owed_to_us' : 'owed_to_supplier' }); setShowSupplierModal(true); }}
-                        className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition"
+                        className="p-2 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/25 transition"
                       ><Edit2 size={16} /></button>
                       <button
                         onClick={() => { if (confirm('هل أنت متأكد من حذف هذا المورد؟')) deleteSupplier(supplier.id); }}
-                        className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition"
+                        className="p-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-500/25 transition"
                       ><Trash2 size={16} /></button>
                     </div>
                   </div>
-                  <h3 className="text-xl font-black text-slate-800 mb-2">{supplier.name}</h3>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2">{supplier.name}</h3>
                   {totalDebt > 0.009 && (
-                    <div className="mb-4 inline-block bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold border border-red-100">
+                    <div className="mb-4 inline-block bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-3 py-1 rounded-lg text-xs font-bold border border-red-100 dark:border-red-500/30">
                       علينا للمورد: {totalDebt.toLocaleString()} {storeSettings.currency}
                     </div>
                   )}
                   {totalDebt < -0.009 && (
-                    <div className="mb-4 inline-block bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-100">
+                    <div className="mb-4 inline-block bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-100 dark:border-emerald-500/30">
                       لينا عند المورد: {Math.abs(totalDebt).toLocaleString()} {storeSettings.currency}
                     </div>
                   )}
-                  <div className="space-y-3 text-slate-600 text-sm font-medium">
+                  <div className="space-y-3 text-slate-600 dark:text-slate-300 text-sm font-medium">
                     <div className="flex items-center gap-3"><Phone size={16} className="text-slate-400" /><span dir="ltr" className="font-mono">{supplier.phone || 'لا يوجد هاتف'}</span></div>
                     <div className="flex items-center gap-3"><MapPin size={16} className="text-slate-400" /><span>{supplier.address || 'لا يوجد عنوان'}</span></div>
                     <div className="flex items-center gap-3 pt-3 border-t border-slate-50">
@@ -1000,7 +1000,7 @@ export default function Suppliers() {
               );
             })}
             {filteredSuppliers.length === 0 && (
-              <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm">
+              <div className="col-span-full py-16 text-center text-slate-400 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
                 <Users size={48} className="mx-auto mb-4 opacity-50" />
                 <p className="text-xl font-bold mb-2">لا يوجد موردين</p>
                 <p className="text-sm">لم يتم العثور على أي مورد مسجل حالياً.</p>
@@ -1013,13 +1013,13 @@ export default function Suppliers() {
       {/* ── Invoices Tab ── */}
       {activeTab === 'invoices' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 mb-6">
             <div className="relative">
               <Search className="absolute right-4 top-3.5 text-slate-400" size={20} />
               <input
                 type="text"
                 placeholder="ابحث برقم الفاتورة أو اسم المورد أو هاتفه..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-12 pl-4 focus:outline-none focus:ring-2 transition text-slate-700"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 pr-12 pl-4 focus:outline-none focus:ring-2 transition text-slate-700 dark:text-slate-200"
                 value={searchQueryInvoices}
                 onChange={(e) => setSearchQueryInvoices(e.target.value)}
               />
@@ -1027,7 +1027,7 @@ export default function Suppliers() {
           </div>
 
           {filteredInvoices.length === 0 ? (
-            <div className="py-20 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <div className="py-20 text-center text-slate-400 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
               <ShoppingCart size={48} className="mx-auto mb-4 opacity-50" />
               <p className="text-xl font-bold mb-2">لا توجد فواتير مشتريات</p>
               <p className="text-sm">اضغط على "فاتورة مشتريات جديدة" لإنشاء أول فاتورة.</p>
@@ -1037,25 +1037,25 @@ export default function Suppliers() {
               const supplier = suppliers.find(s => s.id === inv.supplier_id);
               const remaining = inv.total - inv.paid_amount;
               return (
-                <div key={inv.id} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition group">
+                <div key={inv.id} className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 hover:shadow-md transition group">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tc + '20' }}>
                         <FileText size={22} style={{ color: tc }} />
                       </div>
                       <div>
-                        <p className="font-black text-slate-800 text-lg flex items-center gap-2">
+                        <p className="font-black text-slate-800 dark:text-slate-100 text-lg flex items-center gap-2">
                           {inv.invoice_number}
-                          {isReturnRow(inv) && <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-100 text-amber-700">مرتجع مورد</span>}
+                          {isReturnRow(inv) && <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">مرتجع مورد</span>}
                         </p>
-                        <p className="text-slate-500 text-sm font-medium">{supplier?.name || 'مورد محذوف'}</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{supplier?.name || 'مورد محذوف'}</p>
                         <p className="text-slate-400 text-xs mt-1">{new Date(inv.created_at).toLocaleDateString('ar-EG', { calendar: 'gregory', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                       </div>
                     </div>
                     <div className="flex gap-6 items-start">
                       <div className="text-right">
-                        <p className="font-black text-slate-800 text-xl">{inv.total.toLocaleString()} {storeSettings.currency}</p>
-                        <p className="text-sm font-bold text-emerald-600 mt-1">مدفوع: {inv.paid_amount.toLocaleString()}</p>
+                        <p className="font-black text-slate-800 dark:text-slate-100 text-xl">{inv.total.toLocaleString()} {storeSettings.currency}</p>
+                        <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1">مدفوع: {inv.paid_amount.toLocaleString()}</p>
                         {remaining > 0 && <p className="text-sm font-bold text-red-500">متبقي: {remaining.toLocaleString()}</p>}
                       </div>
                       {/* التعديل متاح للفواتير العادية بس — صف المرتجع إشاراته سالبة
@@ -1079,7 +1079,7 @@ export default function Suppliers() {
                           setAutoOpenRow(null);
                           setShowInvoiceModal(true);
                         }}
-                        className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                        className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl hover:bg-blue-100 dark:hover:bg-blue-500/25 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
                         title="تعديل الفاتورة"
                       >
                         <Edit2 size={20} />
@@ -1089,7 +1089,7 @@ export default function Suppliers() {
                         <button
                           onClick={() => handleDeleteReturn(inv)}
                           disabled={isDeletingReturn}
-                          className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-40"
+                          className="p-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl hover:bg-red-100 dark:hover:bg-red-500/25 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-40"
                           title="حذف المرتجع"
                         >
                           <Trash2 size={20} />
@@ -1098,7 +1098,7 @@ export default function Suppliers() {
                       {canReturn(inv) && (
                         <button
                           onClick={() => openReturnModal(inv)}
-                          className="p-3 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-100 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                          className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-500/25 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
                           title="مرتجع للمورد"
                         >
                           <RotateCcw size={20} />
@@ -1106,7 +1106,7 @@ export default function Suppliers() {
                       )}
                       <button
                         onClick={() => printPurchaseInvoice(inv)}
-                        className="p-3 bg-slate-50 text-slate-600 rounded-2xl hover:bg-slate-100 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                        className="p-3 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100"
                         title="طباعة الفاتورة"
                       >
                         <Printer size={20} />
@@ -1174,32 +1174,32 @@ export default function Suppliers() {
 
         return (
           <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100">
-              <div className="p-6 bg-amber-50 border-b border-amber-100 flex justify-between items-center">
+            <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-slate-800">
+              <div className="p-6 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-100 dark:border-amber-500/30 flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-black text-slate-800">مرتجع للمورد</h2>
-                  <p className="text-sm text-slate-500 font-medium mt-1">
+                  <h2 className="text-xl font-black text-slate-800 dark:text-slate-100">مرتجع للمورد</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
                     {supplier?.name || 'مورد'} — فاتورة {returnInvoice.invoice_number}
                   </p>
                 </div>
-                <button onClick={() => { setShowReturnModal(false); setReturnInvoice(null); }} className="p-2 rounded-xl hover:bg-amber-100 transition"><X size={20} /></button>
+                <button onClick={() => { setShowReturnModal(false); setReturnInvoice(null); }} className="p-2 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-500/25 transition"><X size={20} /></button>
               </div>
 
               <div className="p-6 space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ المرتجع</label>
-                  <input type="date" value={returnDate} onChange={e => setReturnDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 transition font-medium" />
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">تاريخ المرتجع</label>
+                  <input type="date" value={returnDate} onChange={e => setReturnDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 transition font-medium" />
                 </div>
 
                 {/* الأصناف — السعر ثابت من الفاتورة الأصلية، مش متوسط التكلفة الحالي */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">الأصناف المرتجعة</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">الأصناف المرتجعة</label>
                   <div className="space-y-2">
                     {rows.map((r: any) => (
-                      <div key={r.it.product_id} className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center gap-3 flex-wrap">
+                      <div key={r.it.product_id} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex items-center gap-3 flex-wrap">
                         <div className="flex-1 min-w-[160px]">
-                          <p className="font-bold text-slate-800 text-sm">{r.product?.name || 'منتج محذوف'}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{r.product?.name || 'منتج محذوف'}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             سعر الشراء: {Number(r.it.purchase_price).toFixed(2)} · متاح للإرجاع: <b>{formatQty(r.available, r.unit)}</b>
                             {' · '}بالمخزون: {formatQty(Number(r.product?.stock_quantity) || 0, r.unit)}
                           </p>
@@ -1214,17 +1214,17 @@ export default function Suppliers() {
                             value={returnQty[r.it.product_id] || ''}
                             onChange={e => setReturnQty({ ...returnQty, [r.it.product_id]: e.target.value })}
                             disabled={r.available <= 0}
-                            className="w-24 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-amber-400 transition disabled:bg-slate-100 disabled:text-slate-400"
+                            className="w-24 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-amber-400 transition disabled:bg-slate-100 disabled:text-slate-400"
                           />
                           <button
                             type="button"
                             onClick={() => setReturnQty({ ...returnQty, [r.it.product_id]: String(r.available) })}
                             disabled={r.available <= 0}
-                            className="text-xs font-bold px-2 py-2 rounded-xl bg-amber-100 text-amber-700 hover:bg-amber-200 transition disabled:opacity-40"
+                            className="text-xs font-bold px-2 py-2 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition disabled:opacity-40"
                           >
                             الكل
                           </button>
-                          <span className="text-sm font-black text-slate-700 w-20 text-left">{r.lineValue.toFixed(2)}</span>
+                          <span className="text-sm font-black text-slate-700 dark:text-slate-200 w-20 text-left">{r.lineValue.toFixed(2)}</span>
                         </div>
                         {r.entered > r.available + 0.0001 && (
                           <p className="w-full text-xs font-bold text-red-500">أكبر من المتاح للإرجاع</p>
@@ -1237,19 +1237,19 @@ export default function Suppliers() {
                   </div>
                 </div>
 
-                <div className="bg-slate-800 text-white rounded-2xl p-4 flex justify-between items-center">
+                <div className="bg-slate-800 dark:bg-slate-700 text-white rounded-2xl p-4 flex justify-between items-center">
                   <span className="font-bold">قيمة المرتجع</span>
                   <span className="text-2xl font-black">{returnValue.toFixed(2)} {storeSettings.currency}</span>
                 </div>
 
                 {/* التسوية */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">طريقة التسوية</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">طريقة التسوية</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => { setReturnSettlement('debt'); setReturnPay({}); }}
-                      className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnSettlement === 'debt' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500'}`}
+                      className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnSettlement === 'debt' ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-700' : 'border-slate-200 dark:border-slate-700 bg-white text-slate-500 dark:text-slate-400'}`}
                     >
                       خصم من المديونية
                       <span className="block text-[11px] font-medium mt-0.5 opacity-70">مفيش فلوس بتتحرك</span>
@@ -1257,7 +1257,7 @@ export default function Suppliers() {
                     <button
                       type="button"
                       onClick={() => setReturnSettlement('cash')}
-                      className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnSettlement === 'cash' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}
+                      className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnSettlement === 'cash' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-slate-200 dark:border-slate-700 bg-white text-slate-500'}`}
                     >
                       استرداد نقدي
                       <span className="block text-[11px] font-medium mt-0.5 opacity-70">المورد رجّع فلوس</span>
@@ -1268,29 +1268,29 @@ export default function Suppliers() {
                 {isCash && (
                   <>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">المبلغ المسترد وطريقة استلامه</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">المبلغ المسترد وطريقة استلامه</label>
                       <PaymentSplitInputs
                         value={returnPay}
                         onChange={(k, v) => setReturnPay((s) => ({ ...s, [k]: v }))}
-                        labelClassName="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide text-right"
-                        inputClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-bold text-right"
+                        labelClassName="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide text-right"
+                        inputClassName="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition font-bold text-right"
                       />
                       {refundTotal > returnValue + 0.01 && (
                         <p className="text-xs font-bold text-red-500 mt-2">المبلغ المسترد أكبر من قيمة المرتجع</p>
                       )}
                       {refundTotal > 0.009 && refundTotal < returnValue - 0.01 && (
-                        <p className="text-xs font-bold text-slate-500 mt-2">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-2">
                           الباقي ({(returnValue - refundTotal).toFixed(2)}) هيتخصم من مديونية المورد.
                         </p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">الفلوس تدخل فين؟</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">الفلوس تدخل فين؟</label>
                       <div className="grid grid-cols-2 gap-2">
-                        <button type="button" onClick={() => setReturnTreasuryTarget('main')} className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnTreasuryTarget === 'main' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500'}`}>الخزنة الرئيسية</button>
-                        <button type="button" onClick={() => setReturnTreasuryTarget('shop')} className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnTreasuryTarget === 'shop' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-500'}`}>درج المحل</button>
+                        <button type="button" onClick={() => setReturnTreasuryTarget('main')} className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnTreasuryTarget === 'main' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>الخزنة الرئيسية</button>
+                        <button type="button" onClick={() => setReturnTreasuryTarget('shop')} className={`p-3 rounded-2xl border-2 text-sm font-bold transition ${returnTreasuryTarget === 'shop' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>درج المحل</button>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-2 font-medium">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
                         «درج المحل» بيظهر في تقفيل الكاشير. «الرئيسية» بيتستبعد منه ويتسجّل إيراد في الخزنة الرئيسية.
                       </p>
                     </div>
@@ -1301,7 +1301,7 @@ export default function Suppliers() {
                   <button
                     type="button"
                     onClick={() => { setShowReturnModal(false); setReturnInvoice(null); }}
-                    className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition"
+                    className="flex-1 py-3 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition"
                   >
                     إلغاء
                   </button>
@@ -1323,37 +1323,37 @@ export default function Suppliers() {
       {/* ── Supplier Modal ── */}
       {showSupplierModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-100">
-            <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-              <h2 className="text-xl font-black text-slate-800">{editingSupplier ? 'تعديل بيانات المورد' : 'إضافة مورد جديد'}</h2>
-              <button onClick={() => setShowSupplierModal(false)} className="p-2 rounded-xl hover:bg-slate-200 transition"><X size={20} /></button>
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-slate-800">
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <h2 className="text-xl font-black text-slate-800 dark:text-slate-100">{editingSupplier ? 'تعديل بيانات المورد' : 'إضافة مورد جديد'}</h2>
+              <button onClick={() => setShowSupplierModal(false)} className="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition"><X size={20} /></button>
             </div>
             <form onSubmit={handleSupplierSubmit} className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">اسم المورد أو الشركة <span className="text-red-500">*</span></label>
-                <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium" />
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">اسم المورد أو الشركة <span className="text-red-500">*</span></label>
+                <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف</label>
-                <input type="text" dir="ltr" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium text-left" />
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رقم الهاتف</label>
+                <input type="text" dir="ltr" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium text-left" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">العنوان</label>
-                <textarea value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium resize-none h-24" />
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">العنوان</label>
+                <textarea value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium resize-none h-24" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">الرصيد الافتتاحي ({storeSettings.currency})</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">الرصيد الافتتاحي ({storeSettings.currency})</label>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <button type="button" onClick={() => setFormData({ ...formData, openingDirection: 'owed_to_supplier' })}
-                    className={`py-2.5 rounded-xl font-bold text-sm border transition ${formData.openingDirection === 'owed_to_supplier' ? 'bg-red-500 text-white border-transparent' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                    className={`py-2.5 rounded-xl font-bold text-sm border transition ${formData.openingDirection === 'owed_to_supplier' ? 'bg-red-500 text-white border-transparent' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
                     علينا للمورد (دَين)
                   </button>
                   <button type="button" onClick={() => setFormData({ ...formData, openingDirection: 'owed_to_us' })}
-                    className={`py-2.5 rounded-xl font-bold text-sm border transition ${formData.openingDirection === 'owed_to_us' ? 'bg-emerald-500 text-white border-transparent' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                    className={`py-2.5 rounded-xl font-bold text-sm border transition ${formData.openingDirection === 'owed_to_us' ? 'bg-emerald-500 text-white border-transparent' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
                     لينا عند المورد (رصيد)
                   </button>
                 </div>
-                <input type="number" min="0" step="any" value={formData.openingBalance} onChange={e => setFormData({ ...formData, openingBalance: e.target.value })} placeholder="0" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold" />
+                <input type="number" min="0" step="any" value={formData.openingBalance} onChange={e => setFormData({ ...formData, openingBalance: e.target.value })} placeholder="0" className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-bold" />
                 <p className="text-[11px] text-slate-400 mt-1">
                   {formData.openingDirection === 'owed_to_supplier'
                     ? 'دَينك للمورد قبل بدء العمل على النظام — بيتضاف لمديونيته وبيتسدّد عادي.'
@@ -1361,9 +1361,9 @@ export default function Suppliers() {
                   {' '}بيظهر في كشف الحساب كبند «رصيد افتتاحي». لا يؤثر على الخزنة.
                 </p>
               </div>
-              <div className="flex gap-3 pt-4 border-t border-slate-100">
+              <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button type="submit" style={{ backgroundColor: tc }} className="flex-1 text-white py-3.5 rounded-xl font-bold shadow-lg hover:opacity-90 transition">حفظ البيانات</button>
-                <button type="button" onClick={() => setShowSupplierModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition">إلغاء</button>
+                <button type="button" onClick={() => setShowSupplierModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-3.5 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition">إلغاء</button>
               </div>
             </form>
           </div>
@@ -1373,19 +1373,19 @@ export default function Suppliers() {
       {/* ── Purchase Invoice Modal ── */}
       {showInvoiceModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
-            <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
-              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">{invMode === 'return' ? <RotateCcw size={22} className="text-amber-600" /> : <ShoppingCart size={22} style={{ color: tc }} />}{editingPurchaseInvoice ? 'تعديل فاتورة المشتريات' : (invMode === 'return' ? 'فاتورة مرتجع للمورد' : 'فاتورة مشتريات جديدة')}</h2>
-              <button onClick={() => setShowInvoiceModal(false)} className="p-2 rounded-xl hover:bg-slate-200 transition"><X size={20} /></button>
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center flex-shrink-0">
+              <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">{invMode === 'return' ? <RotateCcw size={22} className="text-amber-600 dark:text-amber-400" /> : <ShoppingCart size={22} style={{ color: tc }} />}{editingPurchaseInvoice ? 'تعديل فاتورة المشتريات' : (invMode === 'return' ? 'فاتورة مرتجع للمورد' : 'فاتورة مشتريات جديدة')}</h2>
+              <button onClick={() => setShowInvoiceModal(false)} className="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition"><X size={20} /></button>
             </div>
 
             <form onSubmit={handleAddInvoice} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-6 space-y-5 overflow-y-auto flex-1">
                 {/* Supplier Select */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">المورد <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">المورد <span className="text-red-500">*</span></label>
                   <div className="relative">
-                    <select value={invSupplierId} onChange={e => setInvSupplierId(e.target.value)} required className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium">
+                    <select value={invSupplierId} onChange={e => setInvSupplierId(e.target.value)} required className="w-full appearance-none bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium">
                       <option value="">-- اختر المورد --</option>
                       {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
@@ -1394,7 +1394,7 @@ export default function Suppliers() {
                 </div>
 
                 {invMode === 'return' && (
-                  <p className="text-[12px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-center">
+                  <p className="text-[12px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/40 rounded-xl p-2.5 text-center">
                     مرتجع حرّ — حدّد المنتج والكمية وسعر القطعة بنفسك (مش لازم يكون في فاتورة شراء). المخزون هيتخصم.
                   </p>
                 )}
@@ -1402,13 +1402,13 @@ export default function Suppliers() {
                 {/* Items */}
                 <div>
                   <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-                    <label className="text-sm font-bold text-slate-700">{invMode === 'return' ? 'المنتجات المرتجعة' : 'المنتجات المشتراة'}</label>
+                    <label className="text-sm font-bold text-slate-700 dark:text-slate-200">{invMode === 'return' ? 'المنتجات المرتجعة' : 'المنتجات المشتراة'}</label>
                     <div className="flex items-center gap-1 flex-wrap">
                       <input ref={invFileRef} type="file" accept=".xlsx,.xls" onChange={importInvoiceExcel} className="hidden" />
-                      <button type="button" onClick={exportInvoiceTemplate} title="تحميل قالب Excel لهذا المورد (مملوء بمنتجاته لتعديل الكميات)" className="text-xs font-bold flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
+                      <button type="button" onClick={exportInvoiceTemplate} title="تحميل قالب Excel لهذا المورد (مملوء بمنتجاته لتعديل الكميات)" className="text-xs font-bold flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition">
                         <FileSpreadsheet size={14} /> قالب Excel
                       </button>
-                      <button type="button" disabled={invImporting} onClick={() => invFileRef.current?.click()} title="استيراد أصناف الفاتورة من ملف Excel (يُطابق بالكود وينشئ الناقص)" className="text-xs font-bold flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition disabled:opacity-60">
+                      <button type="button" disabled={invImporting} onClick={() => invFileRef.current?.click()} title="استيراد أصناف الفاتورة من ملف Excel (يُطابق بالكود وينشئ الناقص)" className="text-xs font-bold flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 transition disabled:opacity-60">
                         <Upload size={14} /> {invImporting ? 'جارٍ الاستيراد...' : 'استيراد Excel'}
                       </button>
                       {invMode !== 'return' && (
@@ -1427,7 +1427,7 @@ export default function Suppliers() {
                       const rowUnit = rowProduct?.unit || 'قطعة';
                       const rowFractional = isFractionalUnit(rowUnit);
                       return (
-                      <div key={idx} className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                      <div key={idx} className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800">
                         <div className="flex gap-2 items-center flex-wrap">
                           <ProductSearchSelect
                             value={item.product_id}
@@ -1443,7 +1443,7 @@ export default function Suppliers() {
                               value={item.quantity} onChange={e => updateInvRow(idx, 'quantity', e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); priceRefs.current[idx]?.focus(); } }}
                               onFocus={e => e.currentTarget.select()}
-                              className="w-full bg-white border border-slate-200 rounded-xl pl-2 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-center"
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-2 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-center"
                             />
                             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 pointer-events-none">{getUnitConfig(rowUnit).label}</span>
                           </div>
@@ -1453,7 +1453,7 @@ export default function Suppliers() {
                               type="number" min="0" max={item.quantity} step={rowFractional ? '0.001' : '1'} placeholder="المحل"
                               value={item.to_display} onChange={e => updateInvRow(idx, 'to_display', e.target.value)}
                               title="كمية تدخل المحل (المعروض) — الباقي يدخل المستودع"
-                              className="w-full bg-white border border-slate-200 rounded-xl pl-2 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 font-medium text-center border-l-4 border-l-emerald-400"
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-2 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 font-medium text-center border-l-4 border-l-emerald-400"
                             />
                             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-emerald-500 pointer-events-none">محل</span>
                           </div>
@@ -1464,18 +1464,18 @@ export default function Suppliers() {
                             value={item.purchase_price} onChange={e => updateInvRow(idx, 'purchase_price', e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (idx === invItems.length - 1) addInvRowAndFocus(); else setAutoOpenRow(idx + 1); } }}
                             onFocus={e => e.currentTarget.select()}
-                            className="w-28 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-center"
+                            className="w-28 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-center"
                           />
                           {invItems.length > 1 && (
-                            <button type="button" onClick={() => removeInvRow(idx)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                            <button type="button" onClick={() => removeInvRow(idx)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15 rounded-lg transition">
                               <X size={16} />
                             </button>
                           )}
                         </div>
                         {invMode !== 'return' && (parseFloat(item.quantity) || 0) > 0 && (
                           <p className="text-[10px] text-slate-400 mt-2 pr-1">
-                            التوزيع: <b className="text-emerald-600">محل {Math.max(0, Math.min(parseFloat(item.to_display) || 0, parseFloat(item.quantity) || 0))}</b>
-                            {' · '}<b className="text-blue-600">مستودع {Math.max(0, (parseFloat(item.quantity) || 0) - Math.min(parseFloat(item.to_display) || 0, parseFloat(item.quantity) || 0))}</b>
+                            التوزيع: <b className="text-emerald-600 dark:text-emerald-400">محل {Math.max(0, Math.min(parseFloat(item.to_display) || 0, parseFloat(item.quantity) || 0))}</b>
+                            {' · '}<b className="text-blue-600 dark:text-blue-400">مستودع {Math.max(0, (parseFloat(item.quantity) || 0) - Math.min(parseFloat(item.to_display) || 0, parseFloat(item.quantity) || 0))}</b>
                             <span className="text-slate-300"> — لو سِبت خانة المحل 0 هيدخل كله المستودع</span>
                           </p>
                         )}
@@ -1487,15 +1487,15 @@ export default function Suppliers() {
 
                 {/* تسوية المرتجع */}
                 {invMode === 'return' && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">طريقة التسوية</label>
+                  <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">طريقة التسوية</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => setRetSettlement('cash')}
-                        className={`py-2.5 rounded-xl font-black text-sm ${retSettlement === 'cash' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                        className={`py-2.5 rounded-xl font-black text-sm ${retSettlement === 'cash' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
                         استرداد نقدي<span className="block text-[10px] font-normal opacity-80">المورد رجّع فلوس</span>
                       </button>
                       <button type="button" onClick={() => setRetSettlement('debt')}
-                        className={`py-2.5 rounded-xl font-black text-sm ${retSettlement === 'debt' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                        className={`py-2.5 rounded-xl font-black text-sm ${retSettlement === 'debt' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
                         خصم من المديونية<span className="block text-[10px] font-normal opacity-80">مفيش فلوس بتتحرك</span>
                       </button>
                     </div>
@@ -1504,29 +1504,29 @@ export default function Suppliers() {
 
                 {/* مصدر الخزنة: للشراء دايماً، وللمرتجع النقدي بس (فين تروح الفلوس) */}
                 {((invMode === 'purchase' && !editingPurchaseInvoice) || (invMode === 'return' && retSettlement === 'cash')) && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">{invMode === 'return' ? 'الفلوس ترجع لأي خزنة؟' : 'مصدر دفع المشتريات'}</label>
+                  <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">{invMode === 'return' ? 'الفلوس ترجع لأي خزنة؟' : 'مصدر دفع المشتريات'}</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setInvTreasurySource('shop')}
-                        className={`py-2.5 rounded-xl font-black text-sm ${invTreasurySource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                        className={`py-2.5 rounded-xl font-black text-sm ${invTreasurySource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}
                       >
                         {invMode === 'return' ? 'درج المحل' : 'خزنة المحل'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setInvTreasurySource('main')}
-                        className={`py-2.5 rounded-xl font-black text-sm ${invTreasurySource === 'main' ? 'bg-amber-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                        className={`py-2.5 rounded-xl font-black text-sm ${invTreasurySource === 'main' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}
                       >
                         الخزنة الرئيسية
                       </button>
                     </div>
                     {invMode === 'purchase' && invTreasurySource === 'main' && (
-                      <p className="text-[11px] text-amber-700 font-bold mt-2">سيتم طلب OTP من المدير، ولن يتم خصم المدفوع من خزنة المحل.</p>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300 font-bold mt-2">سيتم طلب OTP من المدير، ولن يتم خصم المدفوع من خزنة المحل.</p>
                     )}
                     {invMode === 'return' && invTreasurySource === 'main' && (
-                      <p className="text-[11px] text-amber-700 font-bold mt-2">هيتسجّل إيراد في الخزنة الرئيسية، ومش هيظهر في تقفيل الكاشير.</p>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300 font-bold mt-2">هيتسجّل إيراد في الخزنة الرئيسية، ومش هيظهر في تقفيل الكاشير.</p>
                     )}
                   </div>
                 )}
@@ -1534,47 +1534,47 @@ export default function Suppliers() {
                 {/* المبلغ المدفوع (شراء) / المسترد (مرتجع نقدي) */}
                 {(invMode === 'purchase' || (invMode === 'return' && retSettlement === 'cash')) && (
                   <div>
-                    {invMode === 'return' && <label className="block text-sm font-bold text-slate-700 mb-2">المبلغ المسترد وطريقة استلامه</label>}
+                    {invMode === 'return' && <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">المبلغ المسترد وطريقة استلامه</label>}
                     <PaymentSplitInputs
                       value={invPay}
                       onChange={(k, v) => setInvPay((s) => ({ ...s, [k]: v }))}
-                      labelClassName="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide text-right"
-                      inputClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition font-bold text-right"
+                      labelClassName="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide text-right"
+                      inputClassName="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition font-bold text-right"
                     />
                   </div>
                 )}
 
                 {/* Summary */}
                 <div className="rounded-2xl p-5 border shadow-inner" style={{ backgroundColor: (invMode === 'return' ? '#f59e0b' : tc) + '10', borderColor: (invMode === 'return' ? '#f59e0b' : tc) + '30' }}>
-                  <div className="flex justify-between font-black text-slate-800 text-lg mb-3 pb-3 border-b border-white">
+                  <div className="flex justify-between font-black text-slate-800 dark:text-slate-100 text-lg mb-3 pb-3 border-b border-white">
                     <span>{invMode === 'return' ? 'قيمة المرتجع' : 'إجمالي الفاتورة'}</span>
                     <span>{invTotal.toLocaleString()} {storeSettings.currency}</span>
                   </div>
 
                   {invMode === 'return' ? (
                     <div className="flex justify-between text-sm font-bold">
-                      <span className="text-slate-500">{retSettlement === 'cash' ? 'المبلغ المسترد نقداً' : 'هيتخصم من مديونية المورد'}</span>
-                      <span className="text-emerald-600">
+                      <span className="text-slate-500 dark:text-slate-400">{retSettlement === 'cash' ? 'المبلغ المسترد نقداً' : 'هيتخصم من مديونية المورد'}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">
                         {(retSettlement === 'cash' ? invPaidTotal : invTotal).toLocaleString()} {storeSettings.currency}
                       </span>
                     </div>
                   ) : (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-slate-500 font-bold">
+                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 font-bold">
                       <span>إجمالي المدفوع</span>
-                      <span className="text-slate-800">{invPaidTotal.toLocaleString()}</span>
+                      <span className="text-slate-800 dark:text-slate-100">{invPaidTotal.toLocaleString()}</span>
                     </div>
 
                     <div className="flex justify-between text-sm font-bold">
-                      <span className="text-slate-500">متبقي للمورد (آجل)</span>
+                      <span className="text-slate-500 dark:text-slate-400">متبقي للمورد (آجل)</span>
                       <span className={invTotal - invPaidTotal > 0 ? 'text-red-500' : 'text-slate-400'}>
                         {Math.max(0, invTotal - invPaidTotal).toLocaleString()}
                       </span>
                     </div>
 
                     <div className="flex justify-between text-sm font-bold">
-                      <span className="text-slate-500">الباقي (مسترد)</span>
-                      <span className={invPaidTotal - invTotal > 0 ? 'text-emerald-600' : 'text-slate-400'}>
+                      <span className="text-slate-500 dark:text-slate-400">الباقي (مسترد)</span>
+                      <span className={invPaidTotal - invTotal > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}>
                         {Math.max(0, invPaidTotal - invTotal).toLocaleString()}
                       </span>
                     </div>
@@ -1583,11 +1583,11 @@ export default function Suppliers() {
                 </div>
               </div>
 
-              <div className="p-6 border-t border-slate-100 flex gap-3 flex-shrink-0">
+              <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex gap-3 flex-shrink-0">
                 <button type="submit" disabled={isSaving} style={{ backgroundColor: invMode === 'return' ? '#f59e0b' : tc }} className="flex-1 text-white py-3.5 rounded-xl font-bold shadow-lg hover:opacity-90 transition disabled:opacity-60">
                   {isSaving ? 'جاري الحفظ...' : (invMode === 'return' ? 'حفظ المرتجع' : 'حفظ الفاتورة')}
                 </button>
-                <button type="button" onClick={() => setShowInvoiceModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition">إلغاء</button>
+                <button type="button" onClick={() => setShowInvoiceModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-3.5 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition">إلغاء</button>
               </div>
             </form>
           </div>
@@ -1804,26 +1804,26 @@ export default function Suppliers() {
 
         return (
           <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
-              <div className="p-8 border-b border-slate-100 flex flex-wrap gap-3 justify-between items-start bg-white">
+            <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh]">
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-3 justify-between items-start bg-white dark:bg-slate-800">
                 <div className="flex gap-6 items-center">
                   <div style={{ backgroundColor: tc }} className="w-16 h-16 rounded-3xl flex items-center justify-center text-white text-2xl font-black">
                     {selectedSupplierProfile.name.charAt(0)}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-800">{selectedSupplierProfile.name}</h2>
-                    <p className="text-slate-500 font-bold mt-1 flex items-center gap-2"><Phone size={14} /> {selectedSupplierProfile.phone}</p>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">{selectedSupplierProfile.name}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-bold mt-1 flex items-center gap-2"><Phone size={14} /> {selectedSupplierProfile.phone}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-end">
                   <div className="flex items-center gap-1 text-xs">
                     <span className="text-slate-400 font-bold">من</span>
-                    <input type="date" value={supFrom} onChange={(e) => setSupFrom(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold" />
+                    <input type="date" value={supFrom} onChange={(e) => setSupFrom(e.target.value)} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 font-bold" />
                     <span className="text-slate-400 font-bold">إلى</span>
-                    <input type="date" value={supTo} onChange={(e) => setSupTo(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 font-bold" />
+                    <input type="date" value={supTo} onChange={(e) => setSupTo(e.target.value)} className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 font-bold" />
                     {(supFrom || supTo) && <button onClick={() => { setSupFrom(''); setSupTo(''); }} className="text-slate-400 hover:text-red-500 px-1">✕</button>}
                   </div>
-                  <button onClick={exportSupplierExcel} className="text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 transition"><FileSpreadsheet size={16} /> تصدير Excel</button>
+                  <button onClick={exportSupplierExcel} className="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 px-4 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 transition"><FileSpreadsheet size={16} /> تصدير Excel</button>
                   <button onClick={exportSupplierPDF} style={{ backgroundColor: tc }} className="text-white px-4 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 hover:opacity-90 transition"><Download size={16} /> تصدير PDF</button>
                   <button
                     onClick={() => {
@@ -1832,31 +1832,31 @@ export default function Suppliers() {
                       setSupplierFinancialDate(businessDateStr(storeSettings));
                       setShowSupplierFinancialModal(true);
                     }}
-                    className="text-white bg-slate-900 hover:bg-slate-800 px-4 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 transition"
+                    className="text-white bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 px-4 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 transition"
                   >
                     <Plus size={16} /> إضافة معاملة مالية
                   </button>
-                  <button onClick={() => setShowSupplierProfile(false)} className="p-2 rounded-2xl hover:bg-slate-100 transition"><X size={24} /></button>
+                  <button onClick={() => setShowSupplierProfile(false)} className="p-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition"><X size={24} /></button>
                 </div>
               </div>
 
-              <div id="supplier-profile-pdf" className="p-8 bg-slate-50 flex-1 overflow-y-auto">
+              <div id="supplier-profile-pdf" className="p-8 bg-slate-50 dark:bg-slate-900 flex-1 overflow-y-auto">
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                  <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
                     <p className="text-xs font-bold text-slate-400 mb-1">إجمالي المشتريات</p>
-                    <p className="text-2xl font-black text-slate-800">{totalPurchases.toLocaleString()} {storeSettings.currency}</p>
+                    <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{totalPurchases.toLocaleString()} {storeSettings.currency}</p>
                   </div>
-                  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                  <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
                     <p className="text-xs font-bold text-slate-400 mb-1">إجمالي المدفوع</p>
-                    <p className="text-2xl font-black text-emerald-600">{totalPaid.toLocaleString()} {storeSettings.currency}</p>
+                    <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{totalPaid.toLocaleString()} {storeSettings.currency}</p>
                   </div>
-                  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm relative overflow-hidden">
+                  <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
                     <div className="relative z-10">
                       <p className="text-xs font-bold text-slate-400 mb-1">
                         {netBalance > 0.009 ? 'الرصيد: علينا للمورد' : netBalance < -0.009 ? 'الرصيد: لينا عند المورد' : 'الرصيد'}
                       </p>
-                      <p className={`text-2xl font-black ${netBalance > 0.009 ? 'text-red-600' : netBalance < -0.009 ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      <p className={`text-2xl font-black ${netBalance > 0.009 ? 'text-red-600' : netBalance < -0.009 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
                         {Math.abs(netBalance).toLocaleString()} {storeSettings.currency}
                       </p>
                     </div>
@@ -1865,14 +1865,14 @@ export default function Suppliers() {
 
                 {/* Pay Debt Section */}
                 {totalDebt > 0 && (
-                  <div className="bg-white p-8 rounded-[40px] border-2 border-emerald-100 shadow-xl mb-8 flex flex-col gap-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-0 opacity-50" />
+                  <div className="bg-white dark:bg-slate-800 p-8 rounded-[40px] border-2 border-emerald-100 dark:border-emerald-500/30 shadow-xl mb-8 flex flex-col gap-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 dark:bg-emerald-500/10 rounded-bl-full -z-0 opacity-50" />
                     <div className="relative z-10 flex justify-between items-center">
                       <div>
-                        <h3 className="text-xl font-black text-slate-800 mb-1">تسديد مديونية للمورد</h3>
-                        <p className="text-sm text-slate-500 font-medium">اختر طريقة الدفع ووزع المبالغ المسددة</p>
+                        <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-1">تسديد مديونية للمورد</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">اختر طريقة الدفع ووزع المبالغ المسددة</p>
                       </div>
-                      <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-2xl font-black text-lg">
+                      <div className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-2xl font-black text-lg">
                         إجمالي السداد: {sumSplit(formToSplit(debtPay)).toLocaleString()}
                       </div>
                     </div>
@@ -1883,24 +1883,24 @@ export default function Suppliers() {
                         onChange={(k, v) => setDebtPay((s) => ({ ...s, [k]: v }))}
                         cols={2}
                         labelClassName="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2"
-                        inputClassName="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
+                        inputClassName="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
                       />
                     </div>
 
-                    <div className="relative z-10 bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                      <label className="block text-sm font-bold text-slate-700 mb-2">مصدر السداد</label>
+                    <div className="relative z-10 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3">
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">مصدر السداد</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button type="button" onClick={() => setDebtPaySource('shop')}
-                          className={`py-2.5 rounded-xl font-black text-sm ${debtPaySource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                          className={`py-2.5 rounded-xl font-black text-sm ${debtPaySource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
                           خزنة المحل
                         </button>
                         <button type="button" onClick={() => setDebtPaySource('main')}
-                          className={`py-2.5 rounded-xl font-black text-sm ${debtPaySource === 'main' ? 'bg-amber-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                          className={`py-2.5 rounded-xl font-black text-sm ${debtPaySource === 'main' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
                           الخزنة الرئيسية
                         </button>
                       </div>
                       {debtPaySource === 'main' && (
-                        <p className="text-[11px] text-amber-700 font-bold mt-2">سيتم طلب OTP من المدير، ولن يظهر في تقفيل الكاشير ولا يُخصم من خزنة المحل.</p>
+                        <p className="text-[11px] text-amber-700 dark:text-amber-300 font-bold mt-2">سيتم طلب OTP من المدير، ولن يظهر في تقفيل الكاشير ولا يُخصم من خزنة المحل.</p>
                       )}
                     </div>
 
@@ -1915,14 +1915,14 @@ export default function Suppliers() {
                 )}
 
                 {/* Per-product purchase statistics */}
-                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden mb-8">
+                <div className="bg-white dark:bg-slate-800 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mb-8">
                   <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-                    <h3 className="font-black text-slate-800 flex items-center gap-2"><ShoppingCart size={18} style={{ color: tc }} /> الأصناف المشتراة من هذا المورد</h3>
-                    <span className="text-xs font-bold text-slate-400">{productStats.length} صنف · إجمالي القطع المشتراة: <span className="text-slate-700">{productStats.reduce((sum, s) => sum + s.totalQty, 0).toLocaleString()}</span></span>
+                    <h3 className="font-black text-slate-800 dark:text-slate-100 flex items-center gap-2"><ShoppingCart size={18} style={{ color: tc }} /> الأصناف المشتراة من هذا المورد</h3>
+                    <span className="text-xs font-bold text-slate-400">{productStats.length} صنف · إجمالي القطع المشتراة: <span className="text-slate-700 dark:text-slate-200">{productStats.reduce((sum, s) => sum + s.totalQty, 0).toLocaleString()}</span></span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-right text-sm">
-                      <thead className="bg-slate-50 text-slate-400 font-bold uppercase tracking-wider">
+                      <thead className="bg-slate-50 dark:bg-slate-900 text-slate-400 font-bold uppercase tracking-wider">
                         <tr>
                           <th className="p-4">المنتج</th>
                           <th className="p-4 text-center">الكود</th>
@@ -1934,7 +1934,7 @@ export default function Suppliers() {
                           <th className="p-4 text-center">المباع</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50">
+                      <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                         {productStats.length === 0 ? (
                           <tr><td colSpan={8} className="p-10 text-center text-slate-400 font-bold">لا توجد أصناف مشتراة من هذا المورد</td></tr>
                         ) : (
@@ -1942,20 +1942,20 @@ export default function Suppliers() {
                             const rowBarcode = products.find(p => p.id === s.product_id)?.barcode || '';
                             return (
                             <tr key={s.product_id} className="hover:bg-slate-50/50 transition">
-                              <td className="p-4 font-bold text-slate-800">{s.name}</td>
+                              <td className="p-4 font-bold text-slate-800 dark:text-slate-100">{s.name}</td>
                               <td className="p-4 text-center">
                                 {rowBarcode
-                                  ? <span className="text-[11px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{rowBarcode}</span>
+                                  ? <span className="text-[11px] font-mono font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-lg">{rowBarcode}</span>
                                   : <span className="text-slate-300">—</span>}
                               </td>
                               <td className="p-4 text-center">
-                                <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{getUnitConfig(s.unit).label}</span>
+                                <span className="text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-lg">{getUnitConfig(s.unit).label}</span>
                               </td>
-                              <td className="p-4 text-center font-bold text-slate-700">{formatQty(s.totalQty, s.unit)}</td>
+                              <td className="p-4 text-center font-bold text-slate-700 dark:text-slate-200">{formatQty(s.totalQty, s.unit)}</td>
                               <td className="p-4 text-center font-bold text-indigo-600">{s.avgPrice.toFixed(2)} {storeSettings.currency}</td>
                               <td className="p-4 text-center font-bold text-orange-500">{s.lastPrice.toFixed(2)} {storeSettings.currency}</td>
-                              <td className="p-4 text-center font-bold text-emerald-600">{formatQty(s.currentStock, s.unit)}</td>
-                              <td className="p-4 text-center font-bold text-slate-500">{formatQty(s.sold, s.unit)}</td>
+                              <td className="p-4 text-center font-bold text-emerald-600 dark:text-emerald-400">{formatQty(s.currentStock, s.unit)}</td>
+                              <td className="p-4 text-center font-bold text-slate-500 dark:text-slate-400">{formatQty(s.sold, s.unit)}</td>
                             </tr>
                             );
                           })
@@ -1966,14 +1966,14 @@ export default function Suppliers() {
                 </div>
 
                 {/* Account Statement (Debit / Credit ledger) */}
-                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
                   <div className="p-6 border-b border-slate-50 flex items-center justify-between flex-wrap gap-2">
-                    <h3 className="font-black text-slate-800">كشف الحساب (دائن / مدين)</h3>
+                    <h3 className="font-black text-slate-800 dark:text-slate-100">كشف الحساب (دائن / مدين)</h3>
                     <div className="text-sm font-bold">
                       {netBalance > 0.009 ? (
-                        <span className="text-red-600">الرصيد النهائي: علينا للمورد {netBalance.toLocaleString()} {storeSettings.currency}</span>
+                        <span className="text-red-600 dark:text-red-400">الرصيد النهائي: علينا للمورد {netBalance.toLocaleString()} {storeSettings.currency}</span>
                       ) : netBalance < -0.009 ? (
-                        <span className="text-emerald-600">الرصيد النهائي: لينا عند المورد {Math.abs(netBalance).toLocaleString()} {storeSettings.currency}</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">الرصيد النهائي: لينا عند المورد {Math.abs(netBalance).toLocaleString()} {storeSettings.currency}</span>
                       ) : (
                         <span className="text-slate-400">الرصيد النهائي: مُصفّى (0)</span>
                       )}
@@ -1981,40 +1981,40 @@ export default function Suppliers() {
                   </div>
                   <div className="overflow-x-auto">
                   <table className="w-full text-right text-sm">
-                    <thead className="bg-slate-50 text-slate-400 font-bold uppercase tracking-wider">
+                    <thead className="bg-slate-50 dark:bg-slate-900 text-slate-400 font-bold uppercase tracking-wider">
                       <tr>
                         <th className="p-4">التاريخ</th>
                         <th className="p-4">البيان</th>
                         <th className="p-4 text-center text-red-500">دائن (علينا)</th>
-                        <th className="p-4 text-center text-emerald-600">مدين (له / سداد)</th>
+                        <th className="p-4 text-center text-emerald-600 dark:text-emerald-400">مدين (له / سداد)</th>
                         <th className="p-4 text-center">الرصيد الجاري</th>
                         <th className="p-4 text-left">طباعة</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                       {ledgerRows.length === 0 ? (
                         <tr><td colSpan={6} className="p-10 text-center text-slate-400 font-bold">لا توجد حركات على هذا المورد</td></tr>
                       ) : (
                         ledgerRows.map(({ inv, credit, debit, balance, label, isOpening, isPayment, isCollection }) => (
-                          <tr key={inv.id} className={`hover:bg-slate-50 transition ${isCollection ? 'bg-sky-50/40' : isPayment ? 'bg-emerald-50/30' : isOpening ? 'bg-amber-50/40' : ''}`}>
+                          <tr key={inv.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800 transition ${isCollection ? 'bg-sky-50/40' : isPayment ? 'bg-emerald-50/30' : isOpening ? 'bg-amber-50/40' : ''}`}>
                             <td className="p-4 text-xs font-medium whitespace-nowrap">{new Date(inv.created_at).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</td>
-                            <td className="p-4 font-bold text-slate-800">
+                            <td className="p-4 font-bold text-slate-800 dark:text-slate-100">
                               {label}
                               <span className="block text-[10px] text-slate-400 font-mono">{inv.invoice_number}</span>
                             </td>
-                            <td className="p-4 text-center font-bold text-red-600">{credit > 0.009 ? credit.toLocaleString() : '—'}</td>
-                            <td className="p-4 text-center font-bold text-emerald-600">{debit > 0.009 ? debit.toLocaleString() : '—'}</td>
+                            <td className="p-4 text-center font-bold text-red-600 dark:text-red-400">{credit > 0.009 ? credit.toLocaleString() : '—'}</td>
+                            <td className="p-4 text-center font-bold text-emerald-600 dark:text-emerald-400">{debit > 0.009 ? debit.toLocaleString() : '—'}</td>
                             <td className="p-4 text-center font-black whitespace-nowrap">
                               {balance > 0.009 ? (
-                                <span className="text-red-600">{balance.toLocaleString()} <span className="text-[10px] font-bold">علينا</span></span>
+                                <span className="text-red-600 dark:text-red-400">{balance.toLocaleString()} <span className="text-[10px] font-bold">علينا</span></span>
                               ) : balance < -0.009 ? (
-                                <span className="text-emerald-600">{Math.abs(balance).toLocaleString()} <span className="text-[10px] font-bold">لينا</span></span>
+                                <span className="text-emerald-600 dark:text-emerald-400">{Math.abs(balance).toLocaleString()} <span className="text-[10px] font-bold">لينا</span></span>
                               ) : (
                                 <span className="text-slate-400">0</span>
                               )}
                             </td>
                             <td className="p-4 text-left">
-                              <button onClick={() => printPurchaseInvoice(inv)} className="p-2 text-slate-400 hover:text-slate-800 transition" title="طباعة"><Printer size={16} /></button>
+                              <button onClick={() => printPurchaseInvoice(inv)} className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition" title="طباعة"><Printer size={16} /></button>
                               {/* حذف السداد/التحصيل: صفوف فلوس بس (مفيش مخزون)، وحذفها بيرجّع
                                   رصيد المورد ويعكس أثرها على الخزنة المرتبطة. الفواتير والمرتجعات
                                   ليها مسارات حذف خاصة بيها لأنها بتلمس المخزون. */}
@@ -2039,13 +2039,13 @@ export default function Suppliers() {
 
               {showSupplierFinancialModal && (
                 <div className="fixed inset-0 z-[60] bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-                  <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
-                    <div className="p-6 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+                  <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-lg border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
                       <div>
-                        <h3 className="text-xl font-black text-slate-800">إضافة معاملة مالية</h3>
+                        <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">إضافة معاملة مالية</h3>
                         <p className="text-sm font-bold text-slate-400 mt-1">{selectedSupplierProfile.name}</p>
                       </div>
-                      <button onClick={() => setShowSupplierFinancialModal(false)} className="p-2 rounded-2xl hover:bg-slate-100 transition"><X size={22} /></button>
+                      <button onClick={() => setShowSupplierFinancialModal(false)} className="p-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition"><X size={22} /></button>
                     </div>
 
                     <div className="p-6 space-y-5 overflow-y-auto flex-1">
@@ -2053,25 +2053,25 @@ export default function Suppliers() {
                         <button
                           type="button"
                           onClick={() => setSupplierFinancialType('collect_from_supplier')}
-                          className={`py-3 rounded-2xl font-black border transition ${supplierFinancialType === 'collect_from_supplier' ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                          className={`py-3 rounded-2xl font-black border transition ${supplierFinancialType === 'collect_from_supplier' ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                         >
                           تحصيل من المورد
                         </button>
                         <button
                           type="button"
                           onClick={() => setSupplierFinancialType('pay_to_supplier')}
-                          className={`py-3 rounded-2xl font-black border transition ${supplierFinancialType === 'pay_to_supplier' ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-100' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                          className={`py-3 rounded-2xl font-black border transition ${supplierFinancialType === 'pay_to_supplier' ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-100' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                         >
                           سداد للمورد
                         </button>
                       </div>
 
-                      <div className="bg-slate-50 rounded-2xl p-4 flex flex-col gap-1">
+                      <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 flex flex-col gap-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-slate-500">
+                          <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
                             {supplierFinancialType === 'collect_from_supplier' ? 'المتاح تحصيله' : 'المديونية الحالية'}
                           </span>
-                          <span className="text-lg font-black text-slate-800">
+                          <span className="text-lg font-black text-slate-800 dark:text-slate-100">
                             {(supplierFinancialType === 'collect_from_supplier' ? Math.max(0, -netBalance) : Math.max(0, netBalance)).toLocaleString()} {storeSettings.currency}
                           </span>
                         </div>
@@ -2088,7 +2088,7 @@ export default function Suppliers() {
                           type="date"
                           value={supplierFinancialDate}
                           onChange={(e) => setSupplierFinancialDate(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
                         />
                       </div>
 
@@ -2097,28 +2097,28 @@ export default function Suppliers() {
                         onChange={(k, v) => setSupplierFinancialPay((s) => ({ ...s, [k]: v }))}
                         cols={2}
                         labelClassName="text-[11px] font-black text-slate-400 block pr-2 mb-1"
-                        inputClassName="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
+                        inputClassName="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center"
                       />
 
-                      <div className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-500">إجمالي المعاملة</span>
-                        <span className="text-xl font-black text-emerald-600">{sumSplit(formToSplit(supplierFinancialPay)).toLocaleString()} {storeSettings.currency}</span>
+                      <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                        <span className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي المعاملة</span>
+                        <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{sumSplit(formToSplit(supplierFinancialPay)).toLocaleString()} {storeSettings.currency}</span>
                       </div>
 
-                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                        <label className="block text-sm font-bold text-slate-700 mb-2">{supplierFinancialType === 'collect_from_supplier' ? 'وجهة التحصيل' : 'مصدر السداد'}</label>
+                      <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3">
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">{supplierFinancialType === 'collect_from_supplier' ? 'وجهة التحصيل' : 'مصدر السداد'}</label>
                         <div className="grid grid-cols-2 gap-2">
                           <button type="button" onClick={() => setFinancialSource('shop')}
-                            className={`py-2.5 rounded-xl font-black text-sm ${financialSource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                            className={`py-2.5 rounded-xl font-black text-sm ${financialSource === 'shop' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
                             خزنة المحل
                           </button>
                           <button type="button" onClick={() => setFinancialSource('main')}
-                            className={`py-2.5 rounded-xl font-black text-sm ${financialSource === 'main' ? 'bg-amber-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                            className={`py-2.5 rounded-xl font-black text-sm ${financialSource === 'main' ? 'bg-amber-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
                             الخزنة الرئيسية
                           </button>
                         </div>
                         {financialSource === 'main' && (
-                          <p className="text-[11px] text-amber-700 font-bold mt-2">
+                          <p className="text-[11px] text-amber-700 dark:text-amber-300 font-bold mt-2">
                             {supplierFinancialType === 'collect_from_supplier'
                               ? 'المبلغ يدخل الخزنة الرئيسية ولن يظهر في تقفيل الكاشير.'
                               : 'سيتم طلب OTP من المدير، ولن يظهر في تقفيل الكاشير ولا يُخصم من خزنة المحل.'}
@@ -2127,15 +2127,15 @@ export default function Suppliers() {
                       </div>
                     </div>
 
-                    <div className="p-6 border-t border-slate-100 flex gap-3 flex-shrink-0">
+                    <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex gap-3 flex-shrink-0">
                       <button
                         onClick={handleSupplierFinancialTransaction}
                         disabled={isPayingDebt}
-                        className="flex-1 bg-slate-900 text-white py-3.5 rounded-2xl font-black hover:bg-slate-800 transition disabled:opacity-50"
+                        className="flex-1 bg-slate-900 dark:bg-slate-700 text-white py-3.5 rounded-2xl font-black hover:bg-slate-800 dark:hover:bg-slate-600 transition disabled:opacity-50"
                       >
                         {isPayingDebt ? 'جاري الحفظ...' : 'حفظ المعاملة'}
                       </button>
-                      <button type="button" onClick={() => setShowSupplierFinancialModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-3.5 rounded-2xl font-black hover:bg-slate-200 transition">إلغاء</button>
+                      <button type="button" onClick={() => setShowSupplierFinancialModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-3.5 rounded-2xl font-black hover:bg-slate-200 dark:hover:bg-slate-600 transition">إلغاء</button>
                     </div>
                   </div>
                 </div>
@@ -2147,38 +2147,38 @@ export default function Suppliers() {
       {/* ── Quick Add Product Modal ── */}
       {showQuickProductModal && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto border border-slate-200 animate-in zoom-in-95 duration-200">
-            <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="font-black text-slate-800">إضافة منتج سريع</h3>
-              <button onClick={() => setShowQuickProductModal(false)} className="p-2 hover:bg-slate-200 rounded-xl transition"><X size={18} /></button>
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-200">
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="font-black text-slate-800 dark:text-slate-100">إضافة منتج سريع</h3>
+              <button onClick={() => setShowQuickProductModal(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition"><X size={18} /></button>
             </div>
             <form onSubmit={handleQuickProductSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">اسم المنتج</label>
-                <input required type="text" value={quickProductData.name} onChange={e => setQuickProductData({...quickProductData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">اسم المنتج</label>
+                <input required type="text" value={quickProductData.name} onChange={e => setQuickProductData({...quickProductData, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">التصنيف</label>
-                  <select required value={quickProductData.category_id} onChange={e => setQuickProductData({...quickProductData, category_id: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">التصنيف</label>
+                  <select required value={quickProductData.category_id} onChange={e => setQuickProductData({...quickProductData, category_id: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm">
                     <option value="">-- اختر --</option>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">سعر البيع لكل {getUnitConfig(quickProductData.unit).label}</label>
-                  <input type="number" step="0.01" value={quickProductData.sale_price} onChange={e => setQuickProductData({...quickProductData, sale_price: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold" placeholder="0.00" />
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">سعر البيع لكل {getUnitConfig(quickProductData.unit).label}</label>
+                  <input type="number" step="0.01" value={quickProductData.sale_price} onChange={e => setQuickProductData({...quickProductData, sale_price: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold" placeholder="0.00" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">وحدة البيع</label>
-                <select value={quickProductData.unit} onChange={e => setQuickProductData({...quickProductData, unit: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm">
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">وحدة البيع</label>
+                <select value={quickProductData.unit} onChange={e => setQuickProductData({...quickProductData, unit: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm">
                   {UNIT_OPTIONS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">الباركود (تلقائي)</label>
-                <input readOnly type="text" value={quickProductData.barcode} className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-400 font-mono text-xs" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الباركود (تلقائي)</label>
+                <input readOnly type="text" value={quickProductData.barcode} className="w-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-slate-400 font-mono text-xs" />
               </div>
               <button type="submit" disabled={isSaving} className="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition disabled:opacity-50">
                 {isSaving ? 'جاري الحفظ...' : 'تأكيد وإضافة للفاتورة'}

@@ -317,7 +317,7 @@ export default function Warehouses() {
             <h3 className="text-lg font-black text-slate-800 dark:text-white">إضافة مخزن / فرع جديد</h3>
             <form onSubmit={handleSaveWarehouse} className="space-y-3 text-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">اسم المخزن *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">اسم المخزن *</label>
                 <input
                   type="text"
                   required
@@ -327,7 +327,7 @@ export default function Warehouses() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">كود المخزن *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">كود المخزن *</label>
                 <input
                   type="text"
                   required
@@ -338,7 +338,7 @@ export default function Warehouses() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">أمين المخزن</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">أمين المخزن</label>
                 <input
                   type="text"
                   value={whForm.manager_name}
@@ -371,7 +371,7 @@ export default function Warehouses() {
             <form onSubmit={handleSaveTransfer} className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">من مخزن (المصدر)</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">من مخزن (المصدر)</label>
                   <select
                     value={transferForm.source_warehouse_id}
                     onChange={(e) => setTransferForm({ ...transferForm, source_warehouse_id: e.target.value })}
@@ -384,7 +384,7 @@ export default function Warehouses() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">إلى مخزن (المستهدف)</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">إلى مخزن (المستهدف)</label>
                   <select
                     value={transferForm.target_warehouse_id}
                     onChange={(e) => setTransferForm({ ...transferForm, target_warehouse_id: e.target.value })}
@@ -400,7 +400,7 @@ export default function Warehouses() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-500">الأصناف المراد تحويلها</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400">الأصناف المراد تحويلها</label>
                   <button
                     type="button"
                     onClick={handleAddItemToTransfer}

@@ -492,7 +492,7 @@ export default function Budget() {
             <Activity className="text-indigo-600" size={32} />
             الميزانية العامة
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">ملخص الأرباح والمصروفات وحركة الخزينة الشاملة</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">ملخص الأرباح والمصروفات وحركة الخزينة الشاملة</p>
         </div>
 
         {/* Filters and Actions */}
@@ -502,7 +502,7 @@ export default function Budget() {
               onClick={exportToPDF}
               disabled={isExporting}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition shadow-sm border ${
-                isExporting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-red-50 text-red-600 hover:bg-red-100 border-red-100'
+                isExporting ? 'bg-slate-100 dark:bg-slate-700 text-slate-400 border-slate-200 dark:border-slate-700' : 'bg-red-50 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/25 border-red-100'
               }`}
               title="تصدير كملف PDF"
             >
@@ -578,7 +578,7 @@ export default function Budget() {
               <Banknote size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">رصيد نهاية خزنة الكاشير</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">رصيد نهاية خزنة الكاشير</p>
               <h3 className="text-2xl font-black mt-1 text-blue-600 dark:text-blue-400">
                 {stats.cashierTreasuryBalance.toFixed(2)} <span className="text-xs text-slate-400">{storeSettings.currency}</span>
               </h3>
@@ -588,11 +588,11 @@ export default function Budget() {
 
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
               <DollarSign size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">المحصل من الفواتير</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">المحصل من الفواتير</p>
               <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
                 {stats.collectedFromInvoices.toFixed(2)} <span className="text-xs text-slate-400">{storeSettings.currency}</span>
               </h3>
@@ -606,7 +606,7 @@ export default function Budget() {
               <TrendingUp size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">إيرادات أخرى ومسدد آجل</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">إيرادات أخرى ومسدد آجل</p>
               <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
                 {stats.collectedFromOther.toFixed(2)} <span className="text-xs text-slate-400">{storeSettings.currency}</span>
               </h3>
@@ -616,11 +616,11 @@ export default function Budget() {
 
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 text-amber-600 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center">
               <Activity size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">إجمالي الآجل على العملاء</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي الآجل على العملاء</p>
               <h3 className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">
                 {totalCustomerDebt.toFixed(2)} <span className="text-xs text-slate-400">{storeSettings.currency}</span>
               </h3>
@@ -630,11 +630,11 @@ export default function Budget() {
 
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center">
               <FileText size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">إجمالي المديونية للموردين</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي المديونية للموردين</p>
               <h3 className="text-2xl font-black text-red-600 dark:text-red-400 mt-1">
                 {totalSupplierDebt.toFixed(2)} <span className="text-xs text-slate-400">{storeSettings.currency}</span>
               </h3>
@@ -647,11 +647,11 @@ export default function Budget() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
               <TrendingUp size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">إجمالي الإيرادات</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي الإيرادات</p>
               <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-1">{stats.totalRevenue.toFixed(2)}</h3>
             </div>
           </div>
@@ -659,11 +659,11 @@ export default function Budget() {
 
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center">
               <TrendingDown size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">إجمالي المصروفات</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي المصروفات</p>
               <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-1">{stats.totalExpense.toFixed(2)}</h3>
             </div>
           </div>
@@ -671,11 +671,11 @@ export default function Budget() {
 
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
               <FileText size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">إجمالي الربح من الفواتير</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">إجمالي الربح من الفواتير</p>
               <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{stats.invoiceProfit.toFixed(2)}</h3>
             </div>
           </div>
@@ -687,7 +687,7 @@ export default function Budget() {
               <TrendingUp size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">صافي الربح من التصنيع</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">صافي الربح من التصنيع</p>
               <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{manufacturingProfit.toFixed(2)}</h3>
             </div>
           </div>
@@ -700,7 +700,7 @@ export default function Budget() {
               <DollarSign size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">رصيد نهاية الخزنة الرئيسية</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">رصيد نهاية الخزنة الرئيسية</p>
               <h3 className="text-2xl font-black mt-1 text-indigo-600 dark:text-indigo-400">
                 {stats.mainTreasuryBalance.toFixed(2)}
               </h3>
@@ -714,8 +714,8 @@ export default function Budget() {
               <FileText size={24} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-500">العمليات التي تمت</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-1">{stats.count} <span className="text-sm text-slate-500 font-bold">معاملة</span></h3>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">العمليات التي تمت</p>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-1">{stats.count} <span className="text-sm text-slate-500 dark:text-slate-400 font-bold">معاملة</span></h3>
             </div>
           </div>
         </div>
@@ -735,7 +735,7 @@ export default function Budget() {
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-right">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 font-bold text-sm">
+                <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-bold text-sm">
                   <th className="px-4 py-3">التاريخ</th>
                   <th className="px-4 py-3">التصنيف</th>
                   <th className="px-4 py-3">الدفع</th>
@@ -751,7 +751,7 @@ export default function Budget() {
                           <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
                             {formatBusinessDisplayDate(tx.date)}
                           </span>
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
                             {tx.date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -759,7 +759,7 @@ export default function Budget() {
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">{tx.category}</span>
-                          <span className="text-xs text-slate-500 max-w-[120px] truncate" title={tx.description}>{tx.description}</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 max-w-[120px] truncate" title={tx.description}>{tx.description}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -779,7 +779,7 @@ export default function Budget() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
+                    <td colSpan={4} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
                       <p className="font-bold">لا توجد إيرادات</p>
                     </td>
                   </tr>
@@ -800,7 +800,7 @@ export default function Budget() {
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-right">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 font-bold text-sm">
+                <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-bold text-sm">
                   <th className="px-4 py-3">التاريخ</th>
                   <th className="px-4 py-3">التصنيف</th>
                   <th className="px-4 py-3">الدفع</th>
@@ -816,7 +816,7 @@ export default function Budget() {
                           <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
                             {formatBusinessDisplayDate(tx.date)}
                           </span>
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
                             {tx.date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -824,7 +824,7 @@ export default function Budget() {
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">{tx.category}</span>
-                          <span className="text-xs text-slate-500 max-w-[120px] truncate" title={tx.description}>{tx.description}</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 max-w-[120px] truncate" title={tx.description}>{tx.description}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -844,7 +844,7 @@ export default function Budget() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
+                    <td colSpan={4} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
                       <p className="font-bold">لا توجد مصروفات</p>
                     </td>
                   </tr>

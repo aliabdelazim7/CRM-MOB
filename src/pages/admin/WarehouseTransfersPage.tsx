@@ -280,7 +280,7 @@ export default function WarehouseTransfersPage() {
             <form onSubmit={handleCreateTransfer} className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">المخزن المصدر *</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">المخزن المصدر *</label>
                   <select
                     value={sourceWh}
                     onChange={(e) => setSourceWh(e.target.value)}
@@ -294,7 +294,7 @@ export default function WarehouseTransfersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">المخزن المستهدف *</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">المخزن المستهدف *</label>
                   <select
                     value={targetWh}
                     onChange={(e) => setTargetWh(e.target.value)}
@@ -309,7 +309,7 @@ export default function WarehouseTransfersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">المنتج المراد تحويله</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">المنتج المراد تحويله</label>
                 <select
                   value={selectedProductId}
                   onChange={(e) => setSelectedProductId(e.target.value)}
@@ -324,7 +324,7 @@ export default function WarehouseTransfersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">الكمية المطلوبة</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الكمية المطلوبة</label>
                 <input
                   type="number"
                   min="1"
@@ -335,7 +335,7 @@ export default function WarehouseTransfersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">ملاحظات</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">ملاحظات</label>
                 <input
                   type="text"
                   value={notes}

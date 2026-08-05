@@ -75,7 +75,7 @@ export default function SupplierLedger() {
       {/* Supplier Picker Bar */}
       <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <label className="text-sm font-bold text-slate-500 shrink-0">اختر المورد:</label>
+          <label className="text-sm font-bold text-slate-500 dark:text-slate-400 shrink-0">اختر المورد:</label>
           <select
             value={selectedSupplierId}
             onChange={(e) => setSelectedSupplierId(e.target.value)}
@@ -130,7 +130,7 @@ export default function SupplierLedger() {
             </div>
             <div>
               <span className="text-xs font-bold text-slate-400 block">الرصيد الحالي المستحق</span>
-              <span className={`text-2xl font-black ${currentBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+              <span className={`text-2xl font-black ${currentBalance > 0 ? 'text-rose-600' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {currentBalance.toLocaleString()} ج.م
               </span>
             </div>
@@ -177,7 +177,7 @@ export default function SupplierLedger() {
                         {entry.transaction_type === 'payment' ? 'دفعة سداد' : 'فاتورة مشتريات'}
                       </span>
                     </td>
-                    <td className="p-4 font-mono text-xs text-slate-500">{entry.reference_number || '-'}</td>
+                    <td className="p-4 font-mono text-xs text-slate-500 dark:text-slate-400">{entry.reference_number || '-'}</td>
                     <td className="p-4 font-mono text-emerald-600 dark:text-emerald-400">
                       {entry.debit > 0 ? `${entry.debit.toLocaleString()} ج.م` : '-'}
                     </td>
@@ -208,19 +208,19 @@ export default function SupplierLedger() {
 
             <form onSubmit={handleSavePayment} className="space-y-3 text-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">المبلغ المسدد (ج.م) *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">المبلغ المسدد (ج.م) *</label>
                 <input
                   type="number"
                   min="1"
                   required
                   value={payAmount}
                   onChange={(e) => setPayAmount(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 font-bold text-lg text-emerald-600"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 font-bold text-lg text-emerald-600 dark:text-emerald-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">حساب الخزينة / الوسيلة</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">حساب الخزينة / الوسيلة</label>
                 <select
                   value={payAccountId}
                   onChange={(e) => setPayAccountId(e.target.value)}
@@ -234,7 +234,7 @@ export default function SupplierLedger() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">ملاحظات أو رقم الإيصال</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">ملاحظات أو رقم الإيصال</label>
                 <input
                   type="text"
                   value={payNote}

@@ -119,8 +119,8 @@ export default function Cashiers() {
     <div className="p-4 md:p-8 font-sans" dir="rtl">
       <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800">إدارة محاسبين الكاشير</h1>
-          <p className="text-slate-500 mt-2">إضافة وتعديل بيانات الموظفين المسؤولين عن البيع</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100">إدارة محاسبين الكاشير</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">إضافة وتعديل بيانات الموظفين المسؤولين عن البيع</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
@@ -168,13 +168,13 @@ export default function Cashiers() {
               <div className="flex gap-3 pt-4 border-t border-slate-50 dark:border-slate-700">
                  <button 
                   onClick={() => handleOpenModal(cashier)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors"
+                  className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                  >
                    <Edit size={16} /> تعديل
                  </button>
                  <button 
                   onClick={() => handleDelete(cashier.id)}
-                  className="bg-red-50 text-red-500 p-3 rounded-xl hover:bg-red-100 transition-colors"
+                  className="bg-red-50 dark:bg-red-500/10 text-red-500 p-3 rounded-xl hover:bg-red-100 dark:hover:bg-red-500/25 transition-colors"
                  >
                    <Trash2 size={18} />
                  </button>

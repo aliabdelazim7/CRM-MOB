@@ -249,13 +249,13 @@ export default function PublicInvoice() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="force-light min-h-screen flex items-center justify-center bg-slate-50">
       <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   if (error || !order || !settings) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 text-center">
+    <div className="force-light min-h-screen flex flex-col items-center justify-center bg-white p-6 text-center">
       <div className="text-red-500 text-6xl mb-4">⚠️</div>
       <h1 className="text-2xl font-black text-slate-800">عذراً، الفاتورة غير موجودة</h1>
       <p className="text-slate-500 mt-2">يرجى التأكد من الرابط الصحيح.</p>
@@ -300,7 +300,7 @@ export default function PublicInvoice() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50 py-4 sm:py-10 px-2 sm:px-4 font-sans flex flex-col items-center gap-4 sm:gap-6" dir="rtl">
+    <div className="force-light min-h-screen bg-slate-50 py-4 sm:py-10 px-2 sm:px-4 font-sans flex flex-col items-center gap-4 sm:gap-6" dir="rtl">
       
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3 no-print w-full max-w-2xl justify-center">
