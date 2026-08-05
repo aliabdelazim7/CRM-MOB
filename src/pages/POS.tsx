@@ -2,6 +2,10 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, HELD_STATUS_LABEL, type HeldInvoice, type HeldStatus, type Product } from '../store/useStore';
 import { useTheme } from '../theme';
+import {
+  isMasterCashier, cashierHasFullAccess, cashierCan, pricesHiddenFor,
+  canExchangeWithoutOtp as canExchangeNoOtp,
+} from '../utils/permissions';
 import { HeldReturnModal } from '../components/HeldReturnModal';
 import { EditInvoiceModal } from '../components/EditInvoiceModal';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Banknote, RefreshCcw, Moon, Sun, ArrowRightLeft, X, Printer, CreditCard, Smartphone, Zap, ScanLine, Camera, Box, Check, ChevronRight, ChevronLeft, FileText, MessageSquare, Send, Wallet, Edit2, Eye, HandCoins, UserMinus, Clock, PauseCircle, Undo2, Truck, Hourglass, Play } from 'lucide-react';
@@ -423,12 +427,12 @@ export default function POS() {
   const [otpBusy, setOtpBusy] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   // صلاحيات الكاشير (المدير يرى الكل؛ غيره حسب الإعدادات)
-  const isMaster = activeCashier?.id === 'master';
+  const isMaster = isMasterCashier(activeCashier);
   // صلاحية كاملة: كاشير يتجاوز الـ OTP في العمليات الحسّاسة (صرف/تحويل الخزنة الرئيسية، حذف فاتورة، أسعار الجملة).
-  const cashierFullAccess = isMaster || !!(activeCashier as any)?.full_access;
-  const canExchangeWithoutOtp = cashierFullAccess || !!(storeSettings as any).cashierPermissions?.exchangeNoOtp;
-  const pricesHidden = invoiceType !== 'retail' && !wholesaleUnlocked && !cashierFullAccess;
-  const perm = (k: string) => isMaster || ((storeSettings as any).cashierPermissions?.[k] !== false);
+  const cashierFullAccess = cashierHasFullAccess(activeCashier);
+  const canExchangeWithoutOtp = canExchangeNoOtp(activeCashier, storeSettings);
+  const pricesHidden = pricesHiddenFor(invoiceType, wholesaleUnlocked, activeCashier);
+  const perm = (k: string) => cashierCan(activeCashier, storeSettings, k);
   // تسميات وسائل الدفع
   const payLabel = (m: string) => payLabelOf(storeSettings as any, m);
   // طرق الدفع المفعّلة (الأساسية + أي إضافية مفعّلة من الإعدادات)

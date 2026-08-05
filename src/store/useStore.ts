@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { unitMinQty, unitStep } from '../utils/units';
+import { priceForType } from '../utils/pricing';
 import { payLabelOf, ALL_PAYMENT_KEYS } from '../utils/paymentMethods';
 // الربط بين صف الموظف وصف المصروف — دوال نقية في utils عشان تتغطّى بالتستات.
 import { findLinkedSalaryExpense, findLinkedEmployeeTx } from '../utils/salaryLink';
@@ -11,11 +12,6 @@ import { saveSnapshot, loadSnapshot, rememberOfflinePassword, verifyOfflinePassw
 import { withTimeout, isNetworkError, NET_TIMEOUT } from '../utils/net';
 
 // Effective unit price for the current invoice type (retail / half-wholesale / wholesale).
-function priceForType(product: any, type: string): number {
-  if (type === 'wholesale') return (product.wholesale_price && product.wholesale_price > 0) ? product.wholesale_price : product.sale_price;
-  if (type === 'half') return (product.half_wholesale_price && product.half_wholesale_price > 0) ? product.half_wholesale_price : product.sale_price;
-  return (product.discount_price && product.discount_price > 0) ? product.discount_price : product.sale_price;
-}
 
 // Creates/updates the Supabase Auth account for a cashier via the server
 // endpoint (which holds the service-role key), so a cashier added from the
@@ -1569,10 +1565,16 @@ export const useStore = create<CashierStore>((set, get) => ({
   isRefreshing: false,
   isSyncing: false,
   activeCashier: null,
-  isAdminAuthenticated: !!sessionStorage.getItem('cashier_admin_auth'),
-  adminPermissions: (() => { try { const v = sessionStorage.getItem('admin_permissions'); return v ? JSON.parse(v) : null; } catch { return null; } })(),
+  // ملحوظة: الأسطر دي كانت بتنادي sessionStorage من غير حارس، عكس localStorage
+  // فوق. يعني تحميل الموديول برّه المتصفح (اختبارات/SSR) كان بيرمي استثناء قبل
+  // ما الستور يتكوّن أصلاً. الحارس مابيغيّرش أي حاجة في المتصفح.
+  isAdminAuthenticated: typeof window !== 'undefined' && !!sessionStorage.getItem('cashier_admin_auth'),
+  adminPermissions: (() => {
+    if (typeof window === 'undefined') return null;
+    try { const v = sessionStorage.getItem('admin_permissions'); return v ? JSON.parse(v) : null; } catch { return null; }
+  })(),
   adminUsers: [],
-  isPOSAuthenticated: !!sessionStorage.getItem('cashier_pos_auth'),
+  isPOSAuthenticated: typeof window !== 'undefined' && !!sessionStorage.getItem('cashier_pos_auth'),
 
   // Admin login: authenticates against Supabase Auth using a fixed admin
   // account. The "PIN" the admin types is their Supabase password. The admin

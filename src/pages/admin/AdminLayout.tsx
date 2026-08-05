@@ -3,12 +3,13 @@ import { LayoutDashboard, Layers, Package, FileText, ShoppingCart, RotateCcw, Tr
 import { useStore } from '../../store/useStore';
 import { useEffect, useState } from 'react';
 import { useTheme } from '../../theme';
+import { isOwner as isOwnerUser, canSeePage } from '../../utils/permissions';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
   const { storeSettings, logout, maintenanceAppointments, carSubscriptions, updateMaintenanceReminded, adminPermissions } = useStore();
-  const isOwner = adminPermissions === null;
-  const canSee = (path: string) => isOwner || (adminPermissions || []).includes(path);
+  const isOwner = isOwnerUser(adminPermissions);
+  const canSee = (path: string) => canSeePage(adminPermissions, path);
   const [hasCheckedReminders, setHasCheckedReminders] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // الثيم بقى من ستور واحد مشترك — مفيش نسخة محلية هنا تتعارض مع POS.
