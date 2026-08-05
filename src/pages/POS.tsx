@@ -535,6 +535,41 @@ export default function POS() {
   const [weightUnitInput, setWeightUnitInput] = useState(''); // الكمية بالوحدة الأساسية
   const [weightSubInput, setWeightSubInput] = useState('');   // الكمية بالوحدة الفرعية (جرام...)
 
+  // ── تحديد منصة / قناة البيع (أمازون، نون، جوميا، متجر مخصص) ──
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('website');
+
+  const availableCustomStores = useMemo(() => {
+    const storeMap = new Map<string, string>();
+    products.forEach((p) => {
+      (p.custom_stores || []).forEach((cs: any) => {
+        if (cs.id && cs.name) storeMap.set(cs.id, cs.name);
+      });
+    });
+    return Array.from(storeMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [products]);
+
+  const getTargetPlatformPrice = (p: Product, platform: string) => {
+    if (platform === 'amazon' && p.amazon_price && p.amazon_price > 0) return p.amazon_price;
+    if (platform === 'noon' && p.noon_price && p.noon_price > 0) return p.noon_price;
+    if (platform === 'jumia' && p.jumia_price && p.jumia_price > 0) return p.jumia_price;
+    if (platform.startsWith('custom_')) {
+      const cKey = platform.replace('custom_', '');
+      const cs = (p.custom_stores || []).find((c: any) => c.id === cKey || c.name === cKey);
+      if (cs && cs.price && cs.price > 0) return cs.price;
+    }
+    return p.sale_price;
+  };
+
+  const handlePlatformChange = (newPlatform: string) => {
+    setSelectedPlatform(newPlatform);
+    cart.forEach((cartItem) => {
+      const p = products.find((x) => x.id === cartItem.id);
+      if (!p) return;
+      const targetPrice = getTargetPlatformPrice(p, newPlatform);
+      updatePrice(cartItem.id, targetPrice);
+    });
+  };
+
   // فتح نافذة الوزن أو الإضافة المباشرة حسب نوع وحدة المنتج
   const handleAddProduct = (product: Product) => {
     if (isFractionalUnit(product.unit)) {
@@ -543,6 +578,10 @@ export default function POS() {
       setWeightSubInput('');
     } else {
       addToCart(product);
+      if (selectedPlatform !== 'website') {
+        const targetPrice = getTargetPlatformPrice(product, selectedPlatform);
+        updatePrice(product.id, targetPrice);
+      }
     }
   };
 
@@ -561,6 +600,10 @@ export default function POS() {
     const qty = computeWeightQty();
     if (qty <= 0) return;
     addToCartQty(weightProduct, qty);
+    if (selectedPlatform !== 'website') {
+      const targetPrice = getTargetPlatformPrice(weightProduct, selectedPlatform);
+      updatePrice(weightProduct.id, targetPrice);
+    }
     setWeightProduct(null);
     setWeightUnitInput('');
     setWeightSubInput('');
@@ -4087,6 +4130,27 @@ export default function POS() {
 
         {/* Footer Checkout */}
         <div className="p-3 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 shadow-2xl">
+          {/* Sales Platform Selection (منصة البيع) */}
+          <div className="mb-3">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">🏬 منصة / قناة البيع (تطبييق أسعار المنصة تلقائياً)</label>
+            <select
+              id="pos-sales-platform"
+              value={selectedPlatform}
+              onChange={(e) => handlePlatformChange(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/50 rounded-xl px-3 py-2.5 text-sm font-black text-indigo-700 dark:text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="website">🌐 متجر الموقع الرئيسي (المباشر)</option>
+              <option value="amazon">📦 متجر أمازون (Amazon)</option>
+              <option value="noon">🏪 متجر نون (Noon)</option>
+              <option value="jumia">🛍️ متجر جوميا (Jumia)</option>
+              {availableCustomStores.map((cs: any) => (
+                <option key={cs.id} value={`custom_${cs.id}`}>
+                  🟣 {cs.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Salesperson (for commission tracking) */}
           <div className="mb-3">
             <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">👤 الموظف البائع (لحساب مبيعاته وعمولته)</label>

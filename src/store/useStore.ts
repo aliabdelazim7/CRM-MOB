@@ -251,6 +251,8 @@ export interface Order {
   cashier_name?: string;
   salesperson_id?: string; // الموظف البائع (لحساب مبيعاته/أرباحه للعمولة)
   salesperson_name?: string;
+  sales_channel?: string; // منصة البيع: website, amazon, noon, jumia, custom...
+  platform_name?: string; // الاسم المعروض للمنصة
   isOffline?: boolean;
   is_deleted?: boolean;
   deleted_at?: string | null;
