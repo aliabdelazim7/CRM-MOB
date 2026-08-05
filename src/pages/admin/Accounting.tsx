@@ -148,10 +148,10 @@ export default function Accounting() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {summary.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase">{TYPE_LABEL[s.type]}</p>
-            <p className="text-sm font-bold text-slate-600 mb-1">{s.label}</p>
-            <p className={`text-lg font-black ${s.value < -0.004 ? 'text-red-600' : 'text-slate-800'}`}>{money(s.value)}</p>
+          <div key={s.label} className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase">{TYPE_LABEL[s.type]}</p>
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">{s.label}</p>
+            <p className={`text-lg font-black ${s.value < -0.004 ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-white'}`}>{money(s.value)}</p>
           </div>
         ))}
       </div>
@@ -159,7 +159,7 @@ export default function Accounting() {
       <div className="flex gap-2">
         {([['tree', 'شجرة الحسابات'], ['checks', `فحص السلامة${issues.length ? ` (${issues.length})` : ''}`]] as const).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`px-4 py-2 rounded-xl text-sm font-black border transition ${tab === id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-600'}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-black border transition ${tab === id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}>
             {label}
             {id === 'checks' && errors.length > 0 && <span className="mr-1.5 text-red-500">●</span>}
           </button>
@@ -167,9 +167,9 @@ export default function Accounting() {
       </div>
 
       {tab === 'tree' ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
           {roots.map((r) => renderNode(r))}
-          <p className="text-[11px] text-slate-400 font-bold mt-4 pt-3 border-t border-slate-100">
+          <p className="text-[11px] text-slate-400 dark:text-slate-400 font-bold mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
             الأرقام محسوبة من الجداول القائمة (مش متخزّنة) — أي تعديل في أي شاشة بيظهر هنا على طول بعد التحديث.
           </p>
         </div>

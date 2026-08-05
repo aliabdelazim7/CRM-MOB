@@ -1095,19 +1095,19 @@ export default function Finance() {
       )}
 
       {/* Header & Date Picker */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 bg-white dark:bg-slate-800 p-6 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-700">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
-            <div className="p-2 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
+          <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+            <div className="p-2 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200 dark:shadow-none">
               <Wallet size={28} />
             </div>
             خزينة الكاشير
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">معاملات الكاشير فقط — مستقلة عن الخزنة الرئيسية</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">معاملات الكاشير فقط — مستقلة عن الخزنة الرئيسية</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 export-hide">
-          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl">
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl">
             {[
               { id: 'daily', label: 'يومي' },
               { id: 'monthly', label: 'شهري' },
@@ -1118,8 +1118,8 @@ export default function Finance() {
                 onClick={() => setFilterType(t.id as any)}
                 className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   filterType === t.id 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {t.label}
@@ -1127,15 +1127,14 @@ export default function Finance() {
             ))}
           </div>
 
-          <div className="relative flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-inner min-w-[190px]">
-            <Calendar size={20} className="text-indigo-600" />
-            <span className="flex-1 text-center font-black text-slate-700 tabular-nums" dir="ltr">
+          <div className="relative flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner min-w-[190px]">
+            <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
+            <span className="flex-1 text-center font-black text-slate-700 dark:text-slate-200 tabular-nums" dir="ltr">
               {selectedDateDisplay}
             </span>
             <input
               type={filterType === 'monthly' ? 'month' : (filterType === 'yearly' ? 'number' : 'date')}
               value={filterType === 'yearly' ? selectedDate.split('-')[0] : (filterType === 'monthly' ? selectedDate.slice(0,7) : selectedDate)}
-              // الضغط على أي مكان في الخانة يفتح التقويم — من غير ما تصيب الأيقونة المخفية بالظبط.
               onClick={(e) => { try { (e.currentTarget as any).showPicker?.(); } catch {} }}
               onChange={(e) => {
                 const val = e.target.value;
@@ -1156,14 +1155,14 @@ export default function Finance() {
           <div className="flex gap-2">
             <button 
               onClick={exportToExcel}
-              className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition shadow-sm border border-emerald-100"
+              className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-2xl hover:bg-emerald-100 transition shadow-sm border border-emerald-100 dark:border-emerald-900/50"
               title="تصدير Excel"
             >
               <Download size={22} />
             </button>
             <button 
               onClick={exportToPDF}
-              className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition shadow-sm border border-red-100"
+              className="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-2xl hover:bg-red-100 transition shadow-sm border border-red-100 dark:border-red-900/50"
               title="تصدير PDF"
             >
               <FileText size={22} />
@@ -1181,30 +1180,30 @@ export default function Finance() {
 
       {/* New Breakdown Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-[32px] border border-emerald-100 shadow-sm">
-          <p className="text-emerald-600 font-bold text-xs mb-1">المحصل من الفواتير</p>
-          <h3 className="text-2xl font-black text-emerald-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-emerald-100 dark:border-emerald-900/50 shadow-sm">
+          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-xs mb-1">المحصل من الفواتير</p>
+          <h3 className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
             {collectedFromInvoices.toLocaleString()} <span className="text-sm font-normal opacity-50">{storeSettings.currency}</span>
           </h3>
         </div>
 
-        <div className="bg-white p-6 rounded-[32px] border border-indigo-100 shadow-sm">
-          <p className="text-indigo-600 font-bold text-xs mb-1">إيرادات أخرى ومسدد آجل</p>
-          <h3 className="text-2xl font-black text-indigo-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
+          <p className="text-indigo-600 dark:text-indigo-400 font-bold text-xs mb-1">إيرادات أخرى ومسدد آجل</p>
+          <h3 className="text-2xl font-black text-indigo-700 dark:text-indigo-300">
             {collectedFromOther.toLocaleString()} <span className="text-sm font-normal opacity-50">{storeSettings.currency}</span>
           </h3>
         </div>
 
-        <div className="bg-white p-6 rounded-[32px] border border-amber-100 shadow-sm">
-          <p className="text-amber-600 font-bold text-xs mb-1">إجمالي الآجل على العملاء</p>
-          <h3 className="text-2xl font-black text-amber-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-amber-100 dark:border-amber-900/50 shadow-sm">
+          <p className="text-amber-600 dark:text-amber-400 font-bold text-xs mb-1">إجمالي الآجل على العملاء</p>
+          <h3 className="text-2xl font-black text-amber-700 dark:text-amber-300">
             {totalCustomerDebt.toLocaleString()} <span className="text-sm font-normal opacity-50">{storeSettings.currency}</span>
           </h3>
         </div>
 
-        <div className="bg-white p-6 rounded-[32px] border border-red-100 shadow-sm">
-          <p className="text-red-600 font-bold text-xs mb-1">إجمالي المديونية للموردين</p>
-          <h3 className="text-2xl font-black text-red-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-red-100 dark:border-red-900/50 shadow-sm">
+          <p className="text-red-600 dark:text-red-400 font-bold text-xs mb-1">إجمالي المديونية للموردين</p>
+          <h3 className="text-2xl font-black text-red-700 dark:text-red-300">
             {totalSupplierDebt.toLocaleString()} <span className="text-sm font-normal opacity-50">{storeSettings.currency}</span>
           </h3>
         </div>
@@ -1213,51 +1212,51 @@ export default function Finance() {
       {/* Financial Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
         {/* Opening Balance */}
-        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <p className="text-slate-400 font-bold text-xs mb-1">رصيد الافتتاح</p>
-          <h3 className="text-2xl font-black text-slate-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-700 shadow-sm">
+          <p className="text-slate-400 dark:text-slate-400 font-bold text-xs mb-1">رصيد الافتتاح</p>
+          <h3 className="text-2xl font-black text-slate-700 dark:text-white">
             {openingBalance.toLocaleString()} <span className="text-sm font-normal opacity-50">{storeSettings.currency}</span>
           </h3>
-          <div className="mt-2 text-[10px] text-slate-400 font-bold flex items-center gap-1">
+          <div className="mt-2 text-[10px] text-slate-400 dark:text-slate-400 font-bold flex items-center gap-1">
              بناءً على المعاملات السابقة
           </div>
         </div>
 
         {/* Daily In */}
-        <div className="bg-white p-6 rounded-[32px] border border-emerald-100 shadow-sm bg-emerald-50/20">
-          <p className="text-emerald-600 font-bold text-xs mb-1">إجمالي الداخل {filterType === 'daily' ? 'اليوم' : filterType === 'monthly' ? 'للشهر' : 'للعام'}</p>
-          <h3 className="text-2xl font-black text-emerald-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-emerald-100 dark:border-emerald-900/50 shadow-sm bg-emerald-50/20 dark:bg-emerald-950/20">
+          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-xs mb-1">إجمالي الداخل {filterType === 'daily' ? 'اليوم' : filterType === 'monthly' ? 'للشهر' : 'للعام'}</p>
+          <h3 className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
             +{dailyIncome.toLocaleString()} <span className="text-sm font-normal opacity-50">{storeSettings.currency}</span>
           </h3>
-          <div className="mt-2 text-[10px] text-emerald-500 font-bold flex items-center gap-1">
+          <div className="mt-2 text-[10px] text-emerald-500 dark:text-emerald-400 font-bold flex items-center gap-1">
              {filterType === 'daily' ? 'مبيعات وتحصيل من العملاء اليوم' : (filterType === 'monthly' ? 'مبيعات وتحصيل من العملاء الشهر' : 'مبيعات وتحصيل من العملاء السنة')}
           </div>
         </div>
 
         {/* Invoice Profit */}
-        <div className="bg-white p-6 rounded-[32px] border border-emerald-100 shadow-sm bg-emerald-50/20">
-          <p className="text-emerald-600 font-bold text-xs mb-1">إجمالي الربح من الفواتير</p>
-          <h3 className="text-2xl font-black text-emerald-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-emerald-100 dark:border-emerald-900/50 shadow-sm bg-emerald-50/20 dark:bg-emerald-950/20">
+          <p className="text-emerald-600 dark:text-emerald-400 font-bold text-xs mb-1">إجمالي الربح من الفواتير</p>
+          <h3 className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
             {invoiceProfitTotal.toLocaleString()} <span className="text-sm font-normal opacity-50">{storeSettings.currency}</span>
           </h3>
-          <div className="mt-2 text-[10px] text-emerald-500 font-bold flex items-center gap-1">
+          <div className="mt-2 text-[10px] text-emerald-500 dark:text-emerald-400 font-bold flex items-center gap-1">
             <FileText size={12} /> {filterType === 'daily' ? 'ربح فواتير اليوم فقط' : (filterType === 'monthly' ? 'ربح فواتير الشهر فقط' : 'ربح فواتير السنة فقط')}
           </div>
         </div>
 
         {/* Daily Out */}
-        <div className="bg-white p-6 rounded-[32px] border border-red-100 shadow-sm bg-red-50/20">
-          <p className="text-red-600 font-bold text-xs mb-1">إجمالي الخارج {filterType === 'daily' ? 'اليوم' : filterType === 'monthly' ? 'للشهر' : 'للعام'}</p>
-          <h3 className="text-2xl font-black text-red-700">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-red-100 dark:border-red-900/50 shadow-sm bg-red-50/20 dark:bg-red-950/20">
+          <p className="text-red-600 dark:text-red-400 font-bold text-xs mb-1">إجمالي الخارج {filterType === 'daily' ? 'اليوم' : filterType === 'monthly' ? 'للشهر' : 'للعام'}</p>
+          <h3 className="text-2xl font-black text-red-700 dark:text-red-300">
             -{ (dailyExpensesTotal + dailyPurchasesTotal + dailyReturnsValue).toLocaleString() } <span className="text-sm font-normal opacity-50">{storeSettings.currency}</span>
           </h3>
-          <div className="mt-2 text-[10px] text-red-500 font-bold flex items-center gap-1">
+          <div className="mt-2 text-[10px] text-red-500 dark:text-red-400 font-bold flex items-center gap-1">
              {filterType === 'daily' ? 'مصاريف، مشتريات، ومرتجعات اليوم' : (filterType === 'monthly' ? 'مصاريف، مشتريات، ومرتجعات الشهر' : 'مصاريف، مشتريات، ومرتجعات السنة')}
           </div>
         </div>
 
         {/* Closing Balance */}
-        <div className="bg-slate-900 p-6 rounded-[32px] shadow-xl relative overflow-hidden">
+        <div className="bg-slate-900 dark:bg-slate-950 border border-slate-800 p-6 rounded-[32px] shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 blur-2xl" />
           <p className="text-slate-400 font-bold text-xs mb-1 relative z-10">رصيد الإغلاق (الحالي)</p>
           <h3 className="text-2xl font-black text-white relative z-10">
@@ -1281,10 +1280,10 @@ export default function Finance() {
             type="button"
             onClick={() => setMethodFilter((prev) => (prev === m.id ? null : m.id))}
             title={isActive ? 'إلغاء الفلتر' : `عرض معاملات ${m.label} فقط`}
-            className={`bg-white p-4 rounded-2xl border flex items-center gap-4 text-right transition-all ${
+            className={`bg-white dark:bg-slate-800 p-4 rounded-2xl border flex items-center gap-4 text-right transition-all ${
               isActive
-                ? 'border-indigo-500 ring-2 ring-indigo-200 shadow-md'
-                : 'border-slate-100 hover:border-indigo-200 hover:shadow-sm'
+                ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900 shadow-md'
+                : 'border-slate-100 dark:border-slate-700 hover:border-indigo-200 hover:shadow-sm'
             }`}
           >
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? 'bg-indigo-600 text-white' : `bg-${m.color}-50 text-${m.color}-600`}`}>
@@ -1457,7 +1456,7 @@ export default function Finance() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] border border-gray-100 dark:border-slate-700">
             <div 
               className="p-8 text-white flex justify-between items-center shrink-0"
               style={{ backgroundColor: tc }}
