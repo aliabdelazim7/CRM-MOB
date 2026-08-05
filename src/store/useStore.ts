@@ -934,7 +934,12 @@ interface CashierStore {
     carId?: string,
     dateISO?: string,
     toMainTreasury?: boolean
-  ) => Promise<string>;
+    /**
+     * بيرجّع رقم الفاتورة لو اتسجّلت فعلاً، و**null لو فشلت**.
+     * قبل كده كان بيرجّع رقم فاتورة في الحالتين، فشاشة الكاشير كانت بتطبع
+     * إيصال وتقول «تم الدفع بنجاح» لفاتورة ماوصلتش القاعدة أصلاً.
+     */
+  ) => Promise<string | null>;
   payInvoiceDebt: (
     invoiceId: string,
     customerId: string,
@@ -2013,7 +2018,14 @@ export const useStore = create<CashierStore>((set, get) => ({
         customers,
         // الفواتير القديمة كلها متختومة بنفس الوقت (منتصف اليوم المحاسبي)،
         // فالترتيب بالوقت لوحده بيبعثرها — نكسر التعادل برقم الفاتورة.
-        orders: sortOrdersNewestFirst(orders),
+        // دمج أوردرات الأوفلاين المعلقة من localStorage لضمان ظهورها في الداشبورد
+        orders: sortOrdersNewestFirst((() => {
+          const currentOffline = get().offlineQueue || [];
+          const fetchedIds = new Set(orders.map((o) => o.id));
+          const clientRefs = new Set(orders.map((o) => o.client_ref).filter(Boolean));
+          const pendingOffline = currentOffline.filter((off: any) => !fetchedIds.has(off.id) && (!off.client_ref || !clientRefs.has(off.client_ref)));
+          return [...orders, ...pendingOffline];
+        })()),
         cashiers: (cashiersRes.data ?? []) as Cashier[],
         expenses: [], // Default to empty
         invoiceCounter: counter,
@@ -2455,10 +2467,10 @@ export const useStore = create<CashierStore>((set, get) => ({
     const state = get();
     const finalCashierName = cashierName || state.activeCashier?.name || 'مدير النظام';
     const sp = state.salesperson;
-    if (state.cart.length === 0 && type !== 'payment' && type !== 'previous_debt') return state.activeInvoiceId;
+    if (state.cart.length === 0 && type !== 'payment' && type !== 'previous_debt') return null;
     // تحصيل عام للخزنة الرئيسية (type='payment') ملوش علاقة بدرج الكاشير ولا بقفل اليوم.
     const isMainCollection = toMainTreasury && type === 'payment';
-    if (!isMainCollection && !(await ensureAccountingDayOpen(state, dateISO))) return state.activeInvoiceId;
+    if (!isMainCollection && !(await ensureAccountingDayOpen(state, dateISO))) return null;
     // وقت البيع الحقيقي — مش منتصف اليوم المحاسبي. الوقت الحقيقي بيقع أصلاً جوه
     // نطاق اليوم المحاسبي الحالي (اليوم بيبدأ ٣ ص وبينتهي ٣ ص اللي بعده)، فالحسابات
     // بتقع في نفس اليوم بالظبط — وكمان بنحافظ على ساعة البيع وترتيب الفواتير.
@@ -2666,29 +2678,68 @@ export const useStore = create<CashierStore>((set, get) => ({
         client_ref: clientRef,
       });
 
+      // عمود ناقص في جدول orders (زي client_ref من db/63 لو الهجرة ماتشغّلتش)
+      // كان بيضيّع البيعة بالكامل. الأعمدة دي إضافية مش أساسية، فبنشيلها
+      // ونكمّل بدل ما العميل يدفع ومايتسجّلش عنده حاجة.
+      const missingColumn = (e: { message?: string } | null): string | null => {
+        const m = e?.message || '';
+        return m.match(/Could not find the '([^']+)' column/)?.[1]
+            ?? m.match(/column "([^"]+)" of relation/)?.[1]
+            ?? null;
+      };
+
       let orderError: { code?: string; message?: string } | null = null;
-      for (let tries = 0; tries < 5; tries++) {
-        const { error } = await supabase.from('orders').insert(orderRow());
+      const droppedColumns: string[] = [];
+      let row = orderRow() as Record<string, unknown>;
+
+      for (let tries = 0; tries < 8; tries++) {
+        const { error } = await supabase.from('orders').insert(row);
         orderError = error;
         if (!error) break;
-        if (!isDuplicateKey(error)) break;
 
-        // client_ref ليه فهرس فريد كمان (db/63) — لو هو اللي اتكرر يبقى
-        // الفاتورة دي اتسجّلت فعلاً قبل كده (النت فصل بعد الحفظ)، فمنعيدهاش.
-        if ((error.message || '').includes('client_ref')) break;
+        if (isDuplicateKey(error)) {
+          // client_ref ليه فهرس فريد (db/63) — لو هو اللي اتكرر يبقى الفاتورة
+          // اتسجّلت فعلاً قبل كده (النت فصل بعد الحفظ)، فمنعيدهاش.
+          if ((error.message || '').includes('client_ref')) break;
+          console.warn(`رقم الفاتورة ${invoiceId} متاخد — بنجرّب الرقم اللي بعده.`);
+          invoiceId = await allocateInvoiceNumber();
+          row = { ...row, id: invoiceId };
+          continue;
+        }
 
-        console.warn(`رقم الفاتورة ${invoiceId} متاخد — بنجرّب الرقم اللي بعده.`);
-        invoiceId = await allocateInvoiceNumber();
+        const col = missingColumn(error);
+        // id والمبالغ أعمدة أساسية — من غيرها الفاتورة ملهاش معنى.
+        const ESSENTIAL = ['id', 'total', 'paid_amount', 'type', 'created_at'];
+        if (col && col in row && !ESSENTIAL.includes(col)) {
+          delete row[col];
+          droppedColumns.push(col);
+          console.warn(`العمود "${col}" مش موجود في جدول orders — بنتخطّاه ونكمّل حفظ الفاتورة.`);
+          continue;
+        }
+        break;
       }
 
       if (orderError) {
         console.error('Order Insert Error:', orderError);
         alert(
           isDuplicateKey(orderError)
-            ? `تعذّر حجز رقم فاتورة متاح. شغّل db/72_atomic_invoice_number.sql على قاعدة البيانات.`
-            : `تعذّر حفظ الفاتورة: ${orderError.message}`,
+            ? 'تعذّر حجز رقم فاتورة متاح. شغّل db/72_atomic_invoice_number.sql على قاعدة البيانات.'
+            : `تعذّر حفظ الفاتورة: ${orderError.message}
+
+البيعة **ماتسجّلتش**. شغّل db/73_ensure_orders_columns.sql على قاعدة البيانات.`,
         );
-        return invoiceId;
+        // null = فشل. لازم شاشة الكاشير تعرف عشان ماتطبعش إيصال لبيعة مش موجودة.
+        return null;
+      }
+
+      if (droppedColumns.length > 0) {
+        alert(
+          `الفاتورة ${invoiceId} اتحفظت ✅
+
+بس الأعمدة دي مش موجودة في قاعدة البيانات فاتساب عليها: ${droppedColumns.join('، ')}.
+` +
+          `شغّل db/73_ensure_orders_columns.sql عشان تشتغل بكامل مميزاتها.`,
+        );
       }
 
       // تحصيل عام رايح للخزنة الرئيسية: نسجّل نظيره في دفتر الرئيسية (مربوط بالـ groupId).
