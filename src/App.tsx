@@ -186,8 +186,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
           السيستم شغّال دلوقتي من النسخة المحفوظة على الجهاز — الكاشير بيبيع عادي والفواتير بتتحفظ
           وترتفع أول ما النت يرجع. لوحة التحكم بتحتاج اتصال.
         </p>
-        <a href="/" className="bg-amber-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-amber-700 transition">
-          الرجوع لشاشة الكاشير
+        <a href="/admin/pos" className="bg-amber-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-amber-700 transition">
+          الرجوع لنقطة البيع
         </a>
       </div>
     );

@@ -80,9 +80,6 @@ export default function Login() {
             {busy ? 'جاري الدخول...' : 'دخول'}
           </button>
         </form>
-        <button onClick={() => navigate('/')} className="w-full mt-4 text-slate-400 hover:text-white text-sm transition">
-          العودة لشاشة الكاشير
-        </button>
       </div>
     </div>
   );
