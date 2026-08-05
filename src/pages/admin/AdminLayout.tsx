@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Settings, LogOut, FileText, Users, BarChart3, Wallet, MessageCircle, CreditCard, Building2, BellRing, WifiOff, Ticket, PieChart, Scissors, Briefcase, Handshake, PiggyBank, ClipboardCheck, FileBarChart, RotateCcw, Landmark, PackageSearch, Menu, X, Network, Truck, ArrowLeftRight, FileSpreadsheet, ShoppingCart, PackageCheck } from 'lucide-react';
+import { LayoutDashboard, Layers, Package, FileText, ShoppingCart, RotateCcw, Truck, Wallet, BarChart3, CreditCard, ArrowLeftRight, Users, Landmark, PiggyBank, DollarSign, Printer, Database, Moon, Settings, LogOut, Menu, X } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useEffect, useState } from 'react';
 
@@ -10,6 +10,19 @@ export default function AdminLayout() {
   const canSee = (path: string) => isOwner || (adminPermissions || []).includes(path);
   const [hasCheckedReminders, setHasCheckedReminders] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
+
+  const toggleDarkMode = () => {
+    const next = !isDarkMode;
+    setIsDarkMode(next);
+    if (next) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   useEffect(() => {
     if (hasCheckedReminders || maintenanceAppointments.length === 0 || carSubscriptions.length === 0) return;
@@ -23,20 +36,16 @@ export default function AdminLayout() {
           if (apptDateStr === tomorrowStr) {
             const car = carSubscriptions.find(c => c.id === appt.subscription_id);
             if (car) {
-              // Send Telegram Alert
               fetch('/api/telegram-alert', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   type: 'general',
-                  message: `تذكير: موعد صيانة غداً للسيارة رقم ${car.car_number} باسم ${car.customer_name}. المطلوب: ${appt.description || 'صيانة عامة'}`
+                  message: `تذكير: موعد صيانة غداً للسيارة رقم ${car.car_number} باسم ${car.customer_name}.`
                 }),
               }).catch(console.warn);
 
-              // Update in DB so it doesn't notify again
               await updateMaintenanceReminded(appt.id);
-              
-              // Local UI notification could be added here if needed, but Telegram is sufficient
             }
           }
         }
@@ -47,58 +56,29 @@ export default function AdminLayout() {
     checkReminders();
   }, [maintenanceAppointments, carSubscriptions, hasCheckedReminders, updateMaintenanceReminded]);
 
-  const navGroups = [
-    { section: 'عام', items: [
-      { name: 'نظرة عامة', path: '/admin/overview', icon: LayoutDashboard },
-      { name: 'التحليلات والتقارير', path: '/admin/analytics', icon: BarChart3 },
-      { name: 'تحليلات التصنيفات والشارات', path: '/admin/category-analytics-page', icon: PieChart },
-      { name: 'التقارير وكشوف الحساب', path: '/admin/reports', icon: FileBarChart },
-    ]},
-    { section: 'المبيعات والفواتير والشحن', items: [
-      { name: 'الفواتير والمرتجعات', path: '/admin/invoices', icon: FileText },
-      { name: 'شركات الشحن (Carriers)', path: '/admin/carriers', icon: Truck },
-      { name: 'طلبات الشحن والتتبع', path: '/admin/logistics-orders', icon: PackageCheck },
-      { name: 'الفواتير الأوفلاين', path: '/admin/offline-invoices', icon: WifiOff },
-      { name: 'المعلقة والطلبات', path: '/admin/held-invoices', icon: PackageSearch },
-      { name: 'كوبونات الخصم', path: '/admin/coupons', icon: Ticket },
-    ]},
-    { section: 'المخزون والتصنيع', items: [
-      { name: 'المخزون والمنتجات', path: '/admin/inventory', icon: Package },
-      { name: 'المخازن والتحويلات', path: '/admin/warehouse-transfers', icon: ArrowLeftRight },
-      { name: 'الجرد والتسوية', path: '/admin/stocktake', icon: ClipboardCheck },
-      { name: 'الديڤو والتوالف', path: '/admin/devo', icon: RotateCcw },
-      { name: 'التصنيع', path: '/admin/manufacturing', icon: Scissors },
-      { name: 'تنبيهات النواقص', path: '/admin/stock-alerts', icon: BellRing },
-    ]},
-    { section: 'العملاء', items: [
-      { name: 'قاعدة العملاء', path: '/admin/customers', icon: Users },
-      { name: 'حسابات الآجل', path: '/admin/deferred', icon: CreditCard },
-      { name: 'حملات واتساب', path: '/admin/whatsapp-campaigns', icon: MessageCircle },
-    ]},
-    { section: 'الموردين والمشتريات', items: [
-      { name: 'دليل الموردين', path: '/admin/suppliers', icon: Users },
-      { name: 'فواتير المشتريات المتقدمة', path: '/admin/purchase-invoices-page', icon: ShoppingCart },
-      { name: 'دفاتر الموردين والعملاء', path: '/admin/supplier-ledger-page', icon: FileSpreadsheet },
-    ]},
-    { section: 'المالية والخزائن', items: [
-      { name: 'خزينة الكاشير', path: '/admin/finance', icon: Wallet },
-      { name: 'كشوف حسابات الوسائل', path: '/admin/payment-accounts', icon: Landmark },
-      { name: 'الخزنة الرئيسية', path: '/admin/savings', icon: PiggyBank },
-      { name: 'الادخار الشخصي', path: '/admin/personal-savings', icon: Wallet },
-      { name: 'الميزانية العامة', path: '/admin/budget', icon: PieChart },
-      { name: 'شجرة الحسابات', path: '/admin/accounting', icon: Network },
-      { name: 'سلف وتمويل', path: '/admin/financing', icon: Building2 },
-      { name: 'المدراء والسحوبات', path: '/admin/managers', icon: Briefcase },
-      { name: 'الشركاء', path: '/admin/partners', icon: Handshake },
-    ]},
-    { section: 'الموظفين', items: [
-      { name: 'إدارة المحاسبين', path: '/admin/cashiers', icon: Users },
-      { name: 'الرواتب والموظفين', path: '/admin/employees', icon: Users },
-    ]},
-    { section: 'الإعدادات', items: [
-      { name: 'إعدادات النظام', path: '/admin/settings', icon: Settings },
-      ...(isOwner ? [{ name: 'مستخدمو لوحة التحكم', path: '/admin/users', icon: Users }] : []),
-    ]},
+  // Exact 21 sidebar items matching user request image
+  const menuItems = [
+    { name: 'Dashboard', path: '/admin/overview', icon: LayoutDashboard },
+    { name: 'الكوليكشن', path: '/admin/category-analytics-page', icon: Layers },
+    { name: 'المنتجات', path: '/admin/inventory', icon: Package },
+    { name: 'الفواتير', path: '/admin/invoices', icon: FileText },
+    { name: 'المشتريات', path: '/admin/purchase-invoices-page', icon: ShoppingCart },
+    { name: 'المرتجعات', path: '/admin/invoices', icon: RotateCcw },
+    { name: 'شركات الشحن', path: '/admin/logistics-orders', icon: Truck },
+    { name: 'المصروفات', path: '/admin/finance', icon: Wallet },
+    { name: 'التقارير', path: '/admin/reports', icon: BarChart3 },
+    { name: 'إدارة الديون', path: '/admin/supplier-ledger-page', icon: CreditCard },
+    { name: 'إدارة المخزون', path: '/admin/warehouse-transfers', icon: ArrowLeftRight },
+    { name: 'العملاء', path: '/admin/customers', icon: Users },
+    { name: 'الموردين', path: '/admin/suppliers', icon: Users },
+    { name: 'الحسابات البنكية', path: '/admin/payment-accounts', icon: Landmark },
+    { name: 'فلوس المتجر', path: '/admin/savings', icon: PiggyBank },
+    { name: 'تحصيل المنصات', path: '/admin/carriers', icon: DollarSign },
+    { name: 'نقطة البيع', path: '/pos', icon: Printer, isExternal: true },
+    { name: 'النسخ الاحتياطي', path: '/admin/offline-invoices', icon: Database },
+    ...(isOwner ? [{ name: 'المستخدمين', path: '/admin/users', icon: Users }] : []),
+    { name: 'الوضع الداكن', path: '#dark-mode', icon: Moon, isAction: true },
+    { name: 'الإعدادات', path: '/admin/settings', icon: Settings },
   ];
 
   const handleLogout = () => {
@@ -117,7 +97,7 @@ export default function AdminLayout() {
         />
       )}
 
-      {/* Sidebar — ثابت على الكمبيوتر، Drawer منزلق على الموبايل */}
+      {/* Sidebar */}
       <div className={`fixed lg:static inset-y-0 right-0 w-72 max-w-[85vw] bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-40 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0 lg:w-64`}>
         <div className="p-5 pb-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 bg-slate-800 p-3 rounded-2xl border border-slate-700 flex-1 min-w-0">
@@ -132,34 +112,53 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 px-4 pb-4 overflow-y-auto mt-4">
-          {navGroups.map((group) => {
-            const visible = group.items.filter((item) => canSee(item.path));
-            if (visible.length === 0) return null;
+        <nav className="flex-1 px-4 pb-4 overflow-y-auto mt-4 space-y-1">
+          {menuItems.map((item) => {
+            if (!item.isAction && !canSee(item.path)) return null;
+
+            if (item.isAction) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={toggleDarkMode}
+                  className="flex items-center gap-3 w-full px-4 py-3 lg:py-2.5 rounded-xl transition text-sm hover:bg-slate-800 hover:text-white text-slate-300 font-bold"
+                >
+                  <item.icon size={18} />
+                  {item.name} {isDarkMode ? '(مفعل)' : ''}
+                </button>
+              );
+            }
+
+            if (item.isExternal) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => { setSidebarOpen(false); navigate(item.path); }}
+                  className="flex items-center gap-3 w-full px-4 py-3 lg:py-2.5 rounded-xl transition text-sm hover:bg-slate-800 hover:text-white text-slate-300 font-bold"
+                >
+                  <item.icon size={18} />
+                  {item.name}
+                </button>
+              );
+            }
+
             return (
-            <div key={group.section} className="mb-3">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-4 mb-1.5">{group.section}</p>
-              <div className="space-y-1">
-                {visible.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    style={({ isActive }) => isActive ? { background: storeSettings.themeColor } : {}}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-3 lg:py-2.5 rounded-xl transition text-sm ${
-                        isActive
-                          ? 'text-white font-bold shadow-lg'
-                          : 'hover:bg-slate-800 hover:text-white'
-                      }`
-                    }
-                  >
-                    <item.icon size={18} />
-                    {item.name}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
+              <NavLink
+                key={item.name}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                style={({ isActive }) => isActive ? { background: storeSettings.themeColor } : {}}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 lg:py-2.5 rounded-xl transition text-sm ${
+                    isActive
+                      ? 'text-white font-bold shadow-lg'
+                      : 'hover:bg-slate-800 hover:text-white text-slate-300'
+                  }`
+                }
+              >
+                <item.icon size={18} />
+                {item.name}
+              </NavLink>
             );
           })}
         </nav>
