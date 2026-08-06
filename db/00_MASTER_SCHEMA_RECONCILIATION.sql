@@ -5,6 +5,9 @@
 --  آمن للتشغيل في أي وقت (Idempotent)، ولا يمس البيانات الحالية إطلاقاً.
 -- =============================================================================
 
+-- ── حظر التعارضات مع الـ Views القديمة إن وجدت ─────────────────────────────────
+drop view if exists v_stock_gap cascade;
+
 -- ── Table: products ─────────────────────────────────────────
 create table if not exists products (id text primary key, created_at timestamptz default now());
 alter table products add column if not exists name text;
