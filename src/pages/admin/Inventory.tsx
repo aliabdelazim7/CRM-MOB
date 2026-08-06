@@ -148,6 +148,7 @@ export default function Inventory() {
     amazon_discount_price: 0,
     amazon_commission: 0,
     amazon_ad_cost: 0,
+      amazon_shipping: 0,
     noon_price: 0,
     noon_discount_price: 0,
     noon_commission: 0,
@@ -381,6 +382,7 @@ export default function Inventory() {
       amazon_discount_price: product.amazon_discount_price || 0,
       amazon_commission: product.amazon_commission || 0,
       amazon_ad_cost: product.amazon_ad_cost || 0,
+      amazon_shipping: product.amazon_shipping || 0,
       noon_price: product.noon_price || 0,
       noon_discount_price: product.noon_discount_price || 0,
       noon_commission: product.noon_commission || 0,
@@ -423,6 +425,7 @@ export default function Inventory() {
       amazon_discount_price: 0,
       amazon_commission: 0,
       amazon_ad_cost: 0,
+      amazon_shipping: 0,
       noon_price: 0,
       noon_discount_price: 0,
       noon_commission: 0,
@@ -543,6 +546,7 @@ export default function Inventory() {
       amazon_discount_price: 0,
       amazon_commission: 0,
       amazon_ad_cost: 0,
+      amazon_shipping: 0,
       noon_price: 0,
       noon_discount_price: 0,
       noon_commission: 0,
@@ -1430,11 +1434,20 @@ export default function Inventory() {
               {/* 4. Jumia Store Section (Orange/Red Box) */}
               <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/50 rounded-2xl p-4 space-y-3">
                 <div className="text-xs font-black text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                  🛍️ متجر جوميا (Jumia)
+                  🏪 متجر جوميا (Jumia)
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-200/80 mb-1">📊 نسبة جوميا (%)</label>
+                    <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-200/80 mb-1">🛍️ سعر جوميا [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.jumia_price || ''}
+                      onChange={e => setFormData({ ...formData, jumia_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white dark:bg-slate-950 border border-amber-300 dark:border-amber-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-200/80 mb-1">📊 عمولة جوميا (%)</label>
                     <input
                       type="number" min="0" step="0.1"
                       value={formData.jumia_commission || ''}
@@ -1443,7 +1456,16 @@ export default function Inventory() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-200/80 mb-1">🚚 شحن جوميا (جنيه)</label>
+                    <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-200/80 mb-1">🏷️ سعر خصم جوميا [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.jumia_discount_price || ''}
+                      onChange={e => setFormData({ ...formData, jumia_discount_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white dark:bg-slate-950 border border-amber-300 dark:border-amber-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-800 dark:text-amber-200/80 mb-1">🚚 شحن جوميا [جنيه]</label>
                     <input
                       type="number" min="0" step="0.01"
                       value={formData.jumia_shipping || ''}
@@ -1453,25 +1475,106 @@ export default function Inventory() {
                   </div>
                 </div>
 
-                {/* Jumia Summary Card */}
+                {/* Noon Summary Card */}
                 {(() => {
-                  const jumP = formData.jumia_discount_price && formData.jumia_discount_price > 0 ? formData.jumia_discount_price : formData.jumia_price || formData.sale_price || 0;
+                  const jumP = formData.jumia_discount_price && formData.jumia_discount_price > 0 ? formData.jumia_discount_price : formData.jumia_price || 0;
+                  const jumVat = jumP * 0.14;
                   const jumComm = jumP * ((formData.jumia_commission || 0) / 100);
                   const jumShip = formData.jumia_shipping || 0;
                   const jumAd = formData.jumia_ad_cost || 0;
                   const jumTotalCost = (formData.purchase_price || 0) * 1.14;
                   const jumNet = jumP - jumTotalCost - jumComm - jumShip - jumAd;
                   return (
-                    <div className="bg-amber-100/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/40 rounded-xl p-3 text-xs text-amber-900 dark:text-amber-200 text-center">
-                      <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300">💵 صافي مكسب جوميا</span>
-                      <div className={`text-xl font-black ${jumNet >= 0 ? 'text-amber-700 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {jumNet.toFixed(2)} جنيه
+                    <div className="bg-amber-100/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/40 rounded-xl p-3 text-xs space-y-1.5 text-amber-900 dark:text-amber-200">
+                      <div className="text-center pb-1 border-b border-amber-200 dark:border-amber-500/30">
+                        <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300">💵 صافي مكسب جوميا</span>
+                        <div className={`text-xl font-black ${jumNet >= 0 ? 'text-amber-700 dark:text-amber-300' : 'text-red-600 dark:text-red-400'}`}>
+                          {jumNet.toFixed(2)} جنيه
+                        </div>
                       </div>
+                      <div className="flex justify-between"><span>🏷️ سعر جوميا:</span><span className="font-bold">{jumP.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-amber-800/80 dark:text-amber-300/70"><span>🛍️ ضريبة 14%:</span><span className="font-bold">{jumVat.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-amber-800/80 dark:text-amber-300/70"><span>⚖️ الإجمالي بعد الضريبة:</span><span className="font-bold">{(jumP + jumVat).toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-amber-800/80 dark:text-amber-300/70"><span>⛔ العمولة:</span><span className="font-bold">{jumComm.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-amber-800/80 dark:text-amber-300/70"><span>🚚 الشحن:</span><span className="font-bold">{jumShip.toFixed(2)} جنيه</span></div>
                     </div>
                   );
                 })()}
               </div>
 
+              
+{/* 4.5. Amazon Store Section (Yellow/Orange Box) */}
+              <div className="bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-500/50 rounded-2xl p-4 space-y-3">
+                <div className="text-xs font-black text-orange-800 dark:text-orange-300 flex items-center gap-1.5">
+                  🏪 متجر أمازون (Amazon)
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-orange-800 dark:text-orange-200/80 mb-1">🛍️ سعر أمازون [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.amazon_price || ''}
+                      onChange={e => setFormData({ ...formData, amazon_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white dark:bg-slate-950 border border-orange-300 dark:border-orange-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-orange-800 dark:text-orange-200/80 mb-1">📊 عمولة أمازون (%)</label>
+                    <input
+                      type="number" min="0" step="0.1"
+                      value={formData.amazon_commission || ''}
+                      onChange={e => setFormData({ ...formData, amazon_commission: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white dark:bg-slate-950 border border-orange-300 dark:border-orange-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-orange-800 dark:text-orange-200/80 mb-1">🏷️ سعر خصم أمازون [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.amazon_discount_price || ''}
+                      onChange={e => setFormData({ ...formData, amazon_discount_price: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white dark:bg-slate-950 border border-orange-300 dark:border-orange-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-orange-800 dark:text-orange-200/80 mb-1">🚚 شحن أمازون [جنيه]</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.amazon_shipping || ''}
+                      onChange={e => setFormData({ ...formData, amazon_shipping: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white dark:bg-slate-950 border border-orange-300 dark:border-orange-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Noon Summary Card */}
+                {(() => {
+                  const amzP = formData.amazon_discount_price && formData.amazon_discount_price > 0 ? formData.amazon_discount_price : formData.amazon_price || 0;
+                  const amzVat = amzP * 0.14;
+                  const amzComm = amzP * ((formData.amazon_commission || 0) / 100);
+                  const amzShip = formData.amazon_shipping || 0;
+                  const amzAd = formData.amazon_ad_cost || 0;
+                  const amzTotalCost = (formData.purchase_price || 0) * 1.14;
+                  const amzNet = amzP - amzTotalCost - amzComm - amzShip - amzAd;
+                  return (
+                    <div className="bg-orange-100/60 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-500/40 rounded-xl p-3 text-xs space-y-1.5 text-orange-900 dark:text-orange-200">
+                      <div className="text-center pb-1 border-b border-orange-200 dark:border-orange-500/30">
+                        <span className="text-[11px] font-bold text-orange-800 dark:text-orange-300">💵 صافي مكسب أمازون</span>
+                        <div className={`text-xl font-black ${amzNet >= 0 ? 'text-orange-700 dark:text-orange-300' : 'text-red-600 dark:text-red-400'}`}>
+                          {amzNet.toFixed(2)} جنيه
+                        </div>
+                      </div>
+                      <div className="flex justify-between"><span>🏷️ سعر أمازون:</span><span className="font-bold">{amzP.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-orange-800/80 dark:text-orange-300/70"><span>🛍️ ضريبة 14%:</span><span className="font-bold">{amzVat.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-orange-800/80 dark:text-orange-300/70"><span>⚖️ الإجمالي بعد الضريبة:</span><span className="font-bold">{(amzP + amzVat).toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-orange-800/80 dark:text-orange-300/70"><span>⛔ العمولة:</span><span className="font-bold">{amzComm.toFixed(2)} جنيه</span></div>
+                      <div className="flex justify-between text-orange-800/80 dark:text-orange-300/70"><span>🚚 الشحن:</span><span className="font-bold">{amzShip.toFixed(2)} جنيه</span></div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              
               {/* 5. Platforms Net Profit Summary Card Grid (`🛒 أسعار المنصات والخصومات`) */}
               {(() => {
                 const sale = formData.sale_price || 0;
@@ -1487,13 +1590,16 @@ export default function Inventory() {
                 const jumP = formData.jumia_discount_price && formData.jumia_discount_price > 0 ? formData.jumia_discount_price : formData.jumia_price || 0;
                 const jumComm = jumP * ((formData.jumia_commission || 0) / 100);
                 const jumNet = jumP > 0 ? (jumP - totalCost - jumComm - (formData.jumia_shipping || 0) - (formData.jumia_ad_cost || 0)) : 0;
+                const amzP = formData.amazon_discount_price && formData.amazon_discount_price > 0 ? formData.amazon_discount_price : formData.amazon_price || 0;
+                const amzComm = amzP * ((formData.amazon_commission || 0) / 100);
+                const amzNet = amzP > 0 ? (amzP - totalCost - amzComm - (formData.amazon_shipping || 0) - (formData.amazon_ad_cost || 0)) : 0;
 
                 return (
                   <div className="bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-500/40 rounded-2xl p-3.5 space-y-2">
                     <div className="text-xs font-black text-sky-800 dark:text-sky-300 flex items-center gap-1.5">
                       🛒 أسعار المنصات والخصومات
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="grid grid-cols-4 gap-2 text-center text-xs">
                       <div className="bg-white dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 block">💬 الموقع</span>
                         <span className={`font-black ${webProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{webProfit.toFixed(2)}</span>
@@ -1505,6 +1611,10 @@ export default function Inventory() {
                       <div className="bg-white dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 block">🛍️ جوميا</span>
                         <span className={`font-black ${jumNet >= 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{jumNet.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">📦 أمازون</span>
+                        <span className={`font-black ${amzNet >= 0 ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'}`}>{amzNet.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -1532,7 +1642,7 @@ export default function Inventory() {
                     🔄 إعادة تعيين الإعلانات
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
                   <div>
                     <label className="block text-[11px] font-bold text-pink-800 dark:text-pink-200/80 mb-1">إعلانات الموقع (جنيه)</label>
                     <input
@@ -1557,6 +1667,15 @@ export default function Inventory() {
                       type="number" min="0" step="0.01"
                       value={formData.noon_ad_cost || ''}
                       onChange={e => setFormData({ ...formData, noon_ad_cost: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-white dark:bg-slate-950 border border-pink-300 dark:border-pink-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-pink-800 dark:text-pink-200/80 mb-1">إعلانات أمازون (جنيه)</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={formData.amazon_ad_cost || ''}
+                      onChange={e => setFormData({ ...formData, amazon_ad_cost: parseFloat(e.target.value) || 0 })}
                       className="w-full bg-white dark:bg-slate-950 border border-pink-300 dark:border-pink-500/30 text-slate-900 dark:text-white py-2 px-3 rounded-xl text-center text-xs font-bold"
                     />
                   </div>

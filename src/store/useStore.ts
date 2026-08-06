@@ -167,6 +167,7 @@ export interface Product {
   amazon_discount_price?: number;
   amazon_commission?: number;
   amazon_ad_cost?: number;
+  amazon_shipping?: number;
   noon_price?: number;
   noon_discount_price?: number;
   noon_commission?: number;
@@ -711,6 +712,18 @@ export interface AdminUser {
 }
 
 // ─── HANCES PRO Enterprise Interfaces ─────────────────────────
+export interface PlatformCollection {
+  id: string;
+  entity_type: 'platform' | 'carrier';
+  entity_name: string;
+  month: string;
+  expected_amount: number;
+  collected_amount: number;
+  status: 'pending' | 'collected';
+  notes?: string;
+  created_at?: string;
+}
+
 export interface ShippingCarrier {
   id: string;
   name: string;
@@ -907,6 +920,7 @@ interface CashierStore {
 
   // Enterprise HANCES PRO state
   carriers: ShippingCarrier[];
+  platformCollections: PlatformCollection[];
   shipments: Shipment[];
   warehouses: Warehouse[];
   warehouseStocks: WarehouseStock[];
@@ -919,6 +933,11 @@ interface CashierStore {
 
   // Enterprise HANCES PRO Actions
   loadEnterpriseData: () => Promise<void>;
+  loadPlatformCollections: () => Promise<void>;
+  addPlatformCollection: (data: Partial<PlatformCollection>) => Promise<boolean>;
+  updatePlatformCollection: (id: string, data: Partial<PlatformCollection>) => Promise<boolean>;
+  deletePlatformCollection: (id: string) => Promise<boolean>;
+
   addShippingCarrier: (carrier: Partial<ShippingCarrier>) => Promise<boolean>;
   updateShippingCarrier: (id: string, carrier: Partial<ShippingCarrier>) => Promise<boolean>;
   deleteShippingCarrier: (id: string) => Promise<boolean>;
@@ -1697,6 +1716,7 @@ export const useStore = create<CashierStore>((set, get) => ({
   writeOffs: [],
   stockIntakes: [],
   carriers: [],
+  platformCollections: [],
   shipments: [],
   warehouses: [],
   warehouseStocks: [],
@@ -7717,6 +7737,7 @@ setupRealtime: () => {
     try {
       const [
         carriersRes,
+        platformCollectionsRes,
         shipmentsRes,
         logisticsOrdersRes,
         warehousesRes,
@@ -7728,6 +7749,7 @@ setupRealtime: () => {
         advInvRes
       ] = await Promise.all([
         supabase.from('shipping_carriers').select('*').order('created_at', { ascending: false }),
+        supabase.from('platform_collections').select('*').order('created_at', { ascending: false }),
         supabase.from('shipments').select('*').order('created_at', { ascending: false }),
         supabase.from('logistics_orders').select('*').order('created_at', { ascending: false }),
         supabase.from('warehouses').select('*').order('created_at', { ascending: false }),
@@ -7741,6 +7763,7 @@ setupRealtime: () => {
 
       set({
         carriers: carriersRes.data ? (carriersRes.data as ShippingCarrier[]) : [],
+        platformCollections: platformCollectionsRes.data ? (platformCollectionsRes.data as PlatformCollection[]) : [],
         shipments: shipmentsRes.data ? (shipmentsRes.data as Shipment[]) : [],
         logisticsOrders: logisticsOrdersRes.data ? (logisticsOrdersRes.data as LogisticsOrder[]) : [],
         warehouses: warehousesRes.data ? (warehousesRes.data as Warehouse[]) : [],
@@ -7753,6 +7776,57 @@ setupRealtime: () => {
       });
     } catch (e) {
       console.warn("loadEnterpriseData failed or tables not created yet:", e);
+    }
+  },
+
+  
+  loadPlatformCollections: async () => {
+    try {
+      const { data, error } = await supabase.from('platform_collections').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      set({ platformCollections: data as PlatformCollection[] });
+    } catch (e) {
+      console.warn('loadPlatformCollections error', e);
+    }
+  },
+
+  addPlatformCollection: async (data) => {
+    try {
+      const { data: newRow, error } = await supabase.from('platform_collections').insert([data]).select().single();
+      if (error) throw error;
+      set(state => ({ platformCollections: [newRow, ...state.platformCollections] }));
+      return true;
+    } catch (e) {
+      console.warn('addPlatformCollection error', e);
+      return false;
+    }
+  },
+
+  updatePlatformCollection: async (id, data) => {
+    try {
+      const { error } = await supabase.from('platform_collections').update(data).eq('id', id);
+      if (error) throw error;
+      set(state => ({
+        platformCollections: state.platformCollections.map(item => item.id === id ? { ...item, ...data } : item)
+      }));
+      return true;
+    } catch (e) {
+      console.warn('updatePlatformCollection error', e);
+      return false;
+    }
+  },
+
+  deletePlatformCollection: async (id) => {
+    try {
+      const { error } = await supabase.from('platform_collections').delete().eq('id', id);
+      if (error) throw error;
+      set(state => ({
+        platformCollections: state.platformCollections.filter(item => item.id !== id)
+      }));
+      return true;
+    } catch (e) {
+      console.warn('deletePlatformCollection error', e);
+      return false;
     }
   },
 

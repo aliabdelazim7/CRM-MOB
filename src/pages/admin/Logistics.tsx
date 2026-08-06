@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Truck, Plus, Search, ExternalLink, PackageCheck, CheckCircle2, Clock } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import type { ShippingCarrier, Shipment } from '../../store/useStore';
+import type { ShippingCarrier, Shipment, PlatformCollection } from '../../store/useStore';
 
 export default function Logistics() {
-  const { carriers, shipments, loadEnterpriseData, addShippingCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus } = useStore();
-  const [activeTab, setActiveTab] = useState<'carriers' | 'shipments'>('shipments');
+  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, deletePlatformCollection } = useStore();
+  const [activeTab, setActiveTab] = useState<'carriers' | 'shipments' | 'collections'>('shipments');
   const [search, setSearch] = useState('');
   
   // Carrier Form Modal State
@@ -14,6 +14,13 @@ export default function Logistics() {
     name: '', contact_person: '', phone: '', email: '', rate_per_kg: 0, base_fee: 0, tracking_url_template: '', notes: '', status: 'active'
   });
   
+  
+  // Collection Form Modal State
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [collectionForm, setCollectionForm] = useState<Partial<PlatformCollection>>({
+    entity_type: 'platform', entity_name: 'أمازون (Amazon)', month: new Date().toISOString().slice(0,7), expected_amount: 0, collected_amount: 0, status: 'pending', notes: ''
+  });
+
   // Shipment Form Modal State
   const [showShipmentModal, setShowShipmentModal] = useState(false);
   const [shipmentForm, setShipmentForm] = useState<Partial<Shipment>>({
@@ -34,6 +41,17 @@ export default function Logistics() {
     }
   };
 
+  
+  const handleSaveCollection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!collectionForm.entity_name || !collectionForm.month) return;
+    const ok = await addPlatformCollection(collectionForm);
+    if (ok) {
+      setShowCollectionModal(false);
+      setCollectionForm({ entity_type: 'platform', entity_name: 'أمازون (Amazon)', month: new Date().toISOString().slice(0,7), expected_amount: 0, collected_amount: 0, status: 'pending', notes: '' });
+    }
+  };
+
   const handleSaveShipment = async (e: React.FormEvent) => {
     e.preventDefault();
     const ok = await addShipment(shipmentForm);
@@ -45,6 +63,11 @@ export default function Logistics() {
 
   const filteredCarriers = carriers.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) || (c.phone && c.phone.includes(search))
+  );
+
+  
+  const filteredCollections = (platformCollections || []).filter(c => 
+    c.entity_name.toLowerCase().includes(search.toLowerCase()) || c.month.includes(search)
   );
 
   const filteredShipments = shipments.filter((s) =>
@@ -74,7 +97,15 @@ export default function Logistics() {
         </div>
 
         <div className="flex items-center gap-3">
-          {activeTab === 'shipments' ? (
+          {activeTab === 'collections' ? (
+            <button
+              onClick={() => setShowCollectionModal(true)}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold transition shadow-lg shadow-indigo-200 dark:shadow-none"
+            >
+              <Plus size={18} />
+              إضافة تحصيل جديد
+            </button>
+          ) : activeTab === 'shipments' ? (
             <button
               onClick={() => setShowShipmentModal(true)}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold transition shadow-lg shadow-indigo-200 dark:shadow-none"
@@ -151,6 +182,16 @@ export default function Logistics() {
             سجل الشحنات
           </button>
           <button
+            onClick={() => setActiveTab('collections')}
+            className={`px-5 py-2 rounded-lg font-bold text-sm transition ${
+              activeTab === 'collections'
+                ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            التحصيلات ({platformCollections?.length || 0})
+          </button>
+          <button
             onClick={() => setActiveTab('carriers')}
             className={`px-5 py-2 rounded-lg font-bold text-sm transition ${
               activeTab === 'carriers'
@@ -175,7 +216,54 @@ export default function Logistics() {
       </div>
 
       {/* Content */}
-      {activeTab === 'shipments' ? (
+      {activeTab === 'collections' ? (
+        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm p-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-right">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400">
+                <tr>
+                  <th className="py-4 px-4">المنصة / شركة الشحن</th>
+                  <th className="py-4 px-4">الشهر</th>
+                  <th className="py-4 px-4">المتوقع</th>
+                  <th className="py-4 px-4">المحصل</th>
+                  <th className="py-4 px-4">الحالة</th>
+                  <th className="py-4 px-4">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCollections.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-slate-500">لا توجد تحصيلات مسجلة</td>
+                  </tr>
+                ) : (
+                  filteredCollections.map(c => (
+                    <tr key={c.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                      <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
+                        {c.entity_name} <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-500 mr-2">{c.entity_type === 'platform' ? 'منصة' : 'شركة شحن'}</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{c.month}</td>
+                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300 font-bold">{c.expected_amount} ج.م</td>
+                      <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-black">{c.collected_amount} ج.م</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          c.status === 'collected' 
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                        }`}>
+                          {c.status === 'collected' ? 'مُحصل' : 'معلق'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button onClick={() => deletePlatformCollection(c.id)} className="text-rose-500 hover:text-rose-700 bg-rose-50 dark:bg-rose-900/20 p-1.5 rounded-lg">حذف</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : activeTab === 'shipments' ? (
         <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse">
@@ -310,6 +398,94 @@ export default function Logistics() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Collection Form Modal */}
+      {showCollectionModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-700">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+              <h2 className="text-xl font-black text-slate-800 dark:text-white">إضافة تحصيل جديد</h2>
+              <button onClick={() => setShowCollectionModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
+            </div>
+            <form onSubmit={handleSaveCollection} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">النوع</label>
+                  <select
+                    required
+                    value={collectionForm.entity_type}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, entity_type: e.target.value as 'platform' | 'carrier' })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 dark:text-white"
+                  >
+                    <option value="platform">منصة مبيعات</option>
+                    <option value="carrier">شركة شحن</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">الجهة (المنصة / الشركة)</label>
+                  <input
+                    type="text" required
+                    placeholder="مثال: أمازون، نون، بوسطة"
+                    value={collectionForm.entity_name}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, entity_name: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 dark:text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">عن شهر</label>
+                  <input
+                    type="month" required
+                    value={collectionForm.month}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, month: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 dark:text-white text-left" dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">الحالة</label>
+                  <select
+                    required
+                    value={collectionForm.status}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, status: e.target.value as 'pending' | 'collected' })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 dark:text-white"
+                  >
+                    <option value="pending">معلق (لم يتم التحصيل بعد)</option>
+                    <option value="collected">تم التحصيل (في الرصيد)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">المبلغ المتوقع (ج.م)</label>
+                  <input
+                    type="number" step="0.01" min="0" required
+                    value={collectionForm.expected_amount || ''}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, expected_amount: parseFloat(e.target.value) || 0 })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">المبلغ الفعلي المحصل (ج.م)</label>
+                  <input
+                    type="number" step="0.01" min="0" required
+                    value={collectionForm.collected_amount || ''}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, collected_amount: parseFloat(e.target.value) || 0 })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 dark:text-white font-bold text-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onClick={() => setShowCollectionModal(false)} className="px-5 py-2.5 text-slate-500 hover:text-slate-700 font-bold transition">إلغاء</button>
+                <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none transition">حفظ التحصيل</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

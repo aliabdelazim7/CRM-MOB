@@ -55,7 +55,7 @@ export default function AdminLayout() {
     { name: 'الفواتير', path: '/admin/invoices', icon: FileText },
     { name: 'المشتريات', path: '/admin/purchase-invoices-page', icon: ShoppingCart },
     { name: 'المرتجعات', path: '/admin/invoices', icon: RotateCcw },
-    { name: 'شركات الشحن', path: '/admin/logistics-orders', icon: Truck },
+    { name: 'المنصات والشحن', path: '/admin/logistics-orders', icon: Truck },
     { name: 'المصروفات', path: '/admin/finance', icon: Wallet },
     { name: 'التقارير', path: '/admin/reports', icon: BarChart3 },
     { name: 'إدارة الديون', path: '/admin/supplier-ledger-page', icon: CreditCard },

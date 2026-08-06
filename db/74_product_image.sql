@@ -47,6 +47,7 @@ alter table products add column if not exists jumia_ad_cost          numeric def
 alter table products add column if not exists custom_stores          jsonb;
 alter table products add column if not exists colors                 jsonb;
 alter table products add column if not exists alert_limit            numeric default 5;
+alter table products add column if not exists unit                   text not null default 'قطعة';
 
 -- ── تحديث الـ schema cache بتاع PostgREST ───────────────────────────────────
 -- من غير السطر ده Supabase ممكن يفضل يرجّع "Could not find the 'image_url'
@@ -62,7 +63,7 @@ from (values
   ('amazon_commission'),('amazon_ad_cost'),('noon_price'),('noon_discount_price'),
   ('noon_commission'),('noon_shipping'),('noon_ad_cost'),('jumia_price'),
   ('jumia_discount_price'),('jumia_commission'),('jumia_shipping'),
-  ('jumia_ad_cost'),('custom_stores'),('colors'),('alert_limit')
+  ('jumia_ad_cost'),('custom_stores'),('colors'),('alert_limit'),('unit')
 ) as c(column_name)
 where not exists (
   select 1 from information_schema.columns i
