@@ -34,7 +34,6 @@ import Reports from './pages/admin/Reports';
 import Accounting from './pages/admin/Accounting';
 import AdminUsers from './pages/admin/AdminUsers';
 import Logistics from './pages/admin/Logistics';
-import CarriersPage from './pages/admin/CarriersPage';
 import LogisticsOrdersPage from './pages/admin/LogisticsOrdersPage';
 import Warehouses from './pages/admin/Warehouses';
 import WarehouseTransfersPage from './pages/admin/WarehouseTransfersPage';
@@ -311,7 +310,7 @@ function App() {
             <Route path="accounting" element={<Accounting />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="logistics" element={<Logistics />} />
-            <Route path="carriers" element={<CarriersPage />} />
+            <Route path="carriers" element={<Logistics />} />
             <Route path="logistics-orders" element={<LogisticsOrdersPage />} />
             <Route path="warehouses" element={<Warehouses />} />
             <Route path="warehouse-transfers" element={<WarehouseTransfersPage />} />
