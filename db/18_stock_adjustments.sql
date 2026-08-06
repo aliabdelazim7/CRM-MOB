@@ -12,7 +12,6 @@ create table if not exists stock_adjustments (
 );
 alter table stock_adjustments enable row level security;
 drop policy if exists "authenticated full access" on stock_adjustments;
-drop policy if exists "authenticated full access" on stock_adjustments;
 create policy "authenticated full access" on stock_adjustments for all to authenticated using (true) with check (true);
 revoke all on stock_adjustments from anon;
 grant all on stock_adjustments to authenticated;

@@ -9,7 +9,6 @@ create table if not exists admin_users (
 );
 alter table admin_users enable row level security;
 drop policy if exists "authenticated full access" on admin_users;
-drop policy if exists "authenticated full access" on admin_users;
 create policy "authenticated full access" on admin_users for all to authenticated using (true) with check (true);
 revoke all on admin_users from anon;
 grant all on admin_users to authenticated;

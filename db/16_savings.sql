@@ -10,7 +10,6 @@ create table if not exists savings_transactions (
 );
 alter table savings_transactions enable row level security;
 drop policy if exists "authenticated full access" on savings_transactions;
-drop policy if exists "authenticated full access" on savings_transactions;
 create policy "authenticated full access" on savings_transactions for all to authenticated using (true) with check (true);
 revoke all on savings_transactions from anon;
 grant all on savings_transactions to authenticated;

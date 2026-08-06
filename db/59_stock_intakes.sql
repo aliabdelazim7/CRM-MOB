@@ -26,7 +26,6 @@ create index if not exists stock_intakes_created_at_idx on stock_intakes (create
 
 alter table stock_intakes enable row level security;
 drop policy if exists "authenticated full access" on stock_intakes;
-drop policy if exists "authenticated full access" on stock_intakes;
 create policy "authenticated full access" on stock_intakes for all to authenticated using (true) with check (true);
 revoke all on stock_intakes from anon;
 grant all on stock_intakes to authenticated;

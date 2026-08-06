@@ -10,7 +10,6 @@ create table if not exists managers (
 alter table managers enable row level security;
 drop policy if exists "allow all" on managers;
 drop policy if exists "authenticated full access" on managers;
-drop policy if exists "authenticated full access" on managers;
 create policy "authenticated full access" on managers for all to authenticated using (true) with check (true);
 revoke all on managers from anon;
 grant all on managers to authenticated;

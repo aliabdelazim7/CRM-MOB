@@ -43,7 +43,6 @@ create index if not exists employee_deductions_emp_month_idx
 alter table employee_deductions enable row level security;
 drop policy if exists "allow all" on employee_deductions;
 drop policy if exists "authenticated full access" on employee_deductions;
-drop policy if exists "authenticated full access" on employee_deductions;
 create policy "authenticated full access" on employee_deductions
   for all to authenticated using (true) with check (true);
 revoke all on employee_deductions from anon;

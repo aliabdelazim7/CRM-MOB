@@ -38,7 +38,6 @@ create index if not exists employee_bonuses_emp_month_idx
 alter table employee_bonuses enable row level security;
 drop policy if exists "allow all" on employee_bonuses;
 drop policy if exists "authenticated full access" on employee_bonuses;
-drop policy if exists "authenticated full access" on employee_bonuses;
 create policy "authenticated full access" on employee_bonuses
   for all to authenticated using (true) with check (true);
 revoke all on employee_bonuses from anon;
