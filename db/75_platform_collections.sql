@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS platform_collections (
 -- سياسات الأمان RLS
 ALTER TABLE platform_collections ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow authenticated full access to platform_collections" ON platform_collections;
 CREATE POLICY "Allow authenticated full access to platform_collections"
     ON platform_collections
     FOR ALL
