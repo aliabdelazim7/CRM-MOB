@@ -33,6 +33,7 @@ alter table products add column if not exists website_ad_cost        numeric def
 alter table products add column if not exists amazon_price           numeric default 0;
 alter table products add column if not exists amazon_discount_price  numeric default 0;
 alter table products add column if not exists amazon_commission      numeric default 0;
+alter table products add column if not exists amazon_shipping        numeric default 0;
 alter table products add column if not exists amazon_ad_cost         numeric default 0;
 alter table products add column if not exists noon_price             numeric default 0;
 alter table products add column if not exists noon_discount_price    numeric default 0;
@@ -60,7 +61,7 @@ from (values
   ('image_url'),('discount_price'),('display_quantity'),('season'),
   ('wholesale_price'),('half_wholesale_price'),('color'),('factory_quantity'),
   ('supplier_name'),('website_ad_cost'),('amazon_price'),('amazon_discount_price'),
-  ('amazon_commission'),('amazon_ad_cost'),('noon_price'),('noon_discount_price'),
+  ('amazon_commission'),('amazon_shipping'),('amazon_ad_cost'),('noon_price'),('noon_discount_price'),
   ('noon_commission'),('noon_shipping'),('noon_ad_cost'),('jumia_price'),
   ('jumia_discount_price'),('jumia_commission'),('jumia_shipping'),
   ('jumia_ad_cost'),('custom_stores'),('colors'),('alert_limit'),('unit')
