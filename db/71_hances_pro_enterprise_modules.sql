@@ -99,9 +99,15 @@ alter table warehouse_transfers enable row level security;
 alter table stock_movement_logs enable row level security;
 alter table supplier_transactions enable row level security;
 
+drop policy if exists "Allow all authenticated users on shipping_carriers" on shipping_carriers;
 create policy "Allow all authenticated users on shipping_carriers" on shipping_carriers for all using (true);
+drop policy if exists "Allow all authenticated users on logistics_orders" on logistics_orders;
 create policy "Allow all authenticated users on logistics_orders" on logistics_orders for all using (true);
+drop policy if exists "Allow all authenticated users on warehouses" on warehouses;
 create policy "Allow all authenticated users on warehouses" on warehouses for all using (true);
+drop policy if exists "Allow all authenticated users on warehouse_transfers" on warehouse_transfers;
 create policy "Allow all authenticated users on warehouse_transfers" on warehouse_transfers for all using (true);
+drop policy if exists "Allow all authenticated users on stock_movement_logs" on stock_movement_logs;
 create policy "Allow all authenticated users on stock_movement_logs" on stock_movement_logs for all using (true);
+drop policy if exists "Allow all authenticated users on supplier_transactions" on supplier_transactions;
 create policy "Allow all authenticated users on supplier_transactions" on supplier_transactions for all using (true);

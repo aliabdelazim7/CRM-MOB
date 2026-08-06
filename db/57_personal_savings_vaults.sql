@@ -40,7 +40,9 @@ alter table savings_vaults enable row level security;
 alter table savings_vault_transactions enable row level security;
 
 drop policy if exists "authenticated full access" on savings_vaults;
+drop policy if exists "authenticated full access" on savings_vaults;
 create policy "authenticated full access" on savings_vaults for all to authenticated using (true) with check (true);
+drop policy if exists "authenticated full access" on savings_vault_transactions;
 drop policy if exists "authenticated full access" on savings_vault_transactions;
 create policy "authenticated full access" on savings_vault_transactions for all to authenticated using (true) with check (true);
 

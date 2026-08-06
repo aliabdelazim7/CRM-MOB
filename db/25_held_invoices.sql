@@ -40,6 +40,7 @@ create index if not exists idx_held_invoices_created_at on public.held_invoices(
 alter table public.held_invoices enable row level security;
 drop policy if exists "allow all" on public.held_invoices;
 drop policy if exists "authenticated full access" on public.held_invoices;
+drop policy if exists "authenticated full access" on public.held_invoices;
 create policy "authenticated full access" on public.held_invoices
   for all to authenticated using (true) with check (true);
 revoke all on public.held_invoices from anon;

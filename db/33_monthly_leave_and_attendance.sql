@@ -32,4 +32,5 @@ create unique index if not exists uq_employee_attendance_emp_date on employee_at
 
 alter table employee_attendance enable row level security;
 drop policy if exists "allow all" on employee_attendance;
+drop policy if exists "allow all" on employee_attendance;
 create policy "allow all" on employee_attendance for all using (true) with check (true);

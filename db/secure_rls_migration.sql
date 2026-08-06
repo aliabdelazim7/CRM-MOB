@@ -54,7 +54,8 @@ begin
     execute format('drop policy if exists "allow all" on public.%I;', t);
     execute format('drop policy if exists "authenticated full access" on public.%I;', t);
     execute format(
-      'create policy "authenticated full access" on public.%I for all to authenticated using (true) with check (true);',
+      'drop policy if exists "authenticated full access" on public.;
+create policy "authenticated full access" on public.%I for all to authenticated using (true) with check (true);',
       t
     );
     execute format('revoke all on public.%I from anon;', t);

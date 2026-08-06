@@ -26,6 +26,7 @@ create table if not exists devo_items (
 );
 alter table devo_items enable row level security;
 drop policy if exists "authenticated full access" on devo_items;
+drop policy if exists "authenticated full access" on devo_items;
 create policy "authenticated full access" on devo_items for all to authenticated using (true) with check (true);
 revoke all on devo_items from anon;
 grant all on devo_items to authenticated;
@@ -42,6 +43,7 @@ create table if not exists write_offs (
   created_at   timestamptz default now()
 );
 alter table write_offs enable row level security;
+drop policy if exists "authenticated full access" on write_offs;
 drop policy if exists "authenticated full access" on write_offs;
 create policy "authenticated full access" on write_offs for all to authenticated using (true) with check (true);
 revoke all on write_offs from anon;
