@@ -50,6 +50,11 @@ alter table products add column if not exists colors                 jsonb;
 alter table products add column if not exists alert_limit            numeric default 5;
 alter table products add column if not exists unit                   text not null default 'قطعة';
 
+-- ── السماح الكامل للـ anon و authenticated بالحفظ والتعديل ─────────
+grant all on products to anon, authenticated;
+drop policy if exists "allow_all_anon_authenticated" on products;
+create policy "allow_all_anon_authenticated" on products for all to anon, authenticated using (true) with check (true);
+
 -- ── تحديث الـ schema cache بتاع PostgREST ───────────────────────────────────
 -- من غير السطر ده Supabase ممكن يفضل يرجّع "Could not find the 'image_url'
 -- column ... in the schema cache" لدقايق رغم إن العمود اتضاف فعلاً.
