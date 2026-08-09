@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { NavLink } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { Plus, ArrowRightLeft, Search, User, Printer, CreditCard, FileText, Table as TableIcon, TrendingUp, Calendar, X, Trash2, Archive, Edit2, Eye, Undo2 } from 'lucide-react';
 import { normalizeArabic } from '../../utils/textUtils';
@@ -16,9 +15,11 @@ import jsPDF from 'jspdf';
 // html2canvas-pro يدعم ألوان oklch() في Tailwind v4 (النسخة الأصلية تفشل معها وتكسر تصدير PDF).
 import html2canvas from 'html2canvas-pro';
 import { EditInvoiceModal } from '../../components/EditInvoiceModal';
+import { AddInvoiceModal } from '../../components/AddInvoiceModal';
 
 export default function Invoices() {
   const { orders, storeSettings, deleteOrder, undoReturn } = useStore();
+  const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showReturnsOnly, setShowReturnsOnly] = useState(false);
   const [showExchangeOnly, setShowExchangeOnly] = useState(false);
@@ -495,13 +496,14 @@ export default function Invoices() {
           <p className="text-slate-500 dark:text-slate-400 mt-2">مراجعة فواتير البيع وعمليات الاسترجاع مع الفلاتر المتقدمة</p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
-          <NavLink 
-            to="/admin/pos"
+          <button 
+            type="button"
+            onClick={() => setShowAddModal(true)}
             style={{ backgroundColor: storeSettings.themeColor }}
-            className="flex items-center gap-2 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg hover:opacity-90 text-sm"
+            className="flex items-center gap-2 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg hover:opacity-90 text-sm cursor-pointer"
           >
-            <Plus size={18} /> إنشاء فاتورة جديدة
-          </NavLink>
+            <Plus size={18} /> إنشاء فاتورة مستقلة جديدة
+          </button>
           <button 
             onClick={exportExcel}
             className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg text-sm"
@@ -995,6 +997,10 @@ export default function Invoices() {
           onClose={() => setEditingOrder(null)}
         />
       )}
+      <AddInvoiceModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
     </div>
   );
 }
