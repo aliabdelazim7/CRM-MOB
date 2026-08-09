@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layers, Plus, Edit, Trash2, Image as ImageIcon, Package, TrendingUp } from 'lucide-react';
+import { Layers, Plus, Edit, Trash2, Image as ImageIcon, Package, TrendingUp, Upload } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import type { Category } from '../../store/useStore';
 
@@ -58,6 +58,34 @@ export default function CategoryAnalyticsPage() {
     setName(cat.name);
     setImageUrl(cat.image_url || '');
     setShowModal(true);
+  };
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 10 ميجابايت.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 512;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { setImageUrl(reader.result as string); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        setImageUrl(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => alert('تعذّر قراءة ملف الصورة.');
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,9 +182,16 @@ export default function CategoryAnalyticsPage() {
                   <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
                     {/* Image Thumbnail */}
                     <td className="p-4 text-center">
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 mx-auto flex items-center justify-center overflow-hidden">
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 mx-auto flex items-center justify-center overflow-hidden shadow-sm">
                         {c.image_url ? (
-                          <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                          <img
+                            src={c.image_url}
+                            alt={c.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
                         ) : (
                           <ImageIcon className="text-slate-400" size={20} />
                         )}
@@ -231,14 +266,55 @@ export default function CategoryAnalyticsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">رابط صورة الكوليكشن (اختياري)</label>
-                <input
-                  type="url"
-                  placeholder="https://example.com/image.jpg"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 font-bold text-xs"
-                />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">صورة الكوليكشن (اختياري)</label>
+                
+                <div className="space-y-3">
+                  {imageUrl && (
+                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+                      <img
+                        src={imageUrl}
+                        alt="Preview"
+                        className="w-16 h-16 rounded-xl object-cover border border-slate-300 dark:border-slate-600 shadow-sm"
+                        onError={(e) => ((e.currentTarget as HTMLElement).style.display = 'none')}
+                      />
+                      <div className="flex-1 text-xs">
+                        <div className="font-bold text-slate-800 dark:text-white">معاينة الصورة</div>
+                        <div className="text-slate-400 font-mono text-[10px] truncate max-w-[180px]">
+                          {imageUrl.startsWith('data:') ? 'صورة مرفوعة من الجهاز' : imageUrl}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl('')}
+                        className="bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 px-3 py-1.5 rounded-xl font-bold hover:bg-red-100 text-xs transition"
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  )}
+
+                  <label className="flex items-center justify-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 py-3 px-4 rounded-xl font-bold transition text-xs cursor-pointer shadow-sm">
+                    <Upload size={16} />
+                    رفع صورة مباشرة من الجهاز
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <div>
+                    <span className="text-[11px] text-slate-400 block mb-1">أو أدخل رابط صورة (URL):</span>
+                    <input
+                      type="text"
+                      placeholder="https://example.com/image.jpg"
+                      value={imageUrl.startsWith('data:') ? '' : imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 font-bold text-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
