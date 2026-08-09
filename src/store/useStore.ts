@@ -7868,10 +7868,31 @@ setupRealtime: () => {
 
   updateShipmentStatus: async (id, status) => {
     try {
+      const state = get();
+      const targetShipment = state.shipments.find((sh) => sh.id === id);
       const updateData: any = { status };
       if (status === 'delivered') updateData.delivered_at = new Date().toISOString();
       const { error } = await supabase.from('shipments').update(updateData).eq('id', id);
       if (error) { console.error(error); return false; }
+
+      // لو المرتجع رجع المنتج يرجع للمخزن
+      if (status === 'returned' && targetShipment && targetShipment.invoice_id) {
+        const matchingOrder = state.orders.find((o) => String(o.id) === String(targetShipment.invoice_id));
+        if (matchingOrder && matchingOrder.items) {
+          for (const item of matchingOrder.items) {
+            const { data: prodData } = await supabase.from('products').select('stock_quantity').eq('id', item.id).maybeSingle();
+            const currentStock = prodData?.stock_quantity ?? 0;
+            await supabase.from('products').update({ stock_quantity: currentStock + item.quantity }).eq('id', item.id);
+          }
+          set((s) => ({
+            products: s.products.map((p) => {
+              const item = matchingOrder.items.find((i: any) => i.id === p.id);
+              return item ? { ...p, stock_quantity: p.stock_quantity + item.quantity } : p;
+            })
+          }));
+        }
+      }
+
       set((s) => ({ shipments: s.shipments.map((sh) => (sh.id === id ? { ...sh, ...updateData } : sh)) }));
       return true;
     } catch (e) { console.error(e); return false; }
@@ -7888,10 +7909,31 @@ setupRealtime: () => {
 
   updateLogisticsOrderStatus: async (id, status) => {
     try {
+      const state = get();
+      const targetLogistics = state.logisticsOrders.find((lo) => lo.id === id);
       const updateData: any = { status };
       if (status === 'shipped') updateData.shipped_at = new Date().toISOString();
       const { error } = await supabase.from('logistics_orders').update(updateData).eq('id', id);
       if (error) { console.error(error); return false; }
+
+      // لو المرتجع رجع المنتج يرجع للمخزن
+      if (status === 'returned' && targetLogistics && targetLogistics.order_id) {
+        const matchingOrder = state.orders.find((o) => String(o.id) === String(targetLogistics.order_id));
+        if (matchingOrder && matchingOrder.items) {
+          for (const item of matchingOrder.items) {
+            const { data: prodData } = await supabase.from('products').select('stock_quantity').eq('id', item.id).maybeSingle();
+            const currentStock = prodData?.stock_quantity ?? 0;
+            await supabase.from('products').update({ stock_quantity: currentStock + item.quantity }).eq('id', item.id);
+          }
+          set((s) => ({
+            products: s.products.map((p) => {
+              const item = matchingOrder.items.find((i: any) => i.id === p.id);
+              return item ? { ...p, stock_quantity: p.stock_quantity + item.quantity } : p;
+            })
+          }));
+        }
+      }
+
       set((s) => ({ logisticsOrders: s.logisticsOrders.map((lo) => (lo.id === id ? { ...lo, ...updateData } : lo)) }));
       return true;
     } catch (e) { console.error(e); return false; }
