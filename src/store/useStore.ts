@@ -1051,6 +1051,15 @@ interface CashierStore {
   // Held / reserved invoices (فواتير معلقة)
   heldInvoices: HeldInvoice[];
   loadHeldInvoices: () => Promise<void>;
+  syncInvoiceToPlatformCollection: (order: {
+    id: string;
+    total: number;
+    paid_amount?: number;
+    customer_name?: string;
+    platform_name?: string;
+    notes?: string;
+    status?: 'pending' | 'collected';
+  }) => Promise<boolean>;
   holdInvoice: (data: {
     customerName?: string;
     customerPhone?: string;
@@ -2911,6 +2920,14 @@ export const useStore = create<CashierStore>((set, get) => ({
         })),
       });
       notifyLowStock(state.products, newOrder.items, updatedProducts, finalCashierName, state.storeSettings.currency);
+
+      void get().syncInvoiceToPlatformCollection({
+        id: String(invoiceId),
+        total,
+        paid_amount: savedPaidAmount,
+        customer_name: finalCustomer?.name,
+        notes: finalNotes || undefined
+      });
 
       return invoiceId;
     } catch (err) {
@@ -7798,6 +7815,48 @@ setupRealtime: () => {
       return true;
     } catch (e) {
       console.warn('addPlatformCollection error', e);
+      return false;
+    }
+  },
+
+  syncInvoiceToPlatformCollection: async (order) => {
+    try {
+      const state = get();
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const expectedAmount = Number(order.total) || 0;
+      const collectedAmount = Number(order.paid_amount) || 0;
+      const platformName = order.platform_name?.trim() || '';
+      const invoiceIdStr = String(order.id);
+
+      const existing = state.platformCollections.find(
+        (pc) => pc.notes && pc.notes.includes(`#${invoiceIdStr}`)
+      );
+
+      if (existing) {
+        const patch = {
+          entity_name: platformName || existing.entity_name || 'غير محدد (اختر المنصة)',
+          expected_amount: expectedAmount,
+          collected_amount: collectedAmount,
+          status: (collectedAmount >= expectedAmount - 0.01) ? ('collected' as const) : ('pending' as const),
+        };
+        await get().updatePlatformCollection(existing.id, patch);
+        return true;
+      }
+
+      const collectionRecord = {
+        entity_type: 'platform' as const,
+        entity_name: platformName || 'غير محدد (اختر المنصة)',
+        month: currentMonth,
+        expected_amount: expectedAmount,
+        collected_amount: collectedAmount,
+        status: (collectedAmount >= expectedAmount - 0.01) ? ('collected' as const) : ('pending' as const),
+        notes: `فاتورة تحصيل #${invoiceIdStr} - ${order.customer_name?.trim() || 'عميل'}`
+      };
+
+      await get().addPlatformCollection(collectionRecord);
+      return true;
+    } catch (e) {
+      console.warn('syncInvoiceToPlatformCollection error:', e);
       return false;
     }
   },

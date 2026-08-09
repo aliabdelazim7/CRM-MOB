@@ -4,7 +4,7 @@ import { useStore } from '../../store/useStore';
 import type { ShippingCarrier, Shipment, PlatformCollection } from '../../store/useStore';
 
 export default function Logistics() {
-  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, deletePlatformCollection } = useStore();
+  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection } = useStore();
   const [activeTab, setActiveTab] = useState<'carriers' | 'shipments' | 'collections'>('shipments');
   const [search, setSearch] = useState('');
   
@@ -217,47 +217,98 @@ export default function Logistics() {
 
       {/* Content */}
       {activeTab === 'collections' ? (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm p-4 space-y-3">
+          <div className="flex items-center justify-between text-xs text-slate-500 px-2">
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">💡 توضيح: تغيير حالة التحصيل يثبت رصيد المنصة دون تكرار إدخال الخزنة اليومية</span>
+            <span className="font-bold">عدد السجلات: {filteredCollections.length}</span>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-right">
-              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-bold">
                 <tr>
-                  <th className="py-4 px-4">المنصة / شركة الشحن</th>
+                  <th className="py-4 px-4">المنصة / الجهة</th>
+                  <th className="py-4 px-4">ملاحظات / الفاتورة</th>
                   <th className="py-4 px-4">الشهر</th>
                   <th className="py-4 px-4">المتوقع</th>
                   <th className="py-4 px-4">المحصل</th>
-                  <th className="py-4 px-4">الحالة</th>
-                  <th className="py-4 px-4">إجراءات</th>
+                  <th className="py-4 px-4">حالة التحصيل</th>
+                  <th className="py-4 px-4 text-center">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredCollections.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-slate-500">لا توجد تحصيلات مسجلة</td>
+                    <td colSpan={7} className="text-center py-8 text-slate-500 font-bold">لا توجد تحصيلات مسجلة حالياً</td>
                   </tr>
                 ) : (
-                  filteredCollections.map(c => (
-                    <tr key={c.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                      <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
-                        {c.entity_name} <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-500 mr-2">{c.entity_type === 'platform' ? 'منصة' : 'شركة شحن'}</span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{c.month}</td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300 font-bold">{c.expected_amount} ج.م</td>
-                      <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-black">{c.collected_amount} ج.م</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                          c.status === 'collected' 
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
-                        }`}>
-                          {c.status === 'collected' ? 'مُحصل' : 'معلق'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <button onClick={() => deletePlatformCollection(c.id)} className="text-rose-500 hover:text-rose-700 bg-rose-50 dark:bg-rose-900/20 p-1.5 rounded-lg">حذف</button>
-                      </td>
-                    </tr>
-                  ))
+                  filteredCollections.map(c => {
+                    const isUnassigned = !c.entity_name || c.entity_name.includes('غير محدد');
+                    return (
+                      <tr key={c.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
+                          {isUnassigned ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-black animate-pulse">
+                                ⚠️ اختر المنصة
+                              </span>
+                              <select
+                                value={c.entity_name || ''}
+                                onChange={(e) => updatePlatformCollection(c.id, { entity_name: e.target.value })}
+                                className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-xl px-2 py-1 text-xs font-black text-amber-800 dark:text-amber-300 focus:outline-none"
+                              >
+                                <option value="">-- اختر منصة التحصيل --</option>
+                                <option value="أمازون (Amazon)">أمازون (Amazon)</option>
+                                <option value="نون (Noon)">نون (Noon)</option>
+                                <option value="جوميا (Jumia)">جوميا (Jumia)</option>
+                                <option value="تيك توك شوب (TikTok Shop)">تيك توك شوب (TikTok Shop)</option>
+                                <option value="متجر سلة (Salla)">متجر سلة (Salla)</option>
+                                <option value="متجر زد (Zid)">متجر زد (Zid)</option>
+                                <option value="المحل الرئيسي">المحل الرئيسي</option>
+                                <option value="شحن خاص">شحن خاص / أخرى</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span>{c.entity_name}</span>
+                              <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-500">
+                                {c.entity_type === 'platform' ? 'منصة' : 'شركة شحن'}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
+                          {c.notes || '-'}
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{c.month}</td>
+                        <td className="py-3 px-4 text-slate-600 dark:text-slate-300 font-bold">{c.expected_amount} ج.م</td>
+                        <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-black">{c.collected_amount} ج.م</td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={c.status}
+                            onChange={(e) => {
+                              const newStatus = e.target.value as 'pending' | 'collected';
+                              const newCollected = newStatus === 'collected' ? c.expected_amount : 0;
+                              updatePlatformCollection(c.id, { status: newStatus, collected_amount: newCollected });
+                            }}
+                            className={`px-3 py-1 rounded-full text-xs font-black border border-transparent focus:outline-none cursor-pointer ${
+                              c.status === 'collected' 
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                            }`}
+                          >
+                            <option value="pending">🟡 في الطريق (قيد التحصيل)</option>
+                            <option value="collected">🟢 تمت (تم التحصيل)</option>
+                          </select>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button onClick={() => deletePlatformCollection(c.id)} className="text-rose-500 hover:text-rose-700 bg-rose-50 dark:bg-rose-900/20 px-3 py-1 rounded-lg text-xs font-bold">
+                            حذف
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
