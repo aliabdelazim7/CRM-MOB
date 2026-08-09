@@ -37,6 +37,9 @@ export function printBarcodeLabelsBatch(
   opts: { currency: string; storeName?: string }
 ) {
   const { currency, storeName } = opts;
+  const cleanStoreName = storeName
+    ? storeName.replace(/\bSystem\b/gi, '').replace(/\s+/g, ' ').trim()
+    : '';
   const usable = items.filter((it) => it.code && (Math.floor(it.count) || 0) > 0);
   if (usable.length === 0) { alert('مفيش أصناف بباركود وكمية للطباعة'); return; }
 
@@ -64,7 +67,7 @@ export function printBarcodeLabelsBatch(
     const oneLabel = `
     <div class="label">
       <div class="main">
-        ${storeName ? `<div class="store">${escapeHtml(storeName)}</div>` : ''}
+        ${cleanStoreName ? `<div class="store">${escapeHtml(cleanStoreName)}</div>` : ''}
         <div class="name">${escapeHtml(it.name)}</div>
         <img class="bc" src="${img}" />
         <div class="price">${priceHtml}</div>
