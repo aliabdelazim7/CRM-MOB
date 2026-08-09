@@ -1,7 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layers, Plus, Edit, Trash2, Image as ImageIcon, Package, TrendingUp, Upload } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import type { Category } from '../../store/useStore';
+import { formatImageUrl } from '../../utils/textUtils';
+
+function CategoryThumbnail({ src, name }: { src?: string; name: string }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  const formatted = formatImageUrl(src);
+
+  if (!formatted || hasError) {
+    return (
+      <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 mx-auto flex items-center justify-center shadow-sm">
+        <ImageIcon className="text-slate-400" size={20} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 mx-auto flex items-center justify-center overflow-hidden shadow-sm relative group">
+      <img
+        src={formatted}
+        alt={name}
+        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+        onError={() => setHasError(true)}
+      />
+    </div>
+  );
+}
 
 export default function CategoryAnalyticsPage() {
   const { categories, products, orders, addCategory, updateCategory, deleteCategory } = useStore();
@@ -182,20 +212,7 @@ export default function CategoryAnalyticsPage() {
                   <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
                     {/* Image Thumbnail */}
                     <td className="p-4 text-center">
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 mx-auto flex items-center justify-center overflow-hidden shadow-sm">
-                        {c.image_url ? (
-                          <img
-                            src={c.image_url}
-                            alt={c.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <ImageIcon className="text-slate-400" size={20} />
-                        )}
-                      </div>
+                      <CategoryThumbnail src={c.image_url} name={c.name} />
                     </td>
 
                     {/* Collection Name */}
