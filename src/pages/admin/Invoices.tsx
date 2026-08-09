@@ -36,6 +36,8 @@ export default function Invoices() {
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
 
   // ── Modal State for Partial & Full Invoices Return ──
+  const [showSelectInvoiceForReturnModal, setShowSelectInvoiceForReturnModal] = useState(false);
+  const [returnInvoiceSearch, setReturnInvoiceSearch] = useState('');
   const [returnOrder, setReturnOrder] = useState<any | null>(null);
   const [returnQtys, setReturnQtys] = useState<Record<string, number>>({});
   const [refundMethod, setRefundMethod] = useState<string>('cash');
@@ -114,6 +116,18 @@ export default function Invoices() {
   const activeOrders = useMemo(() => orders.filter((order) => !order.is_deleted), [orders]);
   const deletedOrders = useMemo(() => orders.filter((order) => order.is_deleted), [orders]);
   const visibleOrders = viewMode === 'deleted' ? deletedOrders : activeOrders;
+
+  const matchingInvoicesForReturn = useMemo(() => {
+    if (!returnInvoiceSearch.trim()) return activeOrders.filter(o => o.type === 'sale');
+    const q = normalizeArabic(returnInvoiceSearch.trim().toLowerCase());
+    return activeOrders.filter(o => {
+      if (o.type !== 'sale') return false;
+      const matchId = String(o.id).toLowerCase().includes(q);
+      const matchCust = normalizeArabic(o.customer?.name || '').toLowerCase().includes(q);
+      const matchPhone = String(o.customer?.phone || '').includes(q);
+      return matchId || matchCust || matchPhone;
+    });
+  }, [activeOrders, returnInvoiceSearch]);
 
   const handlePrint = (order: any) => {
     const printDate = new Date(order.created_at || Date.now()).toLocaleString('ar-EG', { calendar: 'gregory', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -566,6 +580,13 @@ export default function Invoices() {
           <p className="text-slate-500 dark:text-slate-400 mt-2">مراجعة فواتير البيع وعمليات الاسترجاع مع الفلاتر المتقدمة</p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
+          <button 
+            type="button"
+            onClick={() => setShowSelectInvoiceForReturnModal(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white px-5 py-2.5 rounded-xl font-black transition shadow-lg hover:opacity-95 text-sm cursor-pointer"
+          >
+            <ArrowRightLeft size={18} /> + إجراء عملية مرتجع جديدة
+          </button>
           <button 
             type="button"
             onClick={() => setShowAddModal(true)}
@@ -1266,6 +1287,84 @@ export default function Invoices() {
               >
                 {isSubmittingReturn ? 'جاري التنفيذ...' : 'تأكيد وتنفيذ المرتجع'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Select Invoice for Return Modal ── */}
+      {showSelectInvoiceForReturnModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in duration-200">
+            <div className="p-5 bg-gradient-to-r from-orange-600 to-amber-600 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white/10 rounded-xl">
+                  <ArrowRightLeft size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black">إجراء عملية مرتجع جديدة</h3>
+                  <p className="text-xs text-orange-100 font-bold">ابحث عن الفاتورة برقمها أو باسم العميل لإجراء المرتجع</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSelectInvoiceForReturnModal(false)}
+                className="p-2 hover:bg-white/20 rounded-xl transition text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="relative">
+                <Search className="absolute right-4 top-3.5 text-slate-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="ابحث برقم الفاتورة (#ID) أو اسم العميل أو التليفون..."
+                  value={returnInvoiceSearch}
+                  onChange={(e) => setReturnInvoiceSearch(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 pr-12 pl-4 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none transition font-bold text-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                {matchingInvoicesForReturn.slice(0, 15).map((ord) => (
+                  <div
+                    key={ord.id}
+                    onClick={() => {
+                      setShowSelectInvoiceForReturnModal(false);
+                      openReturnModal(ord);
+                    }}
+                    className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 hover:border-orange-500 hover:bg-orange-50/40 dark:hover:bg-orange-950/20 cursor-pointer transition flex items-center justify-between gap-3 shadow-sm group"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-slate-900 dark:text-white text-base">فاتورة #{ord.id}</span>
+                        <span className="text-xs bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono px-2 py-0.5 rounded-lg">{ord.date ? new Date(ord.date).toLocaleDateString('ar-EG') : ''}</span>
+                      </div>
+                      <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-1">
+                        العميل: <strong className="text-slate-900 dark:text-white">{ord.customer?.name || 'عميل نقدي'}</strong>
+                        {ord.customer?.phone ? ` (${ord.customer.phone})` : ''}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        الأصناف: {(ord.items || []).map((i: any) => `${i.name} (${i.quantity})`).join(' ، ')}
+                      </div>
+                    </div>
+
+                    <div className="text-left shrink-0">
+                      <div className="text-sm font-black text-orange-600 font-mono">{ord.total.toFixed(2)} {storeSettings.currency}</div>
+                      <span className="inline-block mt-1 text-xs bg-orange-600 text-white font-bold px-3 py-1 rounded-xl shadow-sm group-hover:scale-105 transition">
+                        اختيار وإرجاع ↩️
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {matchingInvoicesForReturn.length === 0 && (
+                  <div className="p-8 text-center text-slate-400 text-sm font-bold">
+                    لا توجد فواتير مطابقة لنتائج البحث.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
