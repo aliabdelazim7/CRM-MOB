@@ -112,7 +112,7 @@ async function loadDayBudgetSource(dayStr: string, start: Date, end: Date, local
 }
 
 export default function POS() {
-  const { products, categories, cart, addToCart, addToCartQty, removeFromCart, updateQuantity, updatePrice, clearCart, checkout, processReturn, storeSettings, orders, activeInvoiceId, customers, activeCashier, logoutPOS, isOnline, isOfflineMode, offlineSnapshotAt, offlineQueue, offlineReturnsQueue, isSyncing, syncOfflineQueue, syncOfflineReturnsQueue, addCashierNote, addExpense, invoiceType, setInvoiceType, employees, salesperson, setSalesperson, deleteOrder, savingsTransfer, savingsConvert, recordMainTreasuryOut, recordMainTreasuryIn, addEmployeeTransaction, employeeDeductions, addEmployeeDeduction, updateProduct, heldInvoices, holdInvoice, confirmHeldInvoice, returnHeldInvoice, setHeldInvoiceStatus, recordHeldDepositConversion, updateSettings, restoreCart } = useStore();
+  const { products, categories, cart, addToCart, addToCartQty, removeFromCart, updateQuantity, updatePrice, clearCart, checkout, processReturn, storeSettings, orders, activeInvoiceId, customers, activeCashier, logoutPOS, isOnline, isOfflineMode, offlineSnapshotAt, offlineQueue, offlineReturnsQueue, isSyncing, syncOfflineQueue, syncOfflineReturnsQueue, addCashierNote, addExpense, invoiceType, setInvoiceType, employees, salesperson, setSalesperson, deleteOrder, savingsTransfer, savingsConvert, recordMainTreasuryOut, recordMainTreasuryIn, addEmployeeTransaction, employeeDeductions, addEmployeeDeduction, updateProduct, heldInvoices, holdInvoice, confirmHeldInvoice, returnHeldInvoice, setHeldInvoiceStatus, recordHeldDepositConversion, updateSettings, restoreCart, carriers } = useStore();
   // Transfer day-closing balance to savings (with manager OTP)
   const [showSaveXfer, setShowSaveXfer] = useState(false);
   const [saveXfer, setSaveXfer] = useState<Record<string, string>>({ cash: '', visa: '', wallet: '', instapay: '' });
@@ -565,6 +565,23 @@ export default function POS() {
       if (cs && cs.price && cs.price > 0) return cs.price;
     }
     return p.sale_price;
+  };
+
+  const getPlatformDisplayName = (p: string) => {
+    if (p === 'jumia') return 'جوميا (Jumia)';
+    if (p === 'amazon') return 'أمازون (Amazon)';
+    if (p === 'noon') return 'نون (Noon)';
+    if (p === 'salla') return 'سلة (Salla)';
+    if (p === 'zid') return 'زد (Zid)';
+    if (p === 'tiktok') return 'تيك توك (TikTok)';
+    if (p === 'website') return 'الويب سايت (المتجر الإلكتروني)';
+    if (p.startsWith('custom_')) {
+      const cs = availableCustomStores.find((c) => `custom_${c.id}` === p);
+      if (cs) return cs.name;
+    }
+    const carrier = (carriers || []).find((c: any) => c.id === p || c.name === p);
+    if (carrier) return carrier.name;
+    return p;
   };
 
   const handlePlatformChange = (newPlatform: string) => {
@@ -1721,7 +1738,8 @@ export default function POS() {
     // تاريخ مخصّص للفاتورة (فواتير قديمة) من شارة التاريخ — فاضي = تاريخ الآن.
     // نستخدم منتصف اليوم المحاسبي المختار عشان يقع مضمون داخل نطاق تقفيله.
     const saleDateISO = workDateOverride ? timestampForBusinessDate(workDateOverride, storeSettings) : undefined;
-    const invoiceId = await checkout(currentTotal, { name: currentCustomerName, phone: currentCustomerPhone, custom_id: currentCustomId }, effectivePaidAmount, 'sale', primaryMethod as any, finalSplit as any, undefined, deferredNote, currentCouponCode, currentCouponDiscount, undefined, saleDateISO);
+    const platformNameForSync = getPlatformDisplayName(selectedPlatform);
+    const invoiceId = await checkout(currentTotal, { name: currentCustomerName, phone: currentCustomerPhone, custom_id: currentCustomId }, effectivePaidAmount, 'sale', primaryMethod as any, finalSplit as any, undefined, deferredNote, currentCouponCode, currentCouponDiscount, undefined, saleDateISO, false, platformNameForSync);
 
     if (invoiceId === null) return;
 
@@ -4012,9 +4030,17 @@ export default function POS() {
               <option value="amazon">📦 متجر أمازون (Amazon)</option>
               <option value="noon">🏪 متجر نون (Noon)</option>
               <option value="jumia">🛍️ متجر جوميا (Jumia)</option>
+              <option value="salla">🏬 متجر سلة (Salla)</option>
+              <option value="zid">🏬 متجر زد (Zid)</option>
+              <option value="tiktok">📱 متجر تيك توك (TikTok)</option>
               {availableCustomStores.map((cs: any) => (
                 <option key={cs.id} value={`custom_${cs.id}`}>
                   🟣 {cs.name}
+                </option>
+              ))}
+              {(carriers || []).filter((c: any) => c.status === 'active' && !['amazon', 'noon', 'jumia', 'salla', 'zid', 'tiktok'].includes((c.name || '').toLowerCase())).map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  🚚 {c.name}
                 </option>
               ))}
             </select>

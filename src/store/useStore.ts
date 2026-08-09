@@ -1001,12 +1001,8 @@ interface CashierStore {
     discountAmount?: number,
     carId?: string,
     dateISO?: string,
-    toMainTreasury?: boolean
-    /**
-     * بيرجّع رقم الفاتورة لو اتسجّلت فعلاً، و**null لو فشلت**.
-     * قبل كده كان بيرجّع رقم فاتورة في الحالتين، فشاشة الكاشير كانت بتطبع
-     * إيصال وتقول «تم الدفع بنجاح» لفاتورة ماوصلتش القاعدة أصلاً.
-     */
+    toMainTreasury?: boolean,
+    platformName?: string
   ) => Promise<string | null>;
   payInvoiceDebt: (
     invoiceId: string,
@@ -2577,7 +2573,7 @@ export const useStore = create<CashierStore>((set, get) => ({
   })),
 
   // ── Checkout ───────────────────────────────────────────────
-  checkout: async (total, customerDetails, paidAmount = total, type = 'sale', paymentMethod = 'cash', splitPayments, cashierName, notes, couponCode, discountAmount, carId, dateISO, toMainTreasury = false) => {
+  checkout: async (total, customerDetails, paidAmount = total, type = 'sale', paymentMethod = 'cash', splitPayments, cashierName, notes, couponCode, discountAmount, carId, dateISO, toMainTreasury = false, platformName?: string) => {
     const state = get();
     const finalCashierName = cashierName || state.activeCashier?.name || 'مدير النظام';
     const sp = state.salesperson;
@@ -2961,7 +2957,8 @@ export const useStore = create<CashierStore>((set, get) => ({
         total,
         paid_amount: savedPaidAmount,
         customer_name: finalCustomer?.name,
-        notes: finalNotes || undefined
+        notes: finalNotes || undefined,
+        platform_name: platformName || undefined
       });
 
       return invoiceId;
@@ -7858,10 +7855,27 @@ setupRealtime: () => {
     try {
       const state = get();
       const currentMonth = new Date().toISOString().slice(0, 7);
-      const expectedAmount = Number(order.total) || 0;
-      const collectedAmount = Number(order.paid_amount) || 0;
+      const invoiceTotal = Number(order.total) || 0;
+      const rawPaid = Number(order.paid_amount) || 0;
       const platformName = order.platform_name?.trim() || '';
       const invoiceIdStr = String(order.id);
+
+      // Detect fee from platform/carrier settings
+      let fee = 0;
+      if (platformName && platformName !== 'غير محدد (اختر المنصة)') {
+        const pLower = platformName.toLowerCase();
+        const carrier = state.carriers?.find(
+          (c: any) => c.name && (c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()))
+        );
+        if (carrier && carrier.base_fee && carrier.base_fee > 0) {
+          fee = carrier.base_fee;
+        }
+      }
+
+      // Net expected collection amount after deducting platform base fee
+      const expectedAmount = Math.max(0, invoiceTotal - fee);
+      const collectedAmount = rawPaid > 0 ? Math.min(rawPaid, expectedAmount) : 0;
+      const feeNote = fee > 0 ? ` (خصم رسوم منصة: ${fee} ج.م)` : '';
 
       const existing = state.platformCollections.find(
         (pc) => pc.notes && pc.notes.includes(`#${invoiceIdStr}`)
@@ -7872,7 +7886,7 @@ setupRealtime: () => {
           entity_name: platformName || existing.entity_name || 'غير محدد (اختر المنصة)',
           expected_amount: expectedAmount,
           collected_amount: collectedAmount,
-          status: (collectedAmount >= expectedAmount - 0.01) ? ('collected' as const) : ('pending' as const),
+          status: (collectedAmount >= expectedAmount - 0.01 && expectedAmount > 0) ? ('collected' as const) : ('pending' as const),
         };
         await get().updatePlatformCollection(existing.id, patch);
         return true;
@@ -7884,8 +7898,8 @@ setupRealtime: () => {
         month: currentMonth,
         expected_amount: expectedAmount,
         collected_amount: collectedAmount,
-        status: (collectedAmount >= expectedAmount - 0.01) ? ('collected' as const) : ('pending' as const),
-        notes: `فاتورة تحصيل #${invoiceIdStr} - ${order.customer_name?.trim() || 'عميل'}`
+        status: (collectedAmount >= expectedAmount - 0.01 && expectedAmount > 0) ? ('collected' as const) : ('pending' as const),
+        notes: `فاتورة تحصيل #${invoiceIdStr} - ${order.customer_name?.trim() || 'عميل'}${feeNote}`
       };
 
       await get().addPlatformCollection(collectionRecord);
