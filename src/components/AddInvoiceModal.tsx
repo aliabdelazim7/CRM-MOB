@@ -1,7 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useStore, type Product, type Customer, type Order } from '../store/useStore';
-import { printShippingLabel, type ShippingLabelHeld } from '../utils/printShippingLabel';
-import { X, Search, Plus, Trash2, Printer, CheckCircle2, User, Hash, Package, Store, Layers } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { useStore, type Product, type Order } from '../store/useStore';
+import { X, Search, Plus, Trash2, User, Phone, MapPin, Package, Filter, ScanLine, Code, Store, Truck, CreditCard, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface AddInvoiceModalProps {
@@ -11,158 +10,191 @@ interface AddInvoiceModalProps {
 }
 
 export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalProps) {
-  const { products, customers, storeSettings, activeCashier, orders, addPlatformCollection, loadPlatformCollections, loadHeldInvoices } = useStore();
+  const { 
+    products, 
+    categories, 
+    customers, 
+    carriers, 
+    activeCashier, 
+    orders, 
+    addPlatformCollection, 
+    loadPlatformCollections, 
+    loadHeldInvoices,
+    loadAllHeldInvoices
+  } = useStore();
 
-  // State
+  // Form Fields matching user image
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
-  const [selectedPlatform, setSelectedPlatform] = useState<string>('أمازون (Amazon)');
-  const [customPlatformName, setCustomPlatformName] = useState<string>('');
-  const [customInvoiceId, setCustomInvoiceId] = useState<string>('');
-  const [shippingCost, setShippingCost] = useState<number>(50);
-  const [discount, setDiscount] = useState<number>(0);
-  const [paidAmount, setPaidAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
-  const [salespersonName, setSalespersonName] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
 
-  // Cart & Product Search
+  // Product Selection Fields
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [barcodeInput, setBarcodeInput] = useState<string>('');
+  const [itemCodeInput, setItemCodeInput] = useState<string>('');
   const [productSearch, setProductSearch] = useState<string>('');
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [salesPlatform, setSalesPlatform] = useState<string>('أمازون (Amazon)');
+  const [quantity, setQuantity] = useState<number>(1);
+  const [customPriceInput, setCustomPriceInput] = useState<string>('');
+
+  // Added Products List (Cart)
   const [cart, setCart] = useState<{ product: Product; quantity: number; sale_price: number }[]>([]);
+
+  // Shipping & Payment Fields
+  const [shippingCompany, setShippingCompany] = useState<string>('بوسطة (Bosta)');
+  const [shippingCost, setShippingCost] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [deliveryStatus, setDeliveryStatus] = useState<string>('money_pending'); // قيد الانتظار / التحصيل
+
   const [isSaving, setIsSaving] = useState(false);
 
-  // Auto-generate next invoice ID
+  // Next Invoice ID
   const nextInvoiceId = useMemo(() => {
     const existingIds = orders.map(o => parseInt(String(o.id).replace(/\D/g, ''))).filter(n => !isNaN(n));
     const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 1000;
     return String(maxId + 1);
   }, [orders]);
 
-  useEffect(() => {
-    if (isOpen) {
-      const generated = nextInvoiceId;
-      setCustomInvoiceId(generated);
-    }
-  }, [isOpen, nextInvoiceId]);
-
+  // Filter products by Category, Barcode, Code, and Search
   const filteredProducts = useMemo(() => {
-    if (!productSearch.trim()) return [];
-    const q = productSearch.toLowerCase().trim();
-    return products.filter(p => 
-      p.name.toLowerCase().includes(q) || 
-      (p.barcode && p.barcode.toLowerCase().includes(q))
-    ).slice(0, 8);
-  }, [products, productSearch]);
+    let list = products;
 
-  const subtotal = useMemo(() => {
-    return cart.reduce((sum, item) => sum + (item.sale_price * item.quantity), 0);
-  }, [cart]);
+    if (selectedCategory !== 'all') {
+      list = list.filter(p => p.category_id === selectedCategory);
+    }
 
-  const total = useMemo(() => {
-    return Math.max(0, subtotal - discount + (Number(shippingCost) || 0));
-  }, [subtotal, discount, shippingCost]);
+    if (barcodeInput.trim()) {
+      const bc = barcodeInput.trim().toLowerCase();
+      list = list.filter(p => p.barcode && p.barcode.toLowerCase().includes(bc));
+    }
 
-  useEffect(() => {
-    setPaidAmount(total);
-  }, [total]);
+    if (itemCodeInput.trim()) {
+      const code = itemCodeInput.trim().toLowerCase();
+      list = list.filter(p => (p.barcode && p.barcode.toLowerCase().includes(code)) || p.name.toLowerCase().includes(code));
+    }
+
+    if (productSearch.trim()) {
+      const q = productSearch.trim().toLowerCase();
+      list = list.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        (p.barcode && p.barcode.toLowerCase().includes(q))
+      );
+    }
+
+    return list.slice(0, 15);
+  }, [products, selectedCategory, barcodeInput, itemCodeInput, productSearch]);
 
   if (!isOpen) return null;
 
-  const handleAddProduct = (prod: Product) => {
-    setCart(prev => {
-      const existing = prev.find(item => item.product.id === prod.id);
-      if (existing) {
-        return prev.map(item => item.product.id === prod.id ? { ...item, quantity: item.quantity + 1 } : item);
-      }
-      return [...prev, { product: prod, quantity: 1, sale_price: prod.sale_price }];
-    });
-    setProductSearch('');
-  };
+  // Add Product to Cart
+  const handleAddProductToInvoice = () => {
+    let targetProduct: Product | undefined;
 
-  const handleUpdateQty = (index: number, delta: number) => {
-    setCart(prev => prev.map((item, i) => {
-      if (i === index) {
-        const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
+    if (selectedProductId) {
+      targetProduct = products.find(p => p.id === selectedProductId);
+    } else if (filteredProducts.length > 0) {
+      targetProduct = filteredProducts[0];
+    }
+
+    if (!targetProduct) {
+      alert('الرجاء اختيار منتج من القائمة أولاً');
+      return;
+    }
+
+    const price = customPriceInput.trim() !== '' && !isNaN(Number(customPriceInput)) 
+      ? Number(customPriceInput) 
+      : targetProduct.sale_price;
+
+    const qty = Math.max(1, Number(quantity) || 1);
+
+    setCart(prev => {
+      const existingIdx = prev.findIndex(item => item.product.id === targetProduct!.id && item.sale_price === price);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx].quantity += qty;
+        return updated;
       }
-      return item;
-    }));
+      return [...prev, { product: targetProduct!, quantity: qty, sale_price: price }];
+    });
+
+    // Reset inputs after adding
+    setSelectedProductId('');
+    setCustomPriceInput('');
+    setQuantity(1);
+    setProductSearch('');
+    setBarcodeInput('');
+    setItemCodeInput('');
   };
 
   const handleRemoveProduct = (index: number) => {
     setCart(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSaveInvoice = async (shouldPrint: boolean = false) => {
+  // Calculate Subtotal & Total
+  const subtotal = cart.reduce((sum, i) => sum + (i.sale_price * i.quantity), 0);
+  const grandTotal = subtotal + (Number(shippingCost) || 0);
+
+  // Save Invoice & Send directly to Collections (التحصيلات)
+  const handleSaveInvoice = async () => {
     if (cart.length === 0) {
-      alert('الرجاء إضافة منتج واحد على الأقل الفاتورة');
+      alert('الرجاء إضافة منتج واحد على الأقل للفاتورة');
       return;
     }
 
     setIsSaving(true);
     try {
-      const finalInvoiceId = customInvoiceId.trim() || nextInvoiceId;
-      const platformName = selectedPlatform === 'custom' ? (customPlatformName.trim() || 'منصة خاصة') : selectedPlatform;
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const invoiceId = nextInvoiceId;
+      const createdIso = new Date().toISOString();
 
       // 1. Create or Find Customer
-      let customerObj: Customer | undefined = undefined;
+      let customerId: string | null = null;
       if (customerName.trim()) {
         const existingCust = customers.find(c => c.phone && customerPhone && c.phone.trim() === customerPhone.trim());
         if (existingCust) {
-          customerObj = existingCust;
+          customerId = existingCust.id;
         } else {
           const { data: newCustData } = await supabase.from('customers').insert({
             name: customerName.trim(),
-            phone: customerPhone.trim() || null
+            phone: customerPhone.trim() || null,
+            address: customerAddress.trim() || null
           }).select().single();
-          if (newCustData) {
-            customerObj = newCustData as Customer;
-          }
+          if (newCustData) customerId = newCustData.id;
         }
       }
 
-      // 2. Prepare Order Items
-      const orderItems = cart.map(item => ({
-        id: item.product.id,
-        name: item.product.name,
-        quantity: item.quantity,
-        sale_price: item.sale_price,
-        purchase_price: item.product.purchase_price || 0,
-        unit: item.product.unit || 'قطعة'
+      // 2. Prepare Items
+      const orderItems = cart.map(i => ({
+        id: i.product.id,
+        name: i.product.name,
+        quantity: i.quantity,
+        sale_price: i.sale_price,
+        purchase_price: i.product.purchase_price || 0,
+        unit: i.product.unit || 'قطعة'
       }));
 
-      // 3. Insert Order into Supabase
+      // 3. Save Order into Supabase (`orders` table)
       const orderRow = {
-        id: finalInvoiceId,
-        total: total,
-        paid_amount: Number(paidAmount) || 0,
-        paid_cash: paymentMethod === 'cash' ? paidAmount : 0,
-        paid_visa: paymentMethod === 'visa' ? paidAmount : 0,
-        paid_wallet: paymentMethod === 'wallet' ? paidAmount : 0,
-        paid_instapay: paymentMethod === 'instapay' ? paidAmount : 0,
+        id: invoiceId,
+        total: grandTotal,
+        paid_amount: 0, // Sending to collections as pending collection
+        paid_cash: 0,
         type: 'sale',
-        customer_id: customerObj?.id || null,
+        customer_id: customerId,
         payment_method: paymentMethod,
         cashier_name: activeCashier?.name || 'مدير النظام',
-        salesperson_name: salespersonName || null,
-        discount_amount: Number(discount) || 0,
         shipping_cost: Number(shippingCost) || 0,
-        shipping_carrier: platformName,
-        notes: notes ? `${notes} | تحصيل منصة: ${platformName} (فاتورة #${finalInvoiceId})` : `تحصيل منصة: ${platformName} (فاتورة #${finalInvoiceId})`,
-        created_at: new Date().toISOString()
+        shipping_carrier: shippingCompany,
+        notes: `منصة البيع: ${salesPlatform} | شركة الشحن: ${shippingCompany} | حالة التوصيل: ${deliveryStatus}`,
+        created_at: createdIso
       };
 
-      const { error: orderErr } = await supabase.from('orders').insert(orderRow);
-      if (orderErr && (orderErr as any).code !== '23505') {
-        console.error('Failed to insert order:', orderErr);
-      }
+      await supabase.from('orders').insert(orderRow);
 
-      // 4. Insert Order Items & Update Stock
+      // Save Order Items & Update Stock
       for (const item of cart) {
         await supabase.from('order_items').insert({
-          order_id: finalInvoiceId,
+          order_id: invoiceId,
           product_id: item.product.id,
           quantity: item.quantity,
           sale_price: item.sale_price,
@@ -173,83 +205,64 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         await supabase.from('products').update({ stock_quantity: newStock }).eq('id', item.product.id);
       }
 
-      // 5. Auto-Link directly to Platform Collections ("ربط الفاتورة بالتحصيل والمنصات برقم الفاتورة")
-      try {
-        const collectionRecord = {
-          entity_type: 'platform' as const,
-          entity_name: platformName,
-          month: currentMonth,
-          expected_amount: total,
-          collected_amount: Number(paidAmount) || 0,
-          status: (paidAmount >= total - 0.01) ? ('collected' as const) : ('pending' as const),
-          notes: `فاتورة بيع مستقلة #${finalInvoiceId} - العميل: ${customerName.trim() || 'عميل نقدي'}`
-        };
-        await addPlatformCollection(collectionRecord);
-      } catch (e) {
-        console.warn('platform_collections insert notice:', e);
-      }
-
-      // Also save in held_invoices for online platform tracking
+      // 4. 🔥 Immediate Insertion to Collections (`held_invoices` table for التحصيلات والطلبات المعلقة)
       try {
         await supabase.from('held_invoices').insert({
-          id: `PLATFORM-${finalInvoiceId}`,
-          customer_name: customerName.trim() || 'عميل منصة',
+          id: `COLLECT-${invoiceId}`,
+          customer_name: customerName.trim() || 'عميل تحصيل',
           customer_phone: customerPhone.trim() || null,
           customer_address: customerAddress.trim() || null,
           items: orderItems,
-          total: total,
+          total: grandTotal,
           invoice_type: 'retail',
           cashier_name: activeCashier?.name || 'مدير النظام',
-          status: (paidAmount >= total - 0.01) ? 'collected' : 'held',
+          status: deliveryStatus === 'delivered' ? 'delivered' : 'money_pending', // "تروح ع التحصيلات"
           kind: 'online',
-          shipping_note: platformName,
-          deposit: Number(paidAmount) || 0,
-          shipping_cost: Number(shippingCost) || 0
+          shipping_note: `${salesPlatform} - ${shippingCompany}`,
+          deposit: 0,
+          shipping_cost: Number(shippingCost) || 0,
+          notes: `تحصيل منصات: ${salesPlatform}`
         });
       } catch (e) {
-        console.warn('held_invoices notice:', e);
+        console.warn('held_invoices collections notice:', e);
       }
 
-      // Update local store state
-      const createdOrderObj: Order = {
-        id: finalInvoiceId,
-        total: total,
-        paid_amount: Number(paidAmount) || 0,
-        type: 'sale',
-        customer: customerObj,
-        cashier_name: activeCashier?.name || 'مدير النظام',
-        date: new Date().toISOString(),
-        items: orderItems,
-        shipping_cost: Number(shippingCost) || 0,
-        shipping_carrier: platformName,
-        notes: orderRow.notes
-      } as any;
+      // 5. 🔥 Immediate Insertion to Platform Collections (`platform_collections`)
+      try {
+        await addPlatformCollection({
+          entity_type: 'platform',
+          entity_name: salesPlatform,
+          month: new Date().toISOString().slice(0, 7),
+          expected_amount: grandTotal,
+          collected_amount: 0,
+          status: 'pending',
+          notes: `فاتورة تحصيل #${invoiceId} - ${customerName.trim() || 'عميل'}`
+        });
+      } catch (e) {
+        console.warn('platform_collections notice:', e);
+      }
 
+      // Refresh store states
       useStore.setState(state => ({
-        orders: [createdOrderObj, ...state.orders]
+        orders: [{
+          id: invoiceId,
+          total: grandTotal,
+          paid_amount: 0,
+          type: 'sale',
+          cashier_name: activeCashier?.name || 'مدير النظام',
+          date: createdIso,
+          items: orderItems,
+          shipping_cost: Number(shippingCost) || 0,
+          shipping_carrier: shippingCompany,
+          notes: orderRow.notes
+        } as unknown as Order, ...state.orders]
       }));
 
-      await loadPlatformCollections();
       await loadHeldInvoices();
+      await loadAllHeldInvoices();
+      await loadPlatformCollections();
 
-      // Print if requested
-      if (shouldPrint) {
-        const heldData: ShippingLabelHeld = {
-          id: finalInvoiceId,
-          customer_name: customerName || 'عميل',
-          customer_phone: customerPhone || null,
-          customer_address: customerAddress || null,
-          items: orderItems,
-          total: total,
-          deposit: paidAmount,
-          shipping_cost: Number(shippingCost) || 0,
-          created_at: new Date().toISOString(),
-          cashier_name: activeCashier?.name || 'مدير النظام'
-        };
-        void printShippingLabel(heldData, storeSettings);
-      }
-
-      alert(`تم إنشاء الفاتورة المستقلة #${finalInvoiceId} وربطها تلقائياً بـ تحصيل منصة (${platformName}) بنجاح!`);
+      alert(`تم إضافة الفاتورة #${invoiceId} بنجاح وتم توجيهها فوراً إلى قسم (التحصيلات والمنصات)!`);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
@@ -261,352 +274,346 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto" dir="rtl">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-3xl max-h-[95vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black">
-              <Store size={22} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black">إضافة فاتورة جديدة وربطها بالمنصات والتحصيل</h2>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">ربط الفاتورة تلقائياً بـ تحصيل المنصات برقم الفاتورة مباشرة</p>
-            </div>
+        {/* Header - Identical to Image */}
+        <div className="flex items-center justify-between px-6 py-4 bg-[#4a6b82] text-white">
+          <div className="flex items-center gap-2 text-lg font-bold">
+            <Package size={22} />
+            <span>إنشاء فاتورة جديدة</span>
           </div>
           <button 
             onClick={onClose} 
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-200/50 dark:hover:bg-slate-700 transition"
+            className="p-1 hover:bg-white/10 rounded-lg transition text-white"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        {/* Modal Form Body - Identical to Layout in User Image */}
+        <div className="p-6 overflow-y-auto space-y-5 flex-1 text-right">
           
-          {/* Section 1: Invoice & Platform Collections Linking */}
-          <div className="bg-indigo-50/60 dark:bg-indigo-950/30 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 space-y-4">
-            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-black text-sm">
-              <Layers size={18} />
-              <span>ربط الفاتورة بـ تحصيل المنصات برقم الفاتورة</span>
+          {/* Row 1: Customer Name & Phone */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                <span>اسم العميل</span>
+                <User size={14} className="text-slate-500" />
+              </label>
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder=""
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-black text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1">
-                  <Hash size={14} /> رقم الفاتورة
-                </label>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                <span>رقم الهاتف</span>
+                <Phone size={14} className="text-slate-500" />
+              </label>
+              <input
+                type="text"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder=""
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
+                dir="ltr"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Address Textarea */}
+          <div>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+              <span>العنوان</span>
+              <MapPin size={14} className="text-slate-500" />
+            </label>
+            <textarea
+              rows={2}
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              placeholder=""
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right resize-none"
+            />
+          </div>
+
+          {/* Row 3: Product Section Header & Collection Filter */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                <Filter size={14} /> فلتر بالكوليكشن
+              </span>
+              <span className="text-sm font-black flex items-center gap-1 text-slate-800 dark:text-slate-100">
+                <Package size={16} /> المنتج
+              </span>
+            </div>
+
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
+            >
+              <option value="all">كل الكوليكشنز</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+
+            {/* Product Search Inputs Row matching mockup */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+              <div className="relative">
                 <input
                   type="text"
-                  value={customInvoiceId}
-                  onChange={(e) => setCustomInvoiceId(e.target.value)}
-                  placeholder="مثال: 1042"
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl font-black text-sm text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="ابحث بالاسم أو الكود..."
+                  className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-right"
+                />
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+
+              <button
+                type="button"
+                className="bg-[#5c72e2] text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-indigo-700 transition"
+              >
+                بحث
+              </button>
+
+              <div>
+                <input
+                  type="text"
+                  value={itemCodeInput}
+                  onChange={(e) => setItemCodeInput(e.target.value)}
+                  placeholder="كود الصنف"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-right"
                 />
               </div>
 
+              <div className="relative">
+                <input
+                  type="text"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  placeholder="سكان الباركود - امسح الباركود"
+                  className="w-full pl-7 pr-3 py-2 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-400 dark:border-emerald-700 rounded-xl text-xs font-bold text-right"
+                />
+                <ScanLine size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-emerald-600" />
+              </div>
+            </div>
+
+            {/* Matching Products Select Box */}
+            {filteredProducts.length > 0 && (
+              <select
+                value={selectedProductId}
+                onChange={(e) => setSelectedProductId(e.target.value)}
+                className="w-full px-3 py-2 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs font-bold text-right"
+              >
+                <option value="">اختر المنتج المقتنع به من نتائج البحث ({filteredProducts.length})</option>
+                {filteredProducts.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} - السعر: {p.sale_price} جنيه (المتاح: {p.stock_quantity})
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Sales Platform & Quantity Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-black text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1">
-                  <Store size={14} /> منصة البيع والتحصيل
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                  <span>منصة البيع</span>
+                  <Store size={14} className="text-slate-500" />
                 </label>
                 <select
-                  value={selectedPlatform}
-                  onChange={(e) => setSelectedPlatform(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={salesPlatform}
+                  onChange={(e) => setSalesPlatform(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
                 >
+                  <option value="">اختر المنصة</option>
                   <option value="أمازون (Amazon)">أمازون (Amazon)</option>
                   <option value="نون (Noon)">نون (Noon)</option>
                   <option value="جوميا (Jumia)">جوميا (Jumia)</option>
                   <option value="تيك توك شوب (TikTok Shop)">تيك توك شوب (TikTok Shop)</option>
                   <option value="متجر سلة (Salla)">متجر سلة (Salla)</option>
                   <option value="متجر زد (Zid)">متجر زد (Zid)</option>
-                  <option value="متجر إلكتروني مباشر">متجر إلكتروني مباشر</option>
-                  <option value="custom">منصة خاصة أخرى</option>
+                  <option value="المحل الرئيسي">المحل الرئيسي / البيع المباشر</option>
                 </select>
-                {selectedPlatform === 'custom' && (
-                  <input
-                    type="text"
-                    value={customPlatformName}
-                    onChange={(e) => setCustomPlatformName(e.target.value)}
-                    placeholder="اكتب اسم المنصة"
-                    className="w-full mt-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold"
-                  />
-                )}
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1">
-                  <CheckCircle2 size={14} className="text-emerald-500" /> كود المرجعية للتحصيل
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                  <span>الكمية</span>
+                  <Code size={14} className="text-slate-500" />
                 </label>
                 <input
-                  type="text"
-                  readOnly
-                  value={`#${customInvoiceId}`}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl font-black text-sm text-slate-600 dark:text-slate-300 cursor-not-allowed"
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
                 />
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-1">✓ يتم الربط التلقائي في سداد وتحصيل المنصات</span>
               </div>
             </div>
+
+            {/* Custom Price Field (Highlighted with Orange border matching mockup) */}
+            <div>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                <span>أو أدخل سعر مخصص (اختياري)</span>
+              </label>
+              <input
+                type="text"
+                value={customPriceInput}
+                onChange={(e) => setCustomPriceInput(e.target.value)}
+                placeholder="أدخل السعر يدوياً"
+                className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border-2 border-amber-400 dark:border-amber-500 rounded-xl text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <span className="text-[11px] text-slate-400 block mt-1 text-right">اترك هذا الحقل فارغاً لاستخدام السعر المحدد أعلاه</span>
+            </div>
+
+            {/* Add Product Button */}
+            <button
+              type="button"
+              onClick={handleAddProductToInvoice}
+              className="w-full py-2.5 bg-[#4c6bf5] hover:bg-indigo-600 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-md transition"
+            >
+              <Plus size={18} />
+              <span>إضافة المنتج للفاتورة</span>
+            </button>
           </div>
 
-          {/* Section 2: Customer Information */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-black flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-              <User size={16} /> بيانات العميل والشحن
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">اسم العميل</label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="اسم العميل"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">رقم الهاتف</label>
-                <input
-                  type="text"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="01xxxxxxxxx"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
-                  dir="ltr"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">العنوان والمحافظة</label>
-                <input
-                  type="text"
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  placeholder="مثال: القاهرة - مدينة نصر"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Add Products */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-black flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-              <Package size={16} /> اختيار منتجات الفاتورة
-            </h3>
-
-            <div className="relative">
-              <div className="relative">
-                <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  placeholder="ابحث عن منتج باسمه أو بالباركود لإضافته للفاتورة..."
-                  className="w-full pr-10 pl-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold"
-                />
-              </div>
-
-              {filteredProducts.length > 0 && (
-                <div className="absolute z-20 top-full right-0 left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
-                  {filteredProducts.map(prod => (
-                    <button
-                      key={prod.id}
-                      type="button"
-                      onClick={() => handleAddProduct(prod)}
-                      className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition border-b border-slate-100 dark:border-slate-800 last:border-0 text-right"
-                    >
-                      <div>
-                        <div className="text-sm font-bold text-slate-800 dark:text-slate-100">{prod.name}</div>
-                        <div className="text-xs text-slate-400">الكمية المتاحة: {prod.stock_quantity}</div>
-                      </div>
-                      <div className="text-sm font-black text-indigo-600 dark:text-indigo-400">{prod.sale_price} EGP</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Cart Table */}
-            <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+          {/* Cart Table if Products Added */}
+          {cart.length > 0 && (
+            <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden mt-4">
               <table className="w-full text-xs text-right">
                 <thead className="bg-slate-100 dark:bg-slate-900/60 font-black text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                   <tr>
-                    <th className="p-3">المنتج</th>
-                    <th className="p-3 text-center">السعر</th>
-                    <th className="p-3 text-center">الكمية</th>
-                    <th className="p-3 text-center">الإجمالي</th>
-                    <th className="p-3 text-center">حذف</th>
+                    <th className="p-2.5">المنتج</th>
+                    <th className="p-2.5 text-center">السعر</th>
+                    <th className="p-2.5 text-center">الكمية</th>
+                    <th className="p-2.5 text-center">الإجمالي</th>
+                    <th className="p-2.5 text-center">حذف</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {cart.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="p-6 text-center text-slate-400 font-bold">
-                        لم يتم إضافة أي منتجات بعد. استخدم مربع البحث بالأعلى لإضافة منتجات.
+                  {cart.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="p-2.5 font-bold">{item.product.name}</td>
+                      <td className="p-2.5 text-center font-bold">{item.sale_price} ج.م</td>
+                      <td className="p-2.5 text-center font-bold">{item.quantity}</td>
+                      <td className="p-2.5 text-center font-black text-indigo-600">{(item.sale_price * item.quantity).toFixed(2)} ج.م</td>
+                      <td className="p-2.5 text-center">
+                        <button onClick={() => handleRemoveProduct(idx)} className="text-red-500 hover:text-red-700">
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
-                  ) : (
-                    cart.map((item, index) => (
-                      <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="p-3 font-bold">{item.product.name}</td>
-                        <td className="p-3 text-center font-bold">{item.sale_price} EGP</td>
-                        <td className="p-3 text-center">
-                          <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-xl">
-                            <button onClick={() => handleUpdateQty(index, -1)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg"><Trash2 size={12} /></button>
-                            <span className="font-black px-2">{item.quantity}</span>
-                            <button onClick={() => handleUpdateQty(index, 1)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg"><Plus size={12} /></button>
-                          </div>
-                        </td>
-                        <td className="p-3 text-center font-black text-indigo-600 dark:text-indigo-400">
-                          {(item.sale_price * item.quantity).toFixed(2)} EGP
-                        </td>
-                        <td className="p-3 text-center">
-                          <button onClick={() => handleRemoveProduct(index)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-xl">
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          )}
 
-          {/* Section 4: Totals & Payments */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">مصاريف الشحن والتسليم</label>
-                <input
-                  type="number"
-                  value={shippingCost}
-                  onChange={(e) => setShippingCost(Number(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">الخصم على الفاتورة</label>
-                <input
-                  type="number"
-                  value={discount}
-                  onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">طريقة التحصيل</label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
-                >
-                  <option value="cash">نقداً (كاش / تحصيل منصة)</option>
-                  <option value="visa">فيزا / دفع إلكتروني</option>
-                  <option value="wallet">محفظة إلكترونية</option>
-                  <option value="instapay">انستاباي InstaPay</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">مسؤول المبيعات</label>
-                <input
-                  type="text"
-                  value={salespersonName}
-                  onChange={(e) => setSalespersonName(e.target.value)}
-                  placeholder="اسم مسؤول المبيعات (اختياري)"
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">ملاحظات الفاتورة</label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="ملاحظات إضافية"
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
-                />
-              </div>
+          {/* Row 4: Shipping Company & Shipping Cost */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                <span>تكلفة الشحن (جنيه)</span>
+                <Truck size={14} className="text-slate-500" />
+              </label>
+              <input
+                type="number"
+                value={shippingCost}
+                onChange={(e) => setShippingCost(Number(e.target.value) || 0)}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
+              />
             </div>
 
-            <div className="space-y-2 border-r border-slate-200 dark:border-slate-700 pr-4 flex flex-col justify-between">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between font-bold text-slate-500">
-                  <span>المجموع الفرعي:</span>
-                  <span>{subtotal.toFixed(2)} EGP</span>
-                </div>
-                <div className="flex justify-between font-bold text-slate-500">
-                  <span>مصاريف الشحن والتسليم:</span>
-                  <span>+{shippingCost.toFixed(2)} EGP</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between font-bold text-red-500">
-                    <span>الخصم:</span>
-                    <span>-{discount.toFixed(2)} EGP</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-black text-lg text-slate-800 dark:text-slate-100 border-t border-slate-200 dark:border-slate-700 pt-2">
-                  <span>الإجمالي النهائي:</span>
-                  <span className="text-indigo-600 dark:text-indigo-400">{total.toFixed(2)} EGP</span>
-                </div>
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                <span>شركة الشحن</span>
+                <Truck size={14} className="text-slate-500" />
+              </label>
+              <select
+                value={shippingCompany}
+                onChange={(e) => setShippingCompany(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
+              >
+                <option value="">اختر شركة الشحن</option>
+                <option value="بوسطة (Bosta)">بوسطة (Bosta)</option>
+                <option value="أرامكس (Aramex)">أرامكس (Aramex)</option>
+                <option value="سمسا (SMSA)">سمسا (SMSA)</option>
+                <option value="فيديكس (FedEx)">فيديكس (FedEx)</option>
+                {carriers.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+                <option value="شحن خاص">شحن خاص / مندوب</option>
+              </select>
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">المبلغ المحصل فعلياً من المنصة</label>
-                <input
-                  type="number"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 rounded-xl text-sm font-black text-emerald-700 dark:text-emerald-300"
-                />
-              </div>
+          {/* Row 5: Delivery Status & Payment Method */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                <span>حالة التوصيل والتحصيل</span>
+                <Truck size={14} className="text-slate-500" />
+              </label>
+              <select
+                value={deliveryStatus}
+                onChange={(e) => setDeliveryStatus(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
+              >
+                <option value="money_pending">قيد الانتظار (تحصيل)</option>
+                <option value="shipped">تم الشحن</option>
+                <option value="delivered">تم التسليم والتحصيل</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center justify-end gap-1">
+                <span>طريقة الدفع</span>
+                <CreditCard size={14} className="text-slate-500" />
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
+              >
+                <option value="">اختر طريقة الدفع</option>
+                <option value="cash">نقداً (كاش)</option>
+                <option value="visa">فيزا (بطاقة إلكترونية)</option>
+                <option value="wallet">محفظة إلكترونية</option>
+                <option value="instapay">انستاباي InstaPay</option>
+              </select>
             </div>
           </div>
 
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex flex-wrap items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 gap-3">
+        {/* Footer Buttons - Identical to Image */}
+        <div className="flex items-center justify-center gap-3 px-6 py-4 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+          <button
+            type="button"
+            disabled={isSaving || cart.length === 0}
+            onClick={handleSaveInvoice}
+            className="px-6 py-2.5 bg-[#425968] hover:bg-slate-700 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow transition disabled:opacity-50"
+          >
+            <Save size={16} />
+            <span>{isSaving ? 'جارٍ الحفظ والتحصيل...' : 'حفظ الفاتورة'}</span>
+          </button>
+
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm"
+            className="px-6 py-2.5 bg-[#64748b] hover:bg-slate-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 transition"
           >
-            إلغاء
+            <X size={16} />
+            <span>إلغاء</span>
           </button>
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={isSaving || cart.length === 0}
-              onClick={() => handleSaveInvoice(true)}
-              className="flex items-center gap-2 bg-slate-800 dark:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-slate-900 transition text-sm disabled:opacity-50"
-            >
-              <Printer size={16} />
-              <span>حفظ وطباعة الفاتورة</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={isSaving || cart.length === 0}
-              onClick={() => handleSaveInvoice(false)}
-              style={{ backgroundColor: storeSettings.themeColor }}
-              className="flex items-center gap-2 text-white px-6 py-2.5 rounded-xl font-black transition shadow-lg hover:opacity-90 text-sm disabled:opacity-50"
-            >
-              <CheckCircle2 size={18} />
-              <span>{isSaving ? 'جارٍ الحفظ والربط...' : 'حفظ الفاتورة والربط بالمنصات والتحصيل'}</span>
-            </button>
-          </div>
         </div>
 
       </div>
