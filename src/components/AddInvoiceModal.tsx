@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStore, type Product, type Customer, type Order } from '../store/useStore';
 import { printShippingLabel, type ShippingLabelHeld } from '../utils/printShippingLabel';
-import { X, Search, Plus, Trash2, Printer, CheckCircle2, Truck, User, Hash, Package } from 'lucide-react';
+import { X, Search, Plus, Trash2, Printer, CheckCircle2, User, Hash, Package, Store, Layers } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface AddInvoiceModalProps {
@@ -11,16 +11,15 @@ interface AddInvoiceModalProps {
 }
 
 export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalProps) {
-  const { products, customers, carriers, storeSettings, activeCashier, orders, loadHeldInvoices } = useStore();
+  const { products, customers, storeSettings, activeCashier, orders, addPlatformCollection, loadPlatformCollections, loadHeldInvoices } = useStore();
 
   // State
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
-  const [selectedCarrier, setSelectedCarrier] = useState<string>('Bosta - بوسطة');
-  const [customCarrierName, setCustomCarrierName] = useState<string>('');
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('أمازون (Amazon)');
+  const [customPlatformName, setCustomPlatformName] = useState<string>('');
   const [customInvoiceId, setCustomInvoiceId] = useState<string>('');
-  const [trackingNumber, setTrackingNumber] = useState<string>('');
   const [shippingCost, setShippingCost] = useState<number>(50);
   const [discount, setDiscount] = useState<number>(0);
   const [paidAmount, setPaidAmount] = useState<number>(0);
@@ -44,14 +43,8 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
     if (isOpen) {
       const generated = nextInvoiceId;
       setCustomInvoiceId(generated);
-      setTrackingNumber(generated); // "الفاتورة تتربط تلقائي بمنصات الشحن و برقم الفاتورة"
     }
   }, [isOpen, nextInvoiceId]);
-
-  const handleInvoiceIdChange = (val: string) => {
-    setCustomInvoiceId(val);
-    setTrackingNumber(val);
-  };
 
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return [];
@@ -110,8 +103,8 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
     setIsSaving(true);
     try {
       const finalInvoiceId = customInvoiceId.trim() || nextInvoiceId;
-      const carrierName = selectedCarrier === 'custom' ? (customCarrierName.trim() || 'شحن خاص') : selectedCarrier;
-      const finalTrackingNumber = trackingNumber.trim() || finalInvoiceId;
+      const platformName = selectedPlatform === 'custom' ? (customPlatformName.trim() || 'منصة خاصة') : selectedPlatform;
+      const currentMonth = new Date().toISOString().slice(0, 7);
 
       // 1. Create or Find Customer
       let customerObj: Customer | undefined = undefined;
@@ -156,8 +149,8 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         salesperson_name: salespersonName || null,
         discount_amount: Number(discount) || 0,
         shipping_cost: Number(shippingCost) || 0,
-        shipping_carrier: carrierName,
-        notes: notes ? `${notes} | شركة الشحن: ${carrierName} (بوليصة #${finalTrackingNumber})` : `شركة الشحن: ${carrierName} (بوليصة #${finalTrackingNumber})`,
+        shipping_carrier: platformName,
+        notes: notes ? `${notes} | تحصيل منصة: ${platformName} (فاتورة #${finalInvoiceId})` : `تحصيل منصة: ${platformName} (فاتورة #${finalInvoiceId})`,
         created_at: new Date().toISOString()
       };
 
@@ -180,34 +173,36 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         await supabase.from('products').update({ stock_quantity: newStock }).eq('id', item.product.id);
       }
 
-      // 5. Auto-Link to Logistics / Platform Shipping ("الفاتورة تتربط تلقائي بمنصات الشحن و برقم الفاتورة")
+      // 5. Auto-Link directly to Platform Collections ("ربط الفاتورة بالتحصيل والمنصات برقم الفاتورة")
       try {
-        await supabase.from('logistics_orders').insert({
-          order_id: finalInvoiceId,
-          carrier_id: null,
-          tracking_number: finalTrackingNumber,
-          shipping_cost: Number(shippingCost) || 0,
-          status: 'shipped',
-          created_at: new Date().toISOString()
-        });
+        const collectionRecord = {
+          entity_type: 'platform' as const,
+          entity_name: platformName,
+          month: currentMonth,
+          expected_amount: total,
+          collected_amount: Number(paidAmount) || 0,
+          status: (paidAmount >= total - 0.01) ? ('collected' as const) : ('pending' as const),
+          notes: `فاتورة بيع مستقلة #${finalInvoiceId} - العميل: ${customerName.trim() || 'عميل نقدي'}`
+        };
+        await addPlatformCollection(collectionRecord);
       } catch (e) {
-        console.warn('logistics_orders insert notice:', e);
+        console.warn('platform_collections insert notice:', e);
       }
 
-      // Also create Held/Online Invoice record for logistics tab
+      // Also save in held_invoices for online platform tracking
       try {
         await supabase.from('held_invoices').insert({
-          id: `ONLINE-${finalInvoiceId}`,
-          customer_name: customerName.trim() || 'عميل شحن',
+          id: `PLATFORM-${finalInvoiceId}`,
+          customer_name: customerName.trim() || 'عميل منصة',
           customer_phone: customerPhone.trim() || null,
           customer_address: customerAddress.trim() || null,
           items: orderItems,
           total: total,
           invoice_type: 'retail',
           cashier_name: activeCashier?.name || 'مدير النظام',
-          status: 'shipped',
+          status: (paidAmount >= total - 0.01) ? 'collected' : 'held',
           kind: 'online',
-          shipping_note: carrierName,
+          shipping_note: platformName,
           deposit: Number(paidAmount) || 0,
           shipping_cost: Number(shippingCost) || 0
         });
@@ -226,7 +221,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         date: new Date().toISOString(),
         items: orderItems,
         shipping_cost: Number(shippingCost) || 0,
-        shipping_carrier: carrierName,
+        shipping_carrier: platformName,
         notes: orderRow.notes
       } as any;
 
@@ -234,6 +229,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         orders: [createdOrderObj, ...state.orders]
       }));
 
+      await loadPlatformCollections();
       await loadHeldInvoices();
 
       // Print if requested
@@ -253,7 +249,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         void printShippingLabel(heldData, storeSettings);
       }
 
-      alert(`تم إضافة الفاتورة #${finalInvoiceId} وربطها تلقائياً بـ (${carrierName}) برقم الفاتورة بنجاح!`);
+      alert(`تم إنشاء الفاتورة المستقلة #${finalInvoiceId} وربطها تلقائياً بـ تحصيل منصة (${platformName}) بنجاح!`);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
@@ -272,11 +268,11 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black">
-              <Package size={22} />
+              <Store size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-black">إضافة فاتورة مستقلة جديدة</h2>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">إنشاء فاتورة مستقلة وربطها تلقائياً بمنصات الشحن برقم الفاتورة</p>
+              <h2 className="text-xl font-black">إضافة فاتورة جديدة وربطها بالمنصات والتحصيل</h2>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">ربط الفاتورة تلقائياً بـ تحصيل المنصات برقم الفاتورة مباشرة</p>
             </div>
           </div>
           <button 
@@ -290,11 +286,11 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
           
-          {/* Section 1: Invoice & Shipping Platform Linking */}
+          {/* Section 1: Invoice & Platform Collections Linking */}
           <div className="bg-indigo-50/60 dark:bg-indigo-950/30 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 space-y-4">
             <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-black text-sm">
-              <Truck size={18} />
-              <span>ربط الفاتورة بمنصات الشحن ورقم البوليصة تلقائياً</span>
+              <Layers size={18} />
+              <span>ربط الفاتورة بـ تحصيل المنصات برقم الفاتورة</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -305,7 +301,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
                 <input
                   type="text"
                   value={customInvoiceId}
-                  onChange={(e) => handleInvoiceIdChange(e.target.value)}
+                  onChange={(e) => setCustomInvoiceId(e.target.value)}
                   placeholder="مثال: 1042"
                   className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl font-black text-sm text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -313,33 +309,28 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
 
               <div>
                 <label className="block text-xs font-black text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1">
-                  <Truck size={14} /> منصة / شركة الشحن
+                  <Store size={14} /> منصة البيع والتحصيل
                 </label>
                 <select
-                  value={selectedCarrier}
-                  onChange={(e) => setSelectedCarrier(e.target.value)}
+                  value={selectedPlatform}
+                  onChange={(e) => setSelectedPlatform(e.target.value)}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="Bosta - بوسطة">Bosta - بوسطة</option>
-                  <option value="Aramex - أرامكس">Aramex - أرامكس</option>
-                  <option value="SMSA - سمسا">SMSA - سمسا Express</option>
-                  <option value="FedEx - فيديكس">FedEx - فيديكس</option>
-                  <option value="Jumia Express - جوميا">Jumia Express - جوميا</option>
-                  <option value="Noon Logistics - نون">Noon Logistics - نون</option>
-                  <option value="Amazon Shipping - أمازون">Amazon Shipping - أمازون</option>
-                  <option value="Mylerz - مايلرز">Mylerz - مايلرز</option>
-                  <option value="Speedaf - سبيداف">Speedaf - سبيداف</option>
-                  {carriers.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                  <option value="custom">شركة شحن أخرى / شحن خاص</option>
+                  <option value="أمازون (Amazon)">أمازون (Amazon)</option>
+                  <option value="نون (Noon)">نون (Noon)</option>
+                  <option value="جوميا (Jumia)">جوميا (Jumia)</option>
+                  <option value="تيك توك شوب (TikTok Shop)">تيك توك شوب (TikTok Shop)</option>
+                  <option value="متجر سلة (Salla)">متجر سلة (Salla)</option>
+                  <option value="متجر زد (Zid)">متجر زد (Zid)</option>
+                  <option value="متجر إلكتروني مباشر">متجر إلكتروني مباشر</option>
+                  <option value="custom">منصة خاصة أخرى</option>
                 </select>
-                {selectedCarrier === 'custom' && (
+                {selectedPlatform === 'custom' && (
                   <input
                     type="text"
-                    value={customCarrierName}
-                    onChange={(e) => setCustomCarrierName(e.target.value)}
-                    placeholder="اكتب اسم شركة الشحن"
+                    value={customPlatformName}
+                    onChange={(e) => setCustomPlatformName(e.target.value)}
+                    placeholder="اكتب اسم المنصة"
                     className="w-full mt-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold"
                   />
                 )}
@@ -347,16 +338,15 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
 
               <div>
                 <label className="block text-xs font-black text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1">
-                  <CheckCircle2 size={14} className="text-emerald-500" /> رقم البوليصة التلقائي
+                  <CheckCircle2 size={14} className="text-emerald-500" /> كود المرجعية للتحصيل
                 </label>
                 <input
                   type="text"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="رقم البوليصة"
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-sm"
+                  readOnly
+                  value={`#${customInvoiceId}`}
+                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl font-black text-sm text-slate-600 dark:text-slate-300 cursor-not-allowed"
                 />
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-1">✓ يتم الربط التلقائي بنفس رقم الفاتورة</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-1">✓ يتم الربط التلقائي في سداد وتحصيل المنصات</span>
               </div>
             </div>
           </div>
@@ -493,7 +483,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">مصاريف الشحن</label>
+                <label className="block text-xs font-bold text-slate-500 mb-1">مصاريف الشحن والتسليم</label>
                 <input
                   type="number"
                   value={shippingCost}
@@ -513,14 +503,14 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">طريقة الدفع</label>
+                <label className="block text-xs font-bold text-slate-500 mb-1">طريقة التحصيل</label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold"
                 >
-                  <option value="cash">نقداً (كاش)</option>
-                  <option value="visa">فيزا (بطاقة)</option>
+                  <option value="cash">نقداً (كاش / تحصيل منصة)</option>
+                  <option value="visa">فيزا / دفع إلكتروني</option>
                   <option value="wallet">محفظة إلكترونية</option>
                   <option value="instapay">انستاباي InstaPay</option>
                 </select>
@@ -556,7 +546,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
                   <span>{subtotal.toFixed(2)} EGP</span>
                 </div>
                 <div className="flex justify-between font-bold text-slate-500">
-                  <span>مصاريف الشحن:</span>
+                  <span>مصاريف الشحن والتسليم:</span>
                   <span>+{shippingCost.toFixed(2)} EGP</span>
                 </div>
                 {discount > 0 && (
@@ -572,7 +562,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">المبلغ المحصل فعلياً</label>
+                <label className="block text-xs font-bold text-slate-500 mb-1">المبلغ المحصل فعلياً من المنصة</label>
                 <input
                   type="number"
                   value={paidAmount}
@@ -603,7 +593,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
               className="flex items-center gap-2 bg-slate-800 dark:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-slate-900 transition text-sm disabled:opacity-50"
             >
               <Printer size={16} />
-              <span>حفظ وطباعة البوليصة</span>
+              <span>حفظ وطباعة الفاتورة</span>
             </button>
 
             <button
@@ -614,7 +604,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
               className="flex items-center gap-2 text-white px-6 py-2.5 rounded-xl font-black transition shadow-lg hover:opacity-90 text-sm disabled:opacity-50"
             >
               <CheckCircle2 size={18} />
-              <span>{isSaving ? 'جارٍ الحفظ والربط...' : 'حفظ الفاتورة والربط بالشحن'}</span>
+              <span>{isSaving ? 'جارٍ الحفظ والربط...' : 'حفظ الفاتورة والربط بالمنصات والتحصيل'}</span>
             </button>
           </div>
         </div>
