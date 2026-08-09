@@ -21,10 +21,7 @@ export default function Invoices() {
   const { orders, storeSettings, deleteOrder, undoReturn, processReturn, syncInvoiceToPlatformCollection } = useStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showReturnsOnly, setShowReturnsOnly] = useState(false);
-  const [showExchangeOnly, setShowExchangeOnly] = useState(false);
-  const [showDeferredOnly, setShowDeferredOnly] = useState(false);
-  const [viewMode, setViewMode] = useState<'active' | 'deleted'>('active');
+  const [activeTab, setActiveTab] = useState<'all' | 'sales' | 'returns' | 'deferred' | 'exchange' | 'deleted'>('all');
   const [selectedDay, setSelectedDay] = useState<string>('');
 
   const [dateBasis, setDateBasis] = useState<'invoice' | 'refund' | 'exchange'>('invoice');
@@ -115,7 +112,26 @@ export default function Invoices() {
 
   const activeOrders = useMemo(() => orders.filter((order) => !order.is_deleted), [orders]);
   const deletedOrders = useMemo(() => orders.filter((order) => order.is_deleted), [orders]);
-  const visibleOrders = viewMode === 'deleted' ? deletedOrders : activeOrders;
+
+  const salesInvoicesCount = useMemo(() => {
+    return activeOrders.filter((o) => {
+      const returnedVal = calculateOrderReturnValue(o);
+      const debt = (o.type === 'payment' ? 0 : Math.max(0, o.total - returnedVal)) - (o.paid_amount || 0);
+      return o.type === 'sale' && returnedVal <= 0 && debt <= 0.009;
+    }).length;
+  }, [activeOrders]);
+
+  const returnsInvoicesCount = useMemo(() => {
+    return activeOrders.filter((o) => calculateOrderReturnValue(o) > 0 || (o.items || []).some(i => i.returned_quantity > 0)).length;
+  }, [activeOrders]);
+
+  const deferredInvoicesCount = useMemo(() => {
+    return activeOrders.filter((o) => o.type !== 'payment' && (o.total - calculateOrderReturnValue(o) - (o.paid_amount || 0)) > 0.009).length;
+  }, [activeOrders]);
+
+  const exchangeInvoicesCount = useMemo(() => {
+    return activeOrders.filter((o) => !!(o as any).exchange_data).length;
+  }, [activeOrders]);
 
   const matchingInvoicesForReturn = useMemo(() => {
     if (!returnInvoiceSearch.trim()) return activeOrders.filter(o => o.type === 'sale');
@@ -371,25 +387,25 @@ export default function Invoices() {
   // Extract unique years from orders
   const years = useMemo(() => {
     const y = new Set<string>();
-    visibleOrders.forEach(o => y.add(new Date(o.date).getFullYear().toString()));
+    activeOrders.forEach(o => y.add(new Date(o.date).getFullYear().toString()));
     return Array.from(y).sort((a, b) => parseInt(b) - parseInt(a));
-  }, [visibleOrders]);
+  }, [activeOrders]);
 
   // Extract unique cashiers from orders
   const uniqueCashiers = useMemo(() => {
     const c = new Set<string>();
-    visibleOrders.forEach(o => {
+    activeOrders.forEach(o => {
       if (o.cashier_name) c.add(o.cashier_name);
     });
     return Array.from(c).sort();
-  }, [visibleOrders]);
+  }, [activeOrders]);
 
   // Extract unique salespeople from orders
   const uniqueSalespeople = useMemo(() => {
     const s = new Set<string>();
-    visibleOrders.forEach(o => { if ((o as any).salesperson_name) s.add((o as any).salesperson_name); });
+    activeOrders.forEach(o => { if ((o as any).salesperson_name) s.add((o as any).salesperson_name); });
     return Array.from(s).sort();
-  }, [visibleOrders]);
+  }, [activeOrders]);
 
   // إلغاء مرتجع اتعمل بالغلط. بيتحقق من **يوم المرتجع** مش يوم الفاتورة، فمرتجع
   // اتعمل النهاردة على فاتورة قديمة (يومها مقفول) ينفع يتلغى عادي.
@@ -507,14 +523,32 @@ export default function Invoices() {
   };
 
   const filteredOrders = useMemo(() => {
-    return visibleOrders.filter(o => {
+    const source = activeTab === 'deleted' ? deletedOrders : activeOrders;
+
+    return source.filter((o) => {
+      // 1. Tab Scoping
+      if (activeTab === 'sales') {
+        const returnedVal = calculateOrderReturnValue(o);
+        const debt = (o.type === 'payment' ? 0 : Math.max(0, o.total - returnedVal)) - (o.paid_amount || 0);
+        if (returnedVal > 0 || debt > 0.009 || o.type === 'payment') return false;
+      } else if (activeTab === 'returns') {
+        const returnedVal = calculateOrderReturnValue(o);
+        const hasRetItem = (o.items || []).some((i) => i.returned_quantity > 0);
+        if (returnedVal <= 0 && !hasRetItem) return false;
+      } else if (activeTab === 'deferred') {
+        const returnedVal = calculateOrderReturnValue(o);
+        const debt = (o.type === 'payment' ? 0 : Math.max(0, o.total - returnedVal)) - (o.paid_amount || 0);
+        if (debt <= 0.009) return false;
+      } else if (activeTab === 'exchange') {
+        if (!(o as any).exchange_data) return false;
+      }
+
+      // 2. Date Basis & Date Filters
       const refundedAt = (o as any).refunded_at as string | null | undefined;
-      // الاستبدال بيتسجّل جوه exchange_data.date — نفس المصدر اللي خزينة الكاشير
-      // بتحسب عليه يوم الاستبدال.
       const exchangedAt = (o as any).exchange_data?.date as string | null | undefined;
-      // على أساس المرتجع/الاستبدال: الفواتير اللي مالهاش التاريخ ده مالهاش مكان في العرض.
       if (dateBasis === 'refund' && !refundedAt) return false;
       if (dateBasis === 'exchange' && !exchangedAt) return false;
+
       const orderDate = new Date(
         dateBasis === 'refund' ? refundedAt! : dateBasis === 'exchange' ? exchangedAt! : o.date
       );
@@ -523,12 +557,10 @@ export default function Invoices() {
         String(orderDate.getMonth() + 1).padStart(2, '0'),
         String(orderDate.getDate()).padStart(2, '0')
       ].join('-');
+
       const matchesDay = !selectedDay || orderDay === selectedDay;
       const matchesMonth = selectedMonth === 'all' || (orderDate.getMonth() + 1).toString() === selectedMonth;
       const matchesYear = selectedYear === 'all' || orderDate.getFullYear().toString() === selectedYear;
-      const matchesReturns = showReturnsOnly ? o.items.some(i => i.returned_quantity > 0) : true;
-      const matchesExchange = showExchangeOnly ? !!(o as any).exchange_data : true;
-      const matchesDeferred = showDeferredOnly ? (o.type !== 'payment' && (o.total - (o.paid_amount || 0)) > 0.009) : true;
 
       const searchStr = searchQuery.toLowerCase();
       const matchesSearch = 
@@ -539,22 +571,12 @@ export default function Invoices() {
       const matchesCashier = selectedCashier === 'all' || o.cashier_name === selectedCashier;
       const matchesSalesperson = selectedSalesperson === 'all' || (o as any).salesperson_name === selectedSalesperson;
 
-      return matchesDay && matchesMonth && matchesYear && matchesReturns && matchesExchange && matchesDeferred && matchesSearch && matchesCashier && matchesSalesperson;
+      return matchesDay && matchesMonth && matchesYear && matchesSearch && matchesCashier && matchesSalesperson;
     });
-  }, [visibleOrders, searchQuery, showReturnsOnly, showExchangeOnly, showDeferredOnly, selectedDay, selectedMonth, selectedYear, selectedCashier, selectedSalesperson, dateBasis]);
-
-  const exchangeInvoicesCount = useMemo(() => visibleOrders.filter(o => (o as any).exchange_data).length, [visibleOrders]);
+  }, [activeOrders, deletedOrders, activeTab, dateBasis, selectedDay, selectedMonth, selectedYear, searchQuery, selectedCashier, selectedSalesperson]);
 
   const totalInvoiceProfit = useMemo(() => {
     return filteredOrders.reduce((sum, order) => sum + calculateInvoiceProfit(order), 0);
-  }, [filteredOrders]);
-
-  const returnedInvoicesCount = useMemo(() => {
-    return filteredOrders.filter(order => order.items.some(item => item.returned_quantity > 0)).length;
-  }, [filteredOrders]);
-
-  const deferredInvoicesCount = useMemo(() => {
-    return filteredOrders.filter(o => o.type !== 'payment' && (o.total - (o.paid_amount || 0)) > 0.009).length;
   }, [filteredOrders]);
 
   // تقرير مبيعات/أرباح كل مسؤول مبيعات في الفترة المفلترة (كشف عمولة)
@@ -720,98 +742,113 @@ export default function Invoices() {
           </div>
         </div>
 
-        <div className="p-5 border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <div className="mb-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode('active')}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition ${
-                  viewMode === 'active'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-              >
-                <FileText size={16} /> الفواتير الحالية
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('deleted')}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition ${
-                  viewMode === 'deleted'
-                    ? 'bg-red-600 text-white shadow-sm'
-                    : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/25'
-                }`}
-              >
-                <Archive size={16} /> سلة المهملات ({deletedOrders.length})
-              </button>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div
-                style={{ backgroundColor: storeSettings.themeColor + '10', borderColor: storeSettings.themeColor + '25' }}
-                className="rounded-2xl border p-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-slate-500 dark:text-slate-400">إجمالي النتائج</p>
-                  <FileText size={18} style={{ color: storeSettings.themeColor }} />
-                </div>
-                <p className="text-2xl font-black mt-2" style={{ color: storeSettings.themeColor }}>{filteredOrders.length}</p>
+        {/* ── Main Category Tabs Navigation ── */}
+        <div className="p-5 border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-4">
+          <div className="bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-2xl flex flex-wrap items-center gap-1 border border-slate-200/80 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => { setActiveTab('all'); setDateBasis('invoice'); }}
+              className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs md:text-sm transition-all ${
+                activeTab === 'all'
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50'
+              }`}
+            >
+              <FileText size={16} /> كل الفواتير ({activeOrders.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('sales'); setDateBasis('invoice'); }}
+              className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs md:text-sm transition-all ${
+                activeTab === 'sales'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
+              }`}
+            >
+              🛒 فواتير البيع ({salesInvoicesCount})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('returns'); setDateBasis('refund'); }}
+              className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs md:text-sm transition-all ${
+                activeTab === 'returns'
+                  ? 'bg-orange-600 text-white shadow-md'
+                  : 'text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40'
+              }`}
+            >
+              ↩️ المرتجعات ({returnsInvoicesCount})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('deferred'); setDateBasis('invoice'); }}
+              className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs md:text-sm transition-all ${
+                activeTab === 'deferred'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+              }`}
+            >
+              💳 الآجل والديون ({deferredInvoicesCount})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('exchange'); setDateBasis('exchange'); }}
+              className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs md:text-sm transition-all ${
+                activeTab === 'exchange'
+                  ? 'bg-amber-600 text-white shadow-md'
+                  : 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+              }`}
+            >
+              🔄 الاستبدال ({exchangeInvoicesCount})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('deleted'); setDateBasis('invoice'); }}
+              className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs md:text-sm transition-all ${
+                activeTab === 'deleted'
+                  ? 'bg-red-700 text-white shadow-md'
+                  : 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40'
+              }`}
+            >
+              <Archive size={16} /> سلة المهملات ({deletedOrders.length})
+            </button>
+          </div>
+
+          {/* Dynamic Summary Cards for Active Tab */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div
+              style={{ backgroundColor: storeSettings.themeColor + '10', borderColor: storeSettings.themeColor + '25' }}
+              className="rounded-2xl border p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-black text-slate-500 dark:text-slate-400">عدد النتائج المعروضة</p>
+                <FileText size={18} style={{ color: storeSettings.themeColor }} />
               </div>
-              <div className="rounded-2xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-emerald-700 dark:text-emerald-300">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">إجمالي الربح من الفواتير</p>
-                  <TrendingUp size={18} />
-                </div>
-                <p className="text-2xl font-black mt-2">{totalInvoiceProfit.toFixed(2)} <span className="text-xs">{storeSettings.currency}</span></p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowReturnsOnly((current) => !current)}
-                className={`rounded-2xl border p-4 text-right transition-all ${
-                  showReturnsOnly
-                    ? 'border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-200 shadow-sm ring-2 ring-orange-200 dark:ring-orange-900'
-                    : 'border-orange-100 dark:border-orange-900/40 bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 hover:border-orange-200 dark:hover:border-orange-800 hover:bg-orange-100/60'
-                }`}
-                title={showReturnsOnly ? 'عرض كل الفواتير' : 'إظهار الفواتير التي بها مرتجعات فقط'}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-orange-600 dark:text-orange-400">فواتير بها مرتجعات</p>
-                  <ArrowRightLeft size={18} />
-                </div>
-                <p className="text-2xl font-black mt-2">{returnedInvoicesCount}</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowExchangeOnly((current) => !current)}
-                className={`rounded-2xl border p-4 text-right transition-all ${
-                  showExchangeOnly
-                    ? 'border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 shadow-sm ring-2 ring-amber-200 dark:ring-amber-900'
-                    : 'border-amber-100 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:border-amber-200 dark:hover:border-amber-800 hover:bg-amber-100/60'
-                }`}
-                title={showExchangeOnly ? 'عرض كل الفواتير' : 'إظهار فواتير الاستبدال فقط'}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-amber-600 dark:text-amber-400">فواتير استبدال</p>
-                  <ArrowRightLeft size={18} />
-                </div>
-                <p className="text-2xl font-black mt-2">{exchangeInvoicesCount}</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowDeferredOnly((current) => !current)}
-                className={`rounded-2xl border p-4 text-right transition-all ${
-                  showDeferredOnly
-                    ? 'border-rose-300 dark:border-rose-700 bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 shadow-sm ring-2 ring-rose-200 dark:ring-rose-900'
-                    : 'border-rose-100 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 hover:border-rose-200 dark:hover:border-rose-800 hover:bg-rose-100/60'
-                }`}
-                title={showDeferredOnly ? 'عرض كل الفواتير' : 'إظهار الفواتير الآجلة (غير المسددة بالكامل) فقط'}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black text-rose-600 dark:text-rose-400">فواتير آجلة</p>
-                  <CreditCard size={18} />
-                </div>
-                <p className="text-2xl font-black mt-2">{deferredInvoicesCount}</p>
-              </button>
+              <p className="text-2xl font-black mt-2" style={{ color: storeSettings.themeColor }}>{filteredOrders.length}</p>
             </div>
+
+            <div className="rounded-2xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-emerald-700 dark:text-emerald-300">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">إجمالي الأرباح الصافية</p>
+                <TrendingUp size={18} />
+              </div>
+              <p className="text-2xl font-black mt-2">{totalInvoiceProfit.toFixed(2)} <span className="text-xs">{storeSettings.currency}</span></p>
+            </div>
+
+            <div className="rounded-2xl border border-orange-100 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/40 p-4 text-orange-700 dark:text-orange-300">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-black text-orange-600 dark:text-orange-400">إجمالي قيمة المرتجعات المعروضة</p>
+                <ArrowRightLeft size={18} />
+              </div>
+              <p className="text-2xl font-black mt-2">
+                {filteredOrders.reduce((sum, o) => sum + calculateOrderReturnValue(o), 0).toFixed(2)} <span className="text-xs">{storeSettings.currency}</span>
+              </p>
+            </div>
+          </div>
         </div>
 
         {salespersonReport.length > 0 && (
