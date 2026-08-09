@@ -18,7 +18,7 @@ import { EditInvoiceModal } from '../../components/EditInvoiceModal';
 import { AddInvoiceModal } from '../../components/AddInvoiceModal';
 
 export default function Invoices() {
-  const { orders, storeSettings, deleteOrder, undoReturn } = useStore();
+  const { orders, storeSettings, deleteOrder, undoReturn, processReturn, syncInvoiceToPlatformCollection } = useStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showReturnsOnly, setShowReturnsOnly] = useState(false);
@@ -26,13 +26,7 @@ export default function Invoices() {
   const [showDeferredOnly, setShowDeferredOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'active' | 'deleted'>('active');
   const [selectedDay, setSelectedDay] = useState<string>('');
-  // أساس فلترة اليوم/الشهر/السنة: تاريخ الفاتورة (الافتراضي) أو تاريخ المرتجع
-  // أو تاريخ الاستبدال. المرتجع بيتسجّل على refunded_at (db/36) والاستبدال جوه
-  // exchange_data.date، فاسترجاع/استبدال فاتورة قديمة النهاردة كان بيفضل مختفي
-  // من فلتر النهاردة لأن الفلتر كان على o.date بس.
-  // مقصود إنه أساس منفصل مش شرط إضافي: لو فاتورة قديمة دخلت في فلتر النهاردة،
-  // قيمتها وربحها كانوا هيتحسبوا في إجمالي أرباح اليوم وكشف عمولة مسؤول
-  // المبيعات كأنها مبيعات النهاردة.
+
   const [dateBasis, setDateBasis] = useState<'invoice' | 'refund' | 'exchange'>('invoice');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
@@ -40,6 +34,82 @@ export default function Invoices() {
   const [selectedSalesperson, setSelectedSalesperson] = useState<string>('all');
   const [loading, setLoading] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
+
+  // ── Modal State for Partial & Full Invoices Return ──
+  const [returnOrder, setReturnOrder] = useState<any | null>(null);
+  const [returnQtys, setReturnQtys] = useState<Record<string, number>>({});
+  const [refundMethod, setRefundMethod] = useState<string>('cash');
+  const [refundFee, setRefundFee] = useState<number>(0);
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+
+  const openReturnModal = (ord: any) => {
+    setReturnOrder(ord);
+    const initialQtys: Record<string, number> = {};
+    (ord.items || []).forEach((it: any) => {
+      const key = it.product_id || it.id;
+      initialQtys[key] = 0;
+    });
+    setReturnQtys(initialQtys);
+    setRefundMethod(ord.customer?.debt && ord.customer.debt > 0 ? 'debt' : 'cash');
+    setRefundFee(0);
+  };
+
+  const handleProcessReturnSubmit = async () => {
+    if (!returnOrder) return;
+    const items = returnOrder.items || [];
+    
+    const returnsArray = items
+      .map((it: any) => {
+        const key = it.product_id || it.id;
+        const qty = returnQtys[key] || 0;
+        const salePrice = Number(it.sale_price) || 0;
+        return {
+          productId: key,
+          returnQty: qty,
+          refundAmount: qty * salePrice,
+        };
+      })
+      .filter((r: any) => r.returnQty > 0);
+
+    if (returnsArray.length === 0) {
+      alert('برجاء تحديد كمية المرتجع لصنف واحد على الأقل.');
+      return;
+    }
+
+    setIsSubmittingReturn(true);
+    try {
+      const ok = await processReturn(
+        returnOrder.id,
+        returnsArray,
+        refundMethod,
+        undefined,
+        { deduction: refundFee }
+      );
+
+      if (ok) {
+        // Sync updated expected amount to platform collections table
+        const updatedOrd = useStore.getState().orders.find((o) => o.id === returnOrder.id);
+        if (updatedOrd) {
+          void syncInvoiceToPlatformCollection({
+            id: String(updatedOrd.id),
+            total: updatedOrd.total,
+            paid_amount: updatedOrd.paid_amount,
+            customer_name: updatedOrd.customer?.name,
+            notes: updatedOrd.notes || undefined
+          });
+        }
+
+        alert('تم تسجيل المرتجع وتعديل المخزن والحسابات والديون بنجاح! ✅');
+        setReturnOrder(null);
+      } else {
+        alert('حدث خطأ أثناء تنفيذ المرتجع. يرجى إعادة المحاولة.');
+      }
+    } catch (err: any) {
+      alert('خطأ أثناء الإرجاع: ' + (err?.message || err));
+    } finally {
+      setIsSubmittingReturn(false);
+    }
+  };
 
   const activeOrders = useMemo(() => orders.filter((order) => !order.is_deleted), [orders]);
   const deletedOrders = useMemo(() => orders.filter((order) => order.is_deleted), [orders]);
@@ -953,6 +1023,15 @@ export default function Invoices() {
                               </svg>
                             </button>
                           )}
+                          {!order.is_deleted && order.type === 'sale' && (
+                            <button
+                              onClick={() => openReturnModal(order)}
+                              className="p-2 rounded-lg bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/25 transition-all shadow-sm border border-orange-100 dark:border-orange-500/30"
+                              title="إجراء مرتجع (جزئي أو كلي) لهذه الفاتورة"
+                            >
+                              <ArrowRightLeft size={18} />
+                            </button>
+                          )}
                           {!order.is_deleted && order.type === 'sale' && !String(order.id).startsWith('OFF-') && (
                             <button
                               onClick={() => setEditingOrder(order)}
@@ -1001,6 +1080,196 @@ export default function Invoices() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
       />
+
+      {/* ── Partial & Full Invoice Return Modal ── */}
+      {returnOrder && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in duration-200">
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-orange-600 to-amber-600 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white/10 rounded-xl">
+                  <ArrowRightLeft size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black">إجراء مرتجع لفاتورة #{returnOrder.id}</h3>
+                  <p className="text-xs text-orange-100 font-bold">حدد الكميات المراد إرجاعها للمخزن وسدد قيمة المرتجع للعميل</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setReturnOrder(null)}
+                className="p-2 hover:bg-white/20 rounded-xl transition text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+              {/* Customer Info Box */}
+              <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+                <div>
+                  <div className="text-xs text-slate-500 font-bold">بيانات العميل:</div>
+                  <div className="text-base font-black text-slate-800 dark:text-white">{returnOrder.customer?.name || 'عميل نقدي'}</div>
+                  {returnOrder.customer?.phone && <div className="text-xs text-slate-500 font-mono">{returnOrder.customer.phone}</div>}
+                </div>
+                {returnOrder.customer && (
+                  <div className="bg-red-50 dark:bg-red-950/40 p-2.5 rounded-xl border border-red-200 dark:border-red-800 text-left">
+                    <div className="text-[11px] font-bold text-red-600 dark:text-red-400">المديونية الحالية:</div>
+                    <div className="text-sm font-black text-red-700 dark:text-red-300 font-mono">{(returnOrder.customer.debt || 0).toFixed(2)} {storeSettings.currency}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Product Items Selection Table */}
+              <div className="space-y-3">
+                <div className="text-sm font-black text-slate-800 dark:text-white flex justify-between items-center">
+                  <span>أصناف الفاتورة والكميات المتاحة للإرجاع:</span>
+                </div>
+
+                <div className="space-y-3">
+                  {(returnOrder.items || []).map((it: any, idx: number) => {
+                    const key = it.product_id || it.id;
+                    const originalQty = Number(it.quantity) || 0;
+                    const alreadyReturned = Number(it.returned_quantity) || 0;
+                    const availableQty = Math.max(0, originalQty - alreadyReturned);
+                    const currentReturnQty = returnQtys[key] || 0;
+
+                    return (
+                      <div key={idx} className="bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <h4 className="font-black text-slate-800 dark:text-white text-sm">{it.name}</h4>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-bold">
+                            <span>الكمية المباعة: <strong className="text-slate-800 dark:text-slate-200 font-mono">{originalQty}</strong></span>
+                            {alreadyReturned > 0 && <span className="text-amber-600">مرتجع سابقاً: <strong className="font-mono">{alreadyReturned}</strong></span>}
+                            <span>المتاح للإرجاع: <strong className="text-emerald-600 font-mono">{availableQty}</strong></span>
+                            <span>سعر القطعة: <strong className="text-slate-800 dark:text-slate-200 font-mono">{it.sale_price.toFixed(2)} {storeSettings.currency}</strong></span>
+                          </div>
+                        </div>
+
+                        {availableQty > 0 ? (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => setReturnQtys({ ...returnQtys, [key]: Math.max(0, currentReturnQty - 1) })}
+                                className="px-3 py-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-black text-base"
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                min={0}
+                                max={availableQty}
+                                value={currentReturnQty}
+                                onChange={(e) => {
+                                  const val = Math.max(0, Math.min(availableQty, Number(e.target.value) || 0));
+                                  setReturnQtys({ ...returnQtys, [key]: val });
+                                }}
+                                className="w-14 text-center font-black bg-transparent border-none text-slate-800 dark:text-white focus:outline-none font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setReturnQtys({ ...returnQtys, [key]: Math.min(availableQty, currentReturnQty + 1) })}
+                                className="px-3 py-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-black text-base"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setReturnQtys({ ...returnQtys, [key]: availableQty })}
+                              className="text-xs bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold px-2.5 py-2 rounded-xl border border-amber-200 transition"
+                            >
+                              إرجاع الكل
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-xl border border-red-100">تم إرجاع بالكامل</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Settlement Method & Totals */}
+              {(() => {
+                const itemsSum = (returnOrder.items || []).reduce((s: number, i: any) => s + (Number(i.quantity) * Number(i.sale_price)), 0);
+                const discountRatio = itemsSum > 0 ? Math.min(1, Number(returnOrder.total) / itemsSum) : 1;
+                const grossReturnTotal = (returnOrder.items || []).reduce((sum: number, it: any) => {
+                  const key = it.product_id || it.id;
+                  const q = returnQtys[key] || 0;
+                  return sum + (q * Number(it.sale_price));
+                }, 0) * discountRatio;
+
+                return (
+                  <div className="bg-amber-50/60 dark:bg-amber-950/30 p-5 rounded-2xl border border-amber-200/80 dark:border-amber-900/50 space-y-4">
+                    <div className="flex justify-between items-center text-sm font-black text-amber-900 dark:text-amber-200">
+                      <span>إجمالي قيمة المرتجع المستردة:</span>
+                      <span className="text-xl font-mono text-amber-700 dark:text-amber-300 font-black">{grossReturnTotal.toFixed(2)} {storeSettings.currency}</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">طريقة تسوية المسترد للعميل:</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {returnOrder.customer && returnOrder.customer.debt > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setRefundMethod('debt')}
+                            className={`p-2.5 rounded-xl border font-bold text-xs transition ${refundMethod === 'debt' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                          >
+                            📉 خصم من المديونية
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setRefundMethod('cash')}
+                          className={`p-2.5 rounded-xl border font-bold text-xs transition ${refundMethod === 'cash' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                        >
+                          💵 استرداد كاش
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRefundMethod('visa')}
+                          className={`p-2.5 rounded-xl border font-bold text-xs transition ${refundMethod === 'visa' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                        >
+                          💳 فيزا
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRefundMethod('wallet')}
+                          className={`p-2.5 rounded-xl border font-bold text-xs transition ${refundMethod === 'wallet' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                        >
+                          📱 محفظة / انستاباي
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setReturnOrder(null)}
+                className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleProcessReturnSubmit}
+                disabled={isSubmittingReturn}
+                className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black shadow-lg transition text-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSubmittingReturn ? 'جاري التنفيذ...' : 'تأكيد وتنفيذ المرتجع'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
