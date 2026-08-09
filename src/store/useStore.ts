@@ -1592,14 +1592,49 @@ function notifyLowStock(
 }
 
 const getSplits = (split: any, method: string, amount: number) => {
-  const cash = Number(split?.cash) || 0;
-  const visa = Number(split?.visa) || 0;
-  const wallet = Number(split?.wallet) || 0;
-  const instapay = Number(split?.instapay) || 0;
-  const method5 = Number(split?.method5) || 0;
-  const method6 = Number(split?.method6) || 0;
-  if (cash + visa + wallet + instapay + method5 + method6 > 0) {
-    return { cash, visa, wallet, instapay, method5, method6 };
+  const c = Number(split?.cash) || 0;
+  const v = Number(split?.visa) || 0;
+  const w = Number(split?.wallet) || 0;
+  const i = Number(split?.instapay) || 0;
+  const m5 = Number(split?.method5) || 0;
+  const m6 = Number(split?.method6) || 0;
+  const sum = c + v + w + i + m5 + m6;
+
+  if (sum > 0) {
+    if (sum > amount && amount >= 0) {
+      // Overpayment / change given back to customer in cash:
+      const overpay = sum - amount;
+      let netCash = c;
+      let remainingOverpay = overpay;
+
+      if (netCash > 0) {
+        const cashDeduction = Math.min(netCash, remainingOverpay);
+        netCash -= cashDeduction;
+        remainingOverpay -= cashDeduction;
+      }
+
+      if (remainingOverpay > 0 && (sum - c) > 0) {
+        const factor = (amount - netCash) / (sum - c);
+        return {
+          cash: Math.max(0, netCash),
+          visa: Math.max(0, v * factor),
+          wallet: Math.max(0, w * factor),
+          instapay: Math.max(0, i * factor),
+          method5: Math.max(0, m5 * factor),
+          method6: Math.max(0, m6 * factor),
+        };
+      }
+
+      return {
+        cash: Math.max(0, netCash),
+        visa: v,
+        wallet: w,
+        instapay: i,
+        method5: m5,
+        method6: m6,
+      };
+    }
+    return { cash: c, visa: v, wallet: w, instapay: i, method5: m5, method6: m6 };
   }
   return {
     cash: method === 'cash' ? amount : 0,

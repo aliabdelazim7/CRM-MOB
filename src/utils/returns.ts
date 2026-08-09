@@ -3,11 +3,13 @@
 // (or whether) the customer was refunded in cash.
 export function calculateOrderReturnValue(order: any): number {
   const items = order?.items || [];
-
   const itemsSum = items.reduce((sum: number, item: any) => {
     return sum + ((Number(item.quantity) || 0) * (Number(item.sale_price) || 0));
   }, 0);
-  const discountRatio = itemsSum > 0 ? (Number(order?.total) || 0) / itemsSum : 1;
+
+  const shippingCost = Number(order?.shipping_cost) || 0;
+  const netMerchandiseTotal = Math.max(0, (Number(order?.total) || 0) - shippingCost);
+  const discountRatio = itemsSum > 0 ? Math.min(1, netMerchandiseTotal / itemsSum) : 1;
 
   return items.reduce((sum: number, item: any) => {
     return sum + ((Number(item.returned_quantity) || 0) * (Number(item.sale_price) || 0));
