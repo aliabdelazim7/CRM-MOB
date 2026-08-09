@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Truck, Plus, Search, ExternalLink, PackageCheck, CheckCircle2, Clock } from 'lucide-react';
+import { Truck, Plus, Search, ExternalLink, PackageCheck, CheckCircle2, Clock, Eye, Calendar } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import type { ShippingCarrier, Shipment, PlatformCollection } from '../../store/useStore';
 
@@ -244,6 +244,9 @@ export default function Logistics() {
                 ) : (
                   filteredCollections.map(c => {
                     const isUnassigned = !c.entity_name || c.entity_name.includes('غير محدد');
+                    const invoiceMatch = c.notes ? c.notes.match(/#([a-zA-Z0-9_-]+)/) : null;
+                    const invoiceId = invoiceMatch ? invoiceMatch[1] : null;
+
                     return (
                       <tr key={c.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                         <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
@@ -258,6 +261,7 @@ export default function Logistics() {
                                 className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-xl px-2 py-1 text-xs font-black text-amber-800 dark:text-amber-300 focus:outline-none"
                               >
                                 <option value="">-- اختر منصة التحصيل --</option>
+                                <option value="الويب سايت (المتجر الإلكتروني)">الويب سايت (المتجر الإلكتروني)</option>
                                 <option value="أمازون (Amazon)">أمازون (Amazon)</option>
                                 <option value="نون (Noon)">نون (Noon)</option>
                                 <option value="جوميا (Jumia)">جوميا (Jumia)</option>
@@ -270,17 +274,20 @@ export default function Logistics() {
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <span>{c.entity_name}</span>
-                              <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-500">
+                              <span className="font-black text-slate-800 dark:text-slate-100">{c.entity_name}</span>
+                              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 px-2 py-0.5 rounded-full font-bold">
                                 {c.entity_type === 'platform' ? 'منصة' : 'شركة شحن'}
                               </span>
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
+                        <td className="py-3 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 max-w-[220px]">
                           {c.notes || '-'}
                         </td>
-                        <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{c.month}</td>
+                        <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-300 font-mono flex items-center gap-1">
+                          <Calendar size={12} className="text-slate-400" />
+                          {c.created_at ? new Date(c.created_at).toLocaleDateString('ar-EG') : c.month}
+                        </td>
                         <td className="py-3 px-4 text-slate-600 dark:text-slate-300 font-bold">{c.expected_amount} ج.م</td>
                         <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-black">{c.collected_amount} ج.م</td>
                         <td className="py-3 px-4">
@@ -291,20 +298,34 @@ export default function Logistics() {
                               const newCollected = newStatus === 'collected' ? c.expected_amount : 0;
                               updatePlatformCollection(c.id, { status: newStatus, collected_amount: newCollected });
                             }}
-                            className={`px-3 py-1 rounded-full text-xs font-black border border-transparent focus:outline-none cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black border border-transparent focus:outline-none cursor-pointer ${
                               c.status === 'collected' 
                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
                                 : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
                             }`}
                           >
                             <option value="pending">🟡 في الطريق (قيد التحصيل)</option>
-                            <option value="collected">🟢 تمت (تم التحصيل)</option>
+                            <option value="collected">🟢 وصلت وتم التحصيل</option>
                           </select>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <button onClick={() => deletePlatformCollection(c.id)} className="text-rose-500 hover:text-rose-700 bg-rose-50 dark:bg-rose-900/20 px-3 py-1 rounded-lg text-xs font-bold">
-                            حذف
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            {invoiceId && (
+                              <button
+                                onClick={() => window.open(`/view-invoice/${invoiceId}`, '_blank')}
+                                className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-1 rounded-lg text-xs font-black transition"
+                                title="فتح وطباعة تفاصيل الفاتورة"
+                              >
+                                <Eye size={13} /> فتح الفاتورة
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => deletePlatformCollection(c.id)} 
+                              className="text-rose-500 hover:text-rose-700 bg-rose-50 dark:bg-rose-900/20 px-2.5 py-1 rounded-lg text-xs font-bold transition"
+                            >
+                              حذف
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

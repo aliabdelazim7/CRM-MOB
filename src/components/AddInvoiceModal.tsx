@@ -85,6 +85,42 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
     return list.slice(0, 15);
   }, [products, selectedCategory, barcodeInput, itemCodeInput, productSearch]);
 
+  // Auto-detect & suggest custom platform price when product or platform changes
+  const activeProduct = useMemo(() => {
+    return products.find(p => p.id === selectedProductId) || filteredProducts[0];
+  }, [products, selectedProductId, filteredProducts]);
+
+  const suggestedPlatformPrice = useMemo(() => {
+    if (!activeProduct) return 0;
+    const pNameLower = salesPlatform.toLowerCase();
+    
+    if (activeProduct.custom_stores && Array.isArray(activeProduct.custom_stores)) {
+      const matchedStore = activeProduct.custom_stores.find(s => 
+        s.name.toLowerCase().includes(pNameLower) || pNameLower.includes(s.name.toLowerCase())
+      );
+      if (matchedStore && matchedStore.price > 0) {
+        return matchedStore.discount_price && matchedStore.discount_price > 0 ? matchedStore.discount_price : matchedStore.price;
+      }
+    }
+
+    const p = activeProduct as any;
+    if (pNameLower.includes('amazon') || pNameLower.includes('أمازون')) {
+      if (p.amazon_price && p.amazon_price > 0) return p.amazon_price;
+    } else if (pNameLower.includes('noon') || pNameLower.includes('نون')) {
+      if (p.noon_price && p.noon_price > 0) return p.noon_price;
+    } else if (pNameLower.includes('jumia') || pNameLower.includes('جوميا')) {
+      if (p.jumia_price && p.jumia_price > 0) return p.jumia_price;
+    } else if (pNameLower.includes('salla') || pNameLower.includes('سلة')) {
+      if (p.salla_price && p.salla_price > 0) return p.salla_price;
+    } else if (pNameLower.includes('zid') || pNameLower.includes('زد')) {
+      if (p.zid_price && p.zid_price > 0) return p.zid_price;
+    } else if (pNameLower.includes('website') || pNameLower.includes('الويب') || pNameLower.includes('متجر')) {
+      if (p.website_price && p.website_price > 0) return p.website_price;
+    }
+
+    return activeProduct.discount_price && activeProduct.discount_price > 0 ? activeProduct.discount_price : activeProduct.sale_price;
+  }, [activeProduct, salesPlatform]);
+
   if (!isOpen) return null;
 
   // Add Product to Cart
@@ -104,7 +140,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
 
     const price = customPriceInput.trim() !== '' && !isNaN(Number(customPriceInput)) 
       ? Number(customPriceInput) 
-      : targetProduct.sale_price;
+      : (suggestedPlatformPrice > 0 ? suggestedPlatformPrice : targetProduct.sale_price);
 
     const qty = Math.max(1, Number(quantity) || 1);
 
@@ -434,6 +470,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
                 >
                   <option value="">اختر المنصة</option>
+                  <option value="الويب سايت (المتجر الإلكتروني)">الويب سايت (المتجر الإلكتروني)</option>
                   <option value="أمازون (Amazon)">أمازون (Amazon)</option>
                   <option value="نون (Noon)">نون (Noon)</option>
                   <option value="جوميا (Jumia)">جوميا (Jumia)</option>
