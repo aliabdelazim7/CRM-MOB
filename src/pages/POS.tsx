@@ -365,7 +365,6 @@ export default function POS() {
       <div class="ttl">إيصال سداد آجل</div>
       <div class="r"><span>رقم الإيصال:</span><span>#${invId}</span></div>
       <div class="r"><span>التاريخ:</span><span>${date}</span></div>
-      <div class="r"><span>المحاسب:</span><span>${escapeHtml(activeCashier?.name || 'مدير النظام')}</span></div>
       <div class="r"><span>العميل:</span><span>${escapeHtml(custName)}</span></div>
       <div class="r"><span>طريقة الدفع:</span><span>${methodLabel}</span></div>
       <div class="r big"><span>المبلغ المدفوع:</span><span>${paid.toFixed(2)} ${s.currency}</span></div>

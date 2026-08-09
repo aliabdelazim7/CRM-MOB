@@ -965,7 +965,6 @@ export default function Finance() {
     <div class="info-item"><strong>${isOrder ? 'العميل:' : 'المورد:'}</strong> <span>${isOrder ? (inv.customer?.name || 'عميل نقدي') : (useStore.getState().suppliers.find(s => s.id === inv.supplier_id)?.name || 'مورد')}</span></div>
     <div class="info-item"><strong>التاريخ:</strong> <span>${new Date(isOrder ? inv.date : inv.created_at).toLocaleString('ar-EG', { calendar: 'gregory' })}</span></div>
     <div class="info-item"><strong>رقم المستند:</strong> <span>#${isOrder ? inv.id : inv.invoice_number}</span></div>
-    <div class="info-item"><strong>المسؤول:</strong> <span>${isOrder ? (inv.cashier_name || '—') : 'المدير'}</span></div>
   </div>
 
   <table style="flex-grow: 1;">

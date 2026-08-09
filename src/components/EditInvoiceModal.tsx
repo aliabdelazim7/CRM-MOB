@@ -16,7 +16,7 @@ interface EditInvoiceModalProps {
 }
 
 export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }: EditInvoiceModalProps) {
-  const { products, editOrder, storeSettings, activeCashier, addExpense, markOrderExchanged, updateOrderRefundedAt, ensureDayOpen } = useStore();
+  const { products, editOrder, storeSettings, addExpense, markOrderExchanged, updateOrderRefundedAt, ensureDayOpen } = useStore();
 
   // تاريخ الاستبدال: اليوم المحاسبي اللي هتتسجّل عليه حركة الفرق (تحصيل/رد).
   // بيتحوّل لـ timestamp في نص اليوم المحاسبي عشان فرق UTC/المحلي ميرميهوش لليوم اللي بعده.
@@ -231,7 +231,6 @@ export function EditInvoiceModal({ invoice, onClose, requireOtp, exchangeMode }:
       <div class="ttl">إيصال استبدال</div>
       <div class="r"><span>رقم الفاتورة:</span><span>#${invoice.id}</span></div>
       <div class="r"><span>التاريخ:</span><span>${date}</span></div>
-      <div class="r"><span>المحاسب:</span><span>${escapeHtml(activeCashier?.name || invoice.cashier_name || 'مدير النظام')}</span></div>
       <div class="r"><span>العميل:</span><span>${escapeHtml(invoice.customer?.name || 'عميل نقدي')}</span></div>
       <div class="sec">قبل الاستبدال</div>
       <table>${rows(selectedOldItems)}</table>

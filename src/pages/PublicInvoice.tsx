@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Order, StoreSettings } from '../store/useStore';
-import { CheckCircle2, Printer, Download, Phone, User, MapPin } from 'lucide-react';
+import { CheckCircle2, Printer, Download, Phone, MapPin } from 'lucide-react';
 // html2canvas-pro يدعم ألوان oklch() في Tailwind v4 (النسخة الأصلية تفشل معها).
 import html2canvas from 'html2canvas-pro';
 import { calculateOrderReturnValue } from '../utils/returns';
@@ -396,12 +396,6 @@ export default function PublicInvoice() {
               <span className="text-slate-500">التوقيت:</span>
               <span className="font-bold">{new Date(order.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
-            {order.cashier_name && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">المحاسب:</span>
-                <span className="font-black text-indigo-700">{order.cashier_name}</span>
-              </div>
-            )}
             <div className="flex justify-between">
               <span className="text-slate-500">العميل:</span>
               <span className="font-black">{order.customer?.name || 'عميل نقدي'}</span>
@@ -507,12 +501,6 @@ export default function PublicInvoice() {
                   <div className="flex items-center gap-2">
                     <span className="text-slate-400 font-bold text-[10px] sm:text-xs uppercase tracking-widest shrink-0">رقم الزيارة</span>
                     <span className="text-[11px] sm:text-xs font-bold text-indigo-700 font-mono bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-100">#{visitId.substring(0, 8)}</span>
-                  </div>
-                )}
-                {order.cashier_name && (
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 shadow-sm">
-                    <User size={12} className="opacity-70" />
-                    <span>المحاسب: {order.cashier_name}</span>
                   </div>
                 )}
               </div>

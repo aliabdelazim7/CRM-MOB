@@ -433,7 +433,6 @@ export default function DeferredAccounts() {
             <div class="info-item"><strong>رقم الهاتف:</strong> <span dir="ltr">${escapeHtml((order.customer || profileCustomer).phone || '—')}</span></div>
             <div class="info-item"><strong>رقم الكارت (ID):</strong> <span dir="ltr">${escapeHtml((order.customer || profileCustomer).custom_id || (order.customer || profileCustomer).id.substring(0, 8) || '—')}</span></div>
             <div class="info-item"><strong>رقم الفاتورة:</strong> <span>#${order.id}</span></div>
-            <div class="info-item"><strong>المسؤول:</strong> <span>${escapeHtml(order.cashier_name || '—')}</span></div>
             <div class="info-item"><strong>التاريخ:</strong> <span>${printDate}</span></div>
             <div class="info-item" style="grid-column: span 2; border-top: 1px dashed #e2e8f0; padding-top: 4px; margin-top: 2px;">
               <strong>إجمالي المديونية الحالية:</strong> 
@@ -443,7 +442,6 @@ export default function DeferredAccounts() {
       : `<div class="customer-info-grid">
             <div class="info-item"><strong>اسم العميل:</strong> <span>عميل نقدي</span></div>
             <div class="info-item"><strong>رقم الفاتورة:</strong> <span>#${order.id}</span></div>
-            <div class="info-item"><strong>المسؤول:</strong> <span>${escapeHtml(order.cashier_name || '—')}</span></div>
             <div class="info-item"><strong>التاريخ:</strong> <span>${printDate}</span></div>
          </div>`;
 
