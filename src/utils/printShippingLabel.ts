@@ -90,16 +90,18 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
   
   .pdf-page {
     width: 210mm;
-    min-height: 297mm;
+    max-height: 297mm;
     margin: 0 auto;
-    padding: 12mm 15mm;
+    padding: 6mm 10mm;
     background: #fff;
     position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   /* Header Top Info */
   .top-datetime {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     font-family: sans-serif;
   }
@@ -107,59 +109,59 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
   .header-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-top: 5px;
+    gap: 15px;
+    margin-top: 3px;
     align-items: start;
   }
 
   .left-header-box {
-    font-size: 15px;
-    line-height: 1.4;
+    font-size: 13px;
+    line-height: 1.3;
   }
   .customer-title-large {
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 900;
   }
   .customer-address-box {
-    font-size: 20px;
-    font-weight: 900;
-    margin-top: 4px;
-    line-height: 1.3;
-  }
-  .location-tags {
     font-size: 16px;
     font-weight: 900;
+    margin-top: 2px;
+    line-height: 1.2;
+  }
+  .location-tags {
+    font-size: 13px;
+    font-weight: 900;
     font-family: sans-serif;
-    margin-top: 8px;
+    margin-top: 4px;
     text-align: left;
   }
 
   .vendor-block {
-    margin-top: 15px;
-    font-size: 14px;
+    margin-top: 8px;
+    font-size: 12px;
     font-weight: 700;
-    line-height: 1.3;
+    line-height: 1.2;
   }
 
   .right-header-box {
     text-align: right;
   }
   .brand-title {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 900;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
   }
   .brand-logo-h {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 900;
     font-family: serif;
     background: #000;
     color: #fff;
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -172,30 +174,31 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
     align-items: center;
     float: left;
   }
-  .qr-code-eg img { width: 95px; height: 95px; }
-  .qr-code-eg span { font-size: 12px; font-weight: 900; font-family: sans-serif; margin-bottom: 2px; }
+  .qr-code-eg img { width: 70px; height: 70px; }
+  .qr-code-eg span { font-size: 10px; font-weight: 900; font-family: sans-serif; margin-bottom: 1px; }
 
   .barcode-wrapper {
-    margin-top: 8px;
+    margin-top: 4px;
     text-align: center;
   }
   .barcode-wrapper img {
     width: 100%;
-    max-height: 65px;
+    max-height: 48px;
     object-fit: contain;
   }
   .barcode-subtext {
     font-family: monospace;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 900;
     display: block;
-    margin-top: 2px;
+    margin-top: 1px;
   }
 
   .meta-info-list {
-    margin-top: 10px;
-    font-size: 14px;
+    margin-top: 6px;
+    font-size: 12px;
     font-weight: 900;
+    line-height: 1.3;
   }
 
   /* Decorative line with icons */
@@ -204,7 +207,7 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
     align-items: center;
     justify-content: center;
     gap: 40%;
-    margin: 18px 0;
+    margin: 10px 0;
     position: relative;
   }
   .decorative-divider::before {
@@ -220,15 +223,15 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
     position: relative;
     z-index: 2;
     background: #fff;
-    padding: 0 10px;
-    font-size: 18px;
+    padding: 0 8px;
+    font-size: 14px;
   }
 
   .delivery-instructions-text {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 800;
     font-family: sans-serif;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
   /* Shipper Order Info Table Box */
@@ -236,11 +239,11 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
     width: 100%;
     border: 2px solid #000;
     border-collapse: collapse;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
   }
   .ship-info-table td {
     border-right: 2px solid #000;
-    padding: 8px 12px;
+    padding: 4px 8px;
     vertical-align: top;
     text-align: center;
   }
@@ -249,55 +252,55 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
   }
 
   .shipper-subhead {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     font-family: sans-serif;
     text-align: right;
   }
   .shipper-title-big {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 900;
   }
   .shipper-brand-h {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 900;
-    margin-top: 5px;
+    margin-top: 2px;
   }
 
-  .box-label { font-size: 18px; font-weight: 900; font-family: sans-serif; }
-  .box-value { font-size: 22px; font-weight: 900; font-family: sans-serif; margin-top: 6px; }
+  .box-label { font-size: 14px; font-weight: 900; font-family: sans-serif; }
+  .box-value { font-size: 16px; font-weight: 900; font-family: sans-serif; margin-top: 3px; }
 
   /* Cut line */
   .cut-here-container {
     position: relative;
     border-top: 2px dashed #000;
-    margin: 20px 0 10px;
+    margin: 12px 0 6px;
     text-align: center;
   }
   .cut-icon-center {
     position: absolute;
-    top: -12px;
+    top: -10px;
     left: 42%;
     background: #fff;
-    padding: 0 6px;
-    font-size: 16px;
+    padding: 0 4px;
+    font-size: 14px;
   }
   .cut-text-right {
     position: absolute;
-    top: -10px;
+    top: -8px;
     right: 0;
     background: #fff;
-    padding-left: 10px;
-    font-size: 13px;
+    padding-left: 8px;
+    font-size: 11px;
     font-weight: 900;
     font-family: sans-serif;
   }
 
   .package-details-title {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 900;
     font-family: sans-serif;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
   }
 
   /* Items Table */
@@ -305,29 +308,29 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
     width: 100%;
     border-collapse: collapse;
     border: 2px solid #000;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
   .items-table th {
     border: 2px solid #000;
-    padding: 8px 6px;
-    font-size: 13px;
+    padding: 4px 4px;
+    font-size: 11px;
     font-weight: 900;
     background: #fff;
     text-align: center;
   }
   .items-table td {
     border: 2px solid #000;
-    padding: 8px 6px;
+    padding: 4px 4px;
     vertical-align: middle;
   }
 
   /* Totals Section Right Aligned */
   .totals-block-right {
     text-align: right;
-    margin-top: 15px;
-    font-size: 18px;
+    margin-top: 8px;
+    font-size: 15px;
     font-weight: 900;
-    line-height: 1.4;
+    line-height: 1.3;
   }
 
   /* Bottom Social & Thank you */
@@ -335,21 +338,21 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-top: 50px;
+    margin-top: 15px;
   }
 
   .social-links-box {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    font-size: 15px;
+    gap: 3px;
+    font-size: 12px;
     font-weight: 900;
     font-family: sans-serif;
   }
   .social-item-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
 
   .thank-you-script {
@@ -357,23 +360,24 @@ export async function printShippingLabel(held: ShippingLabelHeld, settings: any)
   }
   .thank-you-script h1 {
     font-family: 'Brush Script MT', cursive, serif;
-    font-size: 55px;
+    font-size: 40px;
     line-height: 0.85;
     margin: 0;
     font-weight: 400;
   }
   .thank-you-script p {
     font-family: serif;
-    font-size: 14px;
+    font-size: 12px;
     font-style: italic;
-    margin-top: 8px;
+    margin-top: 4px;
     font-weight: 700;
   }
 
   @media print {
     @page { size: A4 portrait; margin: 0; }
+    html, body { height: 100%; overflow: hidden; page-break-after: avoid; page-break-before: avoid; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .pdf-page { width: 100%; min-height: 100vh; padding: 10mm 12mm; }
+    .pdf-page { width: 100%; height: 100vh; max-height: 100vh; padding: 6mm 10mm; box-sizing: border-box; overflow: hidden; page-break-inside: avoid; }
   }
 </style>
 </head>
