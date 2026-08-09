@@ -18,11 +18,10 @@ import { escapeHtml } from '../utils/escapeHtml';
 import { printDocument } from '../utils/printWindow';
 import { businessDateStr, businessDayRange, timestampForBusinessDate } from '../utils/businessDay';
 import { categoriesFor, withAddedCategory } from '../utils/financeCategories';
-import { buildPagesQrBlock } from '../utils/pagesQr';
 import { applySplit, isInternalTransfer, routeInternalTransfer, isMainTreasuryExpense, isMainTreasuryOrder, isMainTreasuryPurchase, markMainTreasuryNote, markSavingsGroupNote, newSavingsGroupId, refundRecordOf } from '../utils/treasury';
 import { calculateOrderReturnValue } from '../utils/returns';
 import { paidSplitForDisplay, paidForDisplay, exchangeSettledTotal } from '../utils/invoicePayments';
-import { printShippingLabel } from '../utils/printShippingLabel';
+import { printShippingLabel, type ShippingLabelHeld } from '../utils/printShippingLabel';
 import { loadParkedCarts, addParkedCart, removeParkedCart, parkedAgeLabel, type ParkedCart } from '../utils/parkedCarts';
 import { saveDayBudgetCache, loadDayBudgetCache } from '../utils/offlineCache';
 
@@ -1640,172 +1639,18 @@ export default function POS() {
 
   const printInvoice = (invId: string, orderDetails: any) => {
     const currentSettings = { ...storeSettings };
-    const printDate = new Date().toLocaleString('ar-EG', { calendar: 'gregory', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const itemsHtml = orderDetails.cart.map((item: any, index: number) => {
-      const prod = products.find(p => p.id === item.id);
-      const hasDisc = prod && (prod.discount_price || 0) > 0 && Math.abs(item.sale_price - (prod.discount_price || 0)) < 0.01 && prod.sale_price > (prod.discount_price || 0);
-      const priceCell = hasDisc
-        ? `<span style="display:block;text-decoration:line-through;color:#000;font-size:10px;font-weight:600;">${prod!.sale_price.toFixed(2)}</span><span style="font-weight:900;">${item.sale_price.toFixed(2)}</span>`
-        : item.sale_price.toFixed(2);
-      return `<tr>
-        <td style="text-align:center;">${index + 1}</td>
-        <td style="text-align:right;font-weight:bold;">${escapeHtml(item.name)}</td>
-        <td style="text-align:center;">${formatQty(item.quantity, item.unit)}</td>
-        <td style="text-align:center;">${priceCell}</td>
-        <td style="text-align:left;font-weight:bold;">${(item.sale_price * item.quantity).toFixed(2)}</td>
-      </tr>`;
-    }).join('');
-
-    const invoiceUrl = `${window.location.origin}/view-invoice/${invId}`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(invoiceUrl)}`;
-    const pagesQrBlock = buildPagesQrBlock(storeSettings);
-
-    const debtLine = (orderDetails.totalDebt || 0) > 0.5
-      ? `<div class="info-item" style="border-top:1px dashed #000;padding-top:3px;margin-top:2px;"><strong>إجمالي المديونية الحالية:</strong> <span style="color:#000;font-weight:900;font-size:14px;">${(orderDetails.totalDebt || 0).toFixed(2)} ${currentSettings.currency}</span></div>`
-      : '';
-    const customerBlock = (orderDetails.customerName || orderDetails.customerPhone || orderDetails.customId)
-      ? `<div class="customer-info-grid">
-            <div class="info-item"><strong>اسم العميل:</strong> <span>${escapeHtml(orderDetails.customerName || '—')}</span></div>
-            <div class="info-item"><strong>رقم الهاتف:</strong> <span dir="ltr">${escapeHtml(orderDetails.customerPhone || '—')}</span></div>
-            <div class="info-item"><strong>رقم الفاتورة:</strong> <span>#${invId}</span></div>
-            <div class="info-item"><strong>التاريخ:</strong> <span>${printDate}</span></div>
-            ${debtLine}
-         </div>`
-      : `<div class="customer-info-grid">
-            <div class="info-item"><strong>اسم العميل:</strong> <span>عميل نقدي</span></div>
-            <div class="info-item"><strong>رقم الفاتورة:</strong> <span>#${invId}</span></div>
-            <div class="info-item"><strong>التاريخ:</strong> <span>${printDate}</span></div>
-         </div>`;
-
-    const html = `<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-<meta charset="UTF-8"/>
-<title>فاتورة بيع #${invId}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo', sans-serif;}
-  body{background:#fff;color:#000;margin:0;}
-  .invoice-container{width:72mm;margin:0 auto;padding:0 1.5mm 2mm;display:flex;flex-direction:column;}
-
-  .header-main{text-align:center;border-bottom:1px dashed #000;padding-bottom:3px;margin-bottom:3px;}
-  .logo{max-height:42px;max-width:48mm;width:auto;object-fit:contain;display:block;margin:0 auto 1px;}
-  .store-name{font-size:18px;font-weight:900;color:#000;line-height:1.1;}
-  .store-details{font-size:10px;color:#000;margin-top:1px;line-height:1.3;font-weight:bold;}
-
-  .customer-info-grid{display:flex;flex-direction:column;gap:1px;margin-bottom:4px;font-size:11px;}
-  .info-item{display:flex;justify-content:space-between;gap:6px;padding:1px 0;}
-  .info-item strong{color:#000;white-space:nowrap;}
-  .info-item span{color:#000;font-weight:700;}
-
-  table{width:100%;border-collapse:collapse;margin-bottom:3px;}
-  thead th{font-size:11px;padding:3px 1px;border-bottom:1.5px solid #000;font-weight:900;white-space:nowrap;}
-  thead th:nth-child(2){text-align:right;}
-  thead th:last-child{text-align:left;}
-  tbody td{font-size:12px;padding:3px 1px;border-bottom:1px dotted #999;vertical-align:middle;font-weight:700;}
-  tbody td:nth-child(1),tbody td:nth-child(3),tbody td:nth-child(4),tbody td:nth-child(5){white-space:nowrap;}
-
-  .summary-section{width:100%;margin-top:3px;}
-  .summary-row{display:flex;justify-content:space-between;padding:2px 0;font-size:12px;font-weight:700;}
-  .summary-row.total{border-top:1.5px solid #000;border-bottom:1.5px solid #000;margin-top:2px;padding:4px 0;font-size:18px;font-weight:900;color:#000;}
-
-  .payment-status{margin-top:5px;padding:5px;border:1.5px solid #000;border-radius:4px;text-align:center;font-weight:900;font-size:13px;color:#000;}
-  .status-paid{background:#fff;color:#000;}
-  .status-debt{background:#fff;color:#000;}
-
-  .qr-row{display:flex;justify-content:center;align-items:flex-start;gap:10px;}
-  .qr-code-container{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:4px;}
-  .qr-code-img{width:68px;height:68px;}
-  .qr-label{font-size:9px;font-weight:900;color:#000;text-align:center;}
-
-  .footer{text-align:center;margin-top:4px;padding-top:3px;border-top:1px dashed #000;font-size:9px;color:#000;font-weight:bold;}
-
-  @media print{
-    @page{size:72mm auto;margin:0;}
-    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .invoice-container{width:72mm;padding:2mm 1.5mm;}
-  }
-</style>
-</head>
-<body>
-<div class="invoice-container">
-  <div class="header-main">
-    ${currentSettings.logo ? `<img class="logo" src="${escapeHtml(currentSettings.logo)}" onerror="this.style.display='none'" />` : `<div class="store-name">${escapeHtml(currentSettings.name)}</div>`}
-    <div class="store-details">
-      ${currentSettings.address ? `${escapeHtml(currentSettings.address)}<br/>` : ''}
-      ${currentSettings.phone ? `${escapeHtml(currentSettings.phone)}` : ''}
-      ${currentSettings.phone2 ? ` | ${escapeHtml(currentSettings.phone2)}` : ''}
-    </div>
-  </div>
-
-  ${customerBlock}
-  ${orderDetails.salesperson ? `<div class="customer-info-grid"><div class="info-item"><strong>مسؤول المبيعات:</strong> <span>${escapeHtml(orderDetails.salesperson)}</span></div></div>` : ''}
-
-  <table>
-    <thead><tr>
-      <th style="width:8%">#</th>
-      <th style="text-align:right">الصنف</th>
-      <th style="width:14%">كمية</th>
-      <th style="width:20%">سعر</th>
-      <th style="width:22%;text-align:left">إجمالي</th>
-    </tr></thead>
-    <tbody>${itemsHtml}</tbody>
-  </table>
-
-  <div class="summary-section">
-    <div class="summary-row"><span>المجموع الفرعي:</span><span>${orderDetails.subtotal.toFixed(2)} ${currentSettings.currency}</span></div>
-    ${orderDetails.couponCode ? `<div class="summary-row" style="color:#000;font-weight:900;"><span>كوبون (${escapeHtml(orderDetails.couponCode)}):</span><span>- ${(orderDetails.couponDiscountAmount || 0).toFixed(2)} ${currentSettings.currency}</span></div>` : ''}
-    ${(orderDetails.discount - (orderDetails.couponDiscountAmount || 0)) > 0.5 ? `<div class="summary-row" style="color:#000;font-weight:900;"><span>خصم الفاتورة:</span><span>- ${(orderDetails.discount - (orderDetails.couponDiscountAmount || 0)).toFixed(2)} ${currentSettings.currency}</span></div>` : ''}
-    ${(Number(currentSettings.taxRate) > 0) ? `<div class="summary-row"><span>الضريبة (${currentSettings.taxRate}%):</span><span>${orderDetails.tax.toFixed(2)} ${currentSettings.currency}</span></div>` : ''}
-    <div class="summary-row total"><span>الإجمالي النهائي:</span><span>${orderDetails.total.toFixed(2)} ${currentSettings.currency}</span></div>
-  
-    ${(orderDetails.paidAmount !== undefined && orderDetails.paidAmount < orderDetails.total) ? `
-      <div class="payment-status status-debt">
-        <div>متبقي للتحصيل (آجل): ${(orderDetails.total - (orderDetails.paidAmount || 0)).toFixed(2)} ${currentSettings.currency}</div>
-        <div style="font-size:12px;font-weight:700;margin-top:2px;">تم سداد: ${(orderDetails.paidAmount || 0).toFixed(2)} ${currentSettings.currency}</div>
-      </div>
-    ` : `
-      <div class="payment-status status-paid">✓ تم سداد الفاتورة بالكامل</div>
-    `}
-
-    ${orderDetails.notes ? `
-      <div style="margin-top:5px; padding:4px 5px; border:1px solid #000; border-radius:4px;">
-        <span style="font-size:10px; font-weight:900;">ملاحظات: </span>
-        <span style="font-size:11px; font-weight:700;">${escapeHtml(orderDetails.notes)}</span>
-      </div>
-    ` : ''}
-    
-    ${(() => {
-      const sp = orderDetails.splitPayments || {};
-      const parts = activePayKeys
-        .filter((k) => (Number(sp[k]) || 0) > 0)
-        .map((k) => `${payLabel(k)}: ${(Number(sp[k]) || 0).toFixed(2)}`);
-      if (parts.length === 0) return '';
-      const cells = parts.map(p => `<div style="width:50%;font-size:11px;font-weight:700;padding:1px 0;">${p}</div>`).join('');
-      // فاتورة اتعملها استبدال: نوضّح إن جزء من المبلغ اتحصّل/اترد وقت الاستبدال،
-      // عشان أرقام «طرق الدفع» تبقى مفهومة مش مجرد مجموع.
-      const xd = Number(orderDetails.exchangeSettled) || 0;
-      const xLine = Math.abs(xd) > 0.009
-        ? `<div style="font-size:10px;font-weight:700;margin-top:2px;border-top:1px dotted #999;padding-top:2px;">منها ${xd > 0 ? 'محصّل' : 'مردود'} وقت الاستبدال: ${Math.abs(xd).toFixed(2)} ${currentSettings.currency}</div>`
-        : '';
-      return `<div style="margin-top:4px;padding:4px 5px;border:1px solid #000;border-radius:4px;"><div style="font-size:10px;font-weight:900;margin-bottom:2px;">طرق الدفع:</div><div style="display:flex;flex-wrap:wrap;">${cells}</div>${xLine}</div>`;
-    })()}
-  </div>
-
-  <div class="qr-row">
-    <div class="qr-code-container">
-      <img class="qr-code-img" src="${qrCodeUrl}" alt="QR Code" />
-      <div class="qr-label">امسح الكود لعرض الفاتورة</div>
-    </div>
-    ${pagesQrBlock}
-  </div>
-
-  <div class="footer">شكراً لتعاملكم معنا</div>
-</div>
-<script>window.onload=()=>{setTimeout(()=>{window.print();window.onafterprint=()=>window.close();},500);}<\/script>
-</body></html>`;
-
-    void printDocument('invoice', html);
+    const heldData: ShippingLabelHeld = {
+      id: invId,
+      customer_name: orderDetails.customerName || (orderDetails.customer ? orderDetails.customer.name : 'عميل نقدي'),
+      customer_phone: orderDetails.customerPhone || (orderDetails.customer ? orderDetails.customer.phone : null),
+      customer_address: orderDetails.customerAddress || (orderDetails.customer ? orderDetails.customer.address : null),
+      items: orderDetails.cart || [],
+      total: orderDetails.total || 0,
+      deposit: orderDetails.paidAmount || orderDetails.total || 0,
+      created_at: new Date().toISOString(),
+      cashier_name: activeCashier?.name || 'مدير النظام'
+    };
+    void printShippingLabel(heldData, currentSettings);
   };
 
   // Opens payment method modal before checkout
