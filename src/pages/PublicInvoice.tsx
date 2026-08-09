@@ -41,8 +41,14 @@ export default function PublicInvoice() {
             phone2: s.phone2,
             whatsappCountryCode: s.whatsapp_country_code,
             initial_balance: s.initial_balance,
-            locationUrl: s.location_url
+            locationUrl: s.location_url,
+            taxNumber: s.tax_number || s.tax_id || '',
+            commercialRecord: s.commercial_record || '',
+            defaultInvoiceFormat: s.default_invoice_format === 'a4' ? 'a4' : 'thermal'
           });
+          if (s.default_invoice_format === 'a4' || s.default_invoice_format === 'thermal') {
+            setViewFormat(s.default_invoice_format);
+          }
         }
 
         // Sale order
@@ -366,6 +372,11 @@ export default function PublicInvoice() {
                 {settings.phone2 ? `${settings.phone2} | ${settings.phone}` : settings.phone}
               </p>
             )}
+            {settings.taxNumber && (
+              <p className="text-[10px] font-black text-slate-900 font-mono mt-0.5" dir="ltr">
+                الرقم الضريبي: {settings.taxNumber} 🏛️
+              </p>
+            )}
             <div className="mt-2 inline-block bg-slate-900 text-white px-3 py-1 rounded-lg text-xs font-black">
               إيصال مبيعات الكاشير
             </div>
@@ -475,6 +486,11 @@ export default function PublicInvoice() {
                       <p className="flex items-center justify-center sm:justify-start gap-1" dir="ltr">
                         {settings.phone2 && <span>{settings.phone2} | </span>}
                         {settings.phone} 📞
+                      </p>
+                    )}
+                    {settings.taxNumber && (
+                      <p className="flex items-center justify-center sm:justify-start gap-1 text-indigo-900 font-black" dir="ltr">
+                        🏛️ التسجيل الضريبي: {settings.taxNumber}
                       </p>
                     )}
                   </div>

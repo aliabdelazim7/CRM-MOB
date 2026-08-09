@@ -37,10 +37,16 @@ export const COLUMN_OF_SETTING: Record<string, string> = {
   pagesQrUrl: 'pages_qr_url',
   pagesQrLabel: 'pages_qr_label',
   pagesQrImage: 'pages_qr_image',
+  taxNumber: 'tax_number',
+  commercialRecord: 'commercial_record',
+  defaultInvoiceFormat: 'default_invoice_format',
 };
 
 /** أسماء عربية للأعمدة — بتظهر للمستخدم لما إعداد مايتحفظش. */
 export const SETTING_LABEL_AR: Record<string, string> = {
+  taxNumber: 'الرقم الضريبي / التسجيل الضريبي',
+  commercialRecord: 'السجل التجاري',
+  defaultInvoiceFormat: 'صيغة الفاتورة الافتراضية',
   name: 'اسم المحل',
   currency: 'العملة',
   logo: 'اللوجو',
@@ -553,6 +559,9 @@ export interface StoreSettings {
   pagesQrUrl?: string; // رابط صفحات المحل — QR ثابت على كل فاتورة مطبوعة
   pagesQrLabel?: string; // العنوان تحت QR الصفحات؛ افتراضي «تابعنا»
   pagesQrImage?: string; // صورة QR مرفوعة (data URL) — لها الأولوية على التوليد من الرابط
+  taxNumber?: string; // الرقم الضريبي / البطاقة الضريبية / التسجيل الضريبي
+  commercialRecord?: string; // السجل التجاري
+  defaultInvoiceFormat?: 'thermal' | 'a4'; // صيغة الفاتورة الافتراضية (حرارية أو A4)
 }
 
 export interface Employee {
@@ -1307,6 +1316,9 @@ function mapSettings(row: Record<string, unknown>): StoreSettings {
     pagesQrUrl: (row.pages_qr_url as string) ?? '',
     pagesQrLabel: (row.pages_qr_label as string) ?? '',
     pagesQrImage: (row.pages_qr_image as string) ?? '',
+    taxNumber: (row.tax_number as string) ?? (row.tax_id as string) ?? '',
+    commercialRecord: (row.commercial_record as string) ?? '',
+    defaultInvoiceFormat: ((row.default_invoice_format as string) === 'a4' ? 'a4' : 'thermal') as 'thermal' | 'a4',
   };
 }
 

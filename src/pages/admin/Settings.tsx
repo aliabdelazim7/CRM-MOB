@@ -246,6 +246,62 @@ export default function Settings() {
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-right">سيظهر هذا الرابط كزر (المقر) في الفاتورة الإلكترونية، وفي رسائل الواتساب.</p>
           </div>
 
+          {/* الرقم الضريبي والسجل التجاري */}
+          <div className="col-span-2 md:col-span-1">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">🏛️ الرقم الضريبي / التسجيل الضريبي</label>
+            <input 
+              type="text" 
+              dir="ltr"
+              value={formData.taxNumber || ''}
+              onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left font-mono font-bold"
+              placeholder="مثال: 123-456-789"
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">سيظهر أعلى الفاتورة الحرارية والـ A4 الضريبية.</p>
+          </div>
+
+          <div className="col-span-2 md:col-span-1">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">🏢 السجل التجاري (اختياري)</label>
+            <input 
+              type="text" 
+              dir="ltr"
+              value={formData.commercialRecord || ''}
+              onChange={(e) => setFormData({...formData, commercialRecord: e.target.value})}
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white py-3 px-4 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition text-left font-mono font-bold"
+              placeholder="مثال: 45678"
+            />
+          </div>
+
+          {/* الصيغة الافتراضية للفاتورة */}
+          <div className="sm:col-span-2 bg-indigo-50/60 dark:bg-indigo-950/40 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
+            <label className="block text-sm font-black text-indigo-900 dark:text-indigo-200 mb-2">🧾 صيغة عرض وطباعة الفاتورة الافتراضية</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({...formData, defaultInvoiceFormat: 'thermal'})}
+                className={`p-3.5 rounded-xl border-2 font-black text-sm transition flex items-center justify-center gap-2 ${
+                  formData.defaultInvoiceFormat !== 'a4'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                }`}
+              >
+                🧾 فاتورة الكاشير الحرارية (72mm/80mm)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({...formData, defaultInvoiceFormat: 'a4'})}
+                className={`p-3.5 rounded-xl border-2 font-black text-sm transition flex items-center justify-center gap-2 ${
+                  formData.defaultInvoiceFormat === 'a4'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                }`}
+              >
+                📄 فاتورة ضريبية إلكترونية A4 كاملة
+              </button>
+            </div>
+            <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2 font-bold">تحديد الصيغة التي تفتح بها الفاتورة تلقائياً عند الطباعة والمعاينة (مع إمكانية التبديل بنقرة واحدة في أي وقت).</p>
+          </div>
+
           <div className="sm:col-span-2">
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">رابط صفحات المحل (QR المتابعة)</label>
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-3">
