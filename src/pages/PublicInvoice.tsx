@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Order, StoreSettings } from '../store/useStore';
-import { CheckCircle2, Printer, Download, Phone, MapPin } from 'lucide-react';
+import { Printer, Download, Phone, MapPin } from 'lucide-react';
 // html2canvas-pro يدعم ألوان oklch() في Tailwind v4 (النسخة الأصلية تفشل معها).
 import html2canvas from 'html2canvas-pro';
 import { calculateOrderReturnValue } from '../utils/returns';
@@ -273,10 +273,6 @@ export default function PublicInvoice() {
   );
 
   const subtotal = order.items.reduce((sum, item) => sum + (item.quantity * item.sale_price), 0);
-  const isPayment = order.type === 'payment';
-
-  const visitMatch = order.notes?.match(/\[زيارة:\s*([^\]]+)\s*\]/);
-  const visitId = visitMatch ? visitMatch[1].trim() : null;
 
   let displayCash = order.paid_cash || 0;
   let displayVisa = order.paid_visa || 0;
@@ -459,127 +455,198 @@ export default function PublicInvoice() {
           </div>
         </div>
       ) : (
-        /* Full A4 Invoice View */
-        <div id="invoice-print-area" className="bg-white w-full max-w-2xl shadow-xl sm:shadow-2xl rounded-2xl sm:rounded-none overflow-hidden flex flex-col relative border border-slate-200 sm:border-none">
-          <div className="h-2 w-full bg-slate-800 no-print"></div>
+        /* Full A4 Waybill Invoice View matching فاتوره.pdf */
+        <div id="invoice-print-area" className="bg-white w-full max-w-4xl shadow-2xl rounded-3xl overflow-hidden border border-slate-300 p-6 md:p-10 font-sans text-black" dir="rtl">
+          {/* Top Date & Time */}
+          <div className="text-xs font-bold font-mono mb-2" dir="ltr">
+            {new Date(order.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '\\') + ', ' + new Date(order.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </div>
 
-          <div className="p-5 sm:p-[12mm] flex flex-col h-full">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start border-b-2 border-slate-100 pb-6 mb-6 gap-6">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-right">
-                {settings.logo && (
-                  <div className="bg-white p-1 rounded-2xl border border-slate-200 shadow-sm shrink-0">
-                    <img src={settings.logo} alt="Logo" className="h-16 w-auto max-w-[220px] object-contain animate-fade-in" />
+          {/* Header Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b-2 border-black">
+            {/* Left Box: Customer Info */}
+            <div className="space-y-2 text-right">
+              <div className="font-bold text-sm font-mono" dir="ltr">#.{order.customer?.phone || settings.phone || '+201008451142'}</div>
+              
+              <div className="flex justify-between items-start gap-4">
+                <div className="space-y-1">
+                  <div className="text-xl md:text-2xl font-black">الاسم : {order.customer?.name || 'عميل نقدي'}</div>
+                  <div className="text-base font-black text-slate-800">
+                    العنوان : {(order.customer as any)?.address || settings.address || 'القاهرة - مصر'}
                   </div>
-                )}
-                <div className="flex flex-col justify-center">
-                  <h1 className="text-xl sm:text-2xl font-black text-slate-800 leading-tight">{settings.name}</h1>
-                  <div className="text-xs text-slate-500 mt-2 space-y-1 font-semibold">
-                    {settings.address && <p className="flex items-center justify-center sm:justify-start gap-1">📍 {settings.address}</p>}
-                    {(settings.phone || settings.phone2) && (
-                      <p className="flex items-center justify-center sm:justify-start gap-1" dir="ltr">
-                        {settings.phone2 && <span>{settings.phone2} | </span>}
-                        {settings.phone} 📞
-                      </p>
-                    )}
-                    {settings.taxNumber && (
-                      <p className="flex items-center justify-center sm:justify-start gap-1 text-indigo-900 font-black" dir="ltr">
-                        🏛️ التسجيل الضريبي: {settings.taxNumber}
-                      </p>
-                    )}
+                  <div className="text-xs font-black font-mono text-slate-600 uppercase">
+                    EL FAYUM <br/> EGYPT
                   </div>
+                </div>
+
+                <div className="flex flex-col items-center shrink-0">
+                  <span className="text-[10px] font-black font-mono">EG-VAR-R2S</span>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(window.location.href)}`}
+                    alt="QR"
+                    className="w-16 h-16 object-contain"
+                  />
                 </div>
               </div>
-              <div className="flex flex-col items-center sm:items-end gap-2.5 shrink-0">
-                <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
-                  <span className="text-slate-400 font-bold text-[10px] sm:text-xs uppercase tracking-widest shrink-0">رقم الفاتورة</span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-700 font-mono bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 select-all" dir="ltr">
-                    #{order.id}
-                  </span>
-                </div>
-                {visitId && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-bold text-[10px] sm:text-xs uppercase tracking-widest shrink-0">رقم الزيارة</span>
-                    <span className="text-[11px] sm:text-xs font-bold text-indigo-700 font-mono bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-100">#{visitId.substring(0, 8)}</span>
-                  </div>
-                )}
+
+              <div className="text-xs font-bold text-slate-700">
+                Vendor : <br/> <span className="font-black text-sm">{settings.name || 'Hances'}</span>
               </div>
             </div>
 
-            {/* Info Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                      {(order as any).originType === 'purchase' ? 'المورد' : 'العميل'}
-                    </span>
-                    <CheckCircle2 size={14} className="text-emerald-500" />
-                  </div>
-                  <div className="text-sm font-black text-slate-800">
-                    {(order as any).originType === 'purchase' ? ((order as any).supplier?.name || 'مورد') : (order.customer?.name || 'عميل نقدي')}
-                  </div>
-                  <div className="flex justify-between items-center mt-1">
-                    <div className="text-xs font-bold text-slate-500 font-mono" dir="ltr">{order.customer?.phone || '-'}</div>
-                  </div>
-               </div>
-               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">التفاصيل</span>
-                    <span className="text-[10px] text-slate-400 font-mono">{new Date(order.date).toLocaleDateString('ar-EG', { calendar: 'gregory' })}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-600">التاريخ:</span>
-                    <span className="text-[13px] font-black text-slate-800">{new Date(order.date).toLocaleDateString('ar-EG', { calendar: 'gregory', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-600">التوقيت:</span>
-                    <span className="text-[13px] font-black text-slate-800">{new Date(order.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-               </div>
-            </div>
+            {/* Right Box: Store Title & Barcode Block */}
+            <div className="text-right space-y-2">
+              <div className="text-lg md:text-xl font-black flex items-center justify-end gap-2">
+                <span>{settings.name || 'Hànces.11'} | التحكم في الطلبات</span>
+                <div className="w-8 h-8 bg-black text-white font-serif font-black text-xl rounded flex items-center justify-center">H</div>
+              </div>
 
-            {/* Items Table */}
-            <div className="overflow-x-auto -mx-5 sm:mx-0 mb-6">
-              <table className="w-full text-sm border-separate border-spacing-0">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="p-4 text-center text-[11px] font-black text-slate-400 border-b border-slate-100 w-10">#</th>
-                    <th className="p-4 text-right text-[11px] font-black text-slate-400 border-b border-slate-100">{isPayment ? 'البيان' : 'المنتج'}</th>
-                    {!isPayment && <th className="p-4 text-center text-[11px] font-black text-slate-400 border-b border-slate-100 w-16">الكمية</th>}
-                    <th className="p-4 text-center text-[11px] font-black text-slate-400 border-b border-slate-100 w-24">السعر</th>
-                    <th className="p-4 text-left text-[11px] font-black text-slate-400 border-b border-slate-100 w-28">الإجمالي</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {order.items.map((item, idx) => (
-                    <tr key={idx} className="group">
-                      <td className="p-4 text-center text-slate-400 font-bold text-xs">{idx + 1}</td>
-                      <td className="p-4 font-black text-slate-800 text-sm">{item.name}</td>
-                      {!isPayment && <td className="p-4 text-center font-black text-slate-800">{item.quantity}</td>}
-                      <td className="p-4 text-center font-bold text-slate-600 text-xs">{item.sale_price.toFixed(2)}</td>
-                      <td className="p-4 text-left font-black text-slate-900 text-sm">{(item.quantity * item.sale_price).toFixed(2)}</td>
+              <div className="text-base font-black">أسم العميل : {order.customer?.name || 'عميل نقدي'}</div>
+              <div className="text-sm font-black font-mono">TR#:</div>
+
+              {/* Barcode wrapper */}
+              <div className="text-center bg-slate-50 p-2 rounded-xl border border-slate-300 my-2">
+                <img
+                  src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(order.id || 'HANCES-ORDER')}&scale=3&height=14&inkcolor=000000`}
+                  alt="Barcode"
+                  className="h-10 mx-auto object-contain max-w-full"
+                />
+                <span className="text-xs font-mono font-black block mt-1">
+                  *DS-2SN-{String(order.id).slice(-9)}-3906*
+                </span>
+              </div>
+
+              <div className="text-xs font-black space-y-1">
+                <div>Amount : <span className="font-mono text-sm">{(order.total - order.paid_amount).toFixed(2)} PRE</span></div>
+                <div>Signature: <span className="font-mono">{settings.name ? settings.name.toUpperCase() : 'HANCES'}</span></div>
+                <div>المرسل اليه : {order.customer?.name || 'عميل نقدي'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Decorative Diamond Divider */}
+          <div className="relative my-4 text-center">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t-2 border-black"></div></div>
+            <div className="relative inline-flex justify-between w-4/5 px-4 bg-white font-black text-lg">
+              <span>✦</span>
+              <span>✦</span>
+            </div>
+          </div>
+
+          <div className="text-xs font-bold font-mono mb-2">Delivery Insturctions</div>
+
+          {/* Shipper Info Table Box */}
+          <div className="border-2 border-black rounded-lg overflow-hidden mb-4 grid grid-cols-2 md:grid-cols-5 text-center divide-x divide-y md:divide-y-0 divide-black text-xs font-black">
+            <div className="p-2 text-right">
+              <div className="text-[10px] text-slate-500 font-mono">shipper:</div>
+              <div className="text-sm font-black">{settings.name || 'Hànces.11'}</div>
+              <div className="text-xl font-black font-serif">H</div>
+              <div className="text-xs font-mono">HANCES</div>
+            </div>
+            <div className="p-2 flex flex-col justify-center">
+              <div className="text-slate-500 font-mono text-[11px]">Order #:</div>
+              <div className="text-sm font-mono font-black">#{order.id}</div>
+            </div>
+            <div className="p-2 flex flex-col justify-center">
+              <div className="text-slate-500 font-mono text-[11px]">Ship D/T:</div>
+              <div className="text-xs font-mono font-black">
+                {new Date(order.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+              </div>
+            </div>
+            <div className="p-2 flex flex-col justify-center">
+              <div className="text-slate-500 font-mono text-[11px]">Weight:</div>
+              <div className="text-xs font-black">كجم 5.00</div>
+            </div>
+            <div className="p-2 flex flex-col items-center justify-center col-span-2 md:col-span-1">
+              <div className="text-[10px] font-mono font-black mb-1">QR CODE</div>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(order.id)}`}
+                alt="QR"
+                className="w-12 h-12 object-contain"
+              />
+            </div>
+          </div>
+
+          {/* Cut Line */}
+          <div className="relative border-t-2 border-dashed border-black my-5 text-center">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-2 text-sm font-black">✂</span>
+            <span className="absolute -top-3 right-0 bg-white pl-2 text-xs font-bold font-mono">Cut here incase of return_</span>
+          </div>
+
+          <div className="text-xs font-black font-mono mb-2">Package Details:</div>
+
+          {/* Package Details Table */}
+          <div className="border-2 border-black rounded-lg overflow-hidden mb-4">
+            <table className="w-full text-right text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b-2 border-black text-black font-black text-center">
+                  <th className="p-2 border-r-2 border-black text-right w-2/5">أسم الصنف</th>
+                  <th className="p-2 border-r-2 border-black">العدد</th>
+                  <th className="p-2 border-r-2 border-black">سعر الصنف</th>
+                  <th className="p-2 border-r-2 border-black">سعر الخصم</th>
+                  <th className="p-2 border-r-2 border-black">إجمالي السعر بدون<br/>رسوم الشحن</th>
+                  <th className="p-2">أجمالي السعر مع<br/>مصاريف الشحن</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y-2 divide-black font-bold">
+                {order.items.map((item, idx) => {
+                  const qty = item.quantity || 1;
+                  const price = item.sale_price || 0;
+                  const itemTotal = price * qty;
+                  return (
+                    <tr key={idx} className="text-center">
+                      <td className="p-2 border-r-2 border-black text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="font-black text-sm">{item.name}</span>
+                          {item.image_url && (
+                            <img
+                              src={item.image_url}
+                              alt={item.name}
+                              className="w-10 h-10 object-cover rounded border border-slate-300 shadow-sm"
+                            />
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-2 border-r-2 border-black font-black text-sm">{qty}</td>
+                      <td className="p-2 border-r-2 border-black font-mono">{price.toFixed(0)}</td>
+                      <td className="p-2 border-r-2 border-black font-mono">00</td>
+                      <td className="p-2 border-r-2 border-black font-mono font-black">{itemTotal.toFixed(0)}</td>
+                      <td className="p-2 font-mono">00</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-            {/* Summary Section */}
-            <div className="mr-auto w-full sm:w-3/5 mt-auto space-y-4">
-              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-3">
-                <div className="flex justify-between items-center text-xl font-black text-slate-800">
-                  <span>الإجمالي</span>
-                  <span className="text-2xl">{order.total.toFixed(2)} {settings.currency}</span>
-                </div>
-                <div className={`p-4 rounded-xl border text-center font-black ${order.paid_amount >= order.total ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
-                  {order.paid_amount >= order.total ? '✅ تم السداد بالكامل' : `متبقي آجل: ${(order.total - order.paid_amount).toFixed(2)} ${settings.currency}`}
-                </div>
+          {/* Totals Section */}
+          <div className="text-right text-base font-black space-y-1 my-4">
+            <div>سعر الشحن : 50.0</div>
+            <div>المجموع المراد تحصيله</div>
+            <div className="text-xl">{order.total.toFixed(0)} : ( شامل الضريبية)</div>
+            <div className="font-mono text-sm">PRE</div>
+          </div>
+
+          {/* Footer Socials & Thank You */}
+          <div className="flex flex-col md:flex-row justify-between items-end gap-6 pt-4 border-t border-slate-200 mt-6">
+            <div className="space-y-1.5 text-xs font-black">
+              <div className="flex items-center gap-2">
+                <span className="text-blue-600 text-lg">🔵</span>
+                <span>{settings.name || 'Hànces'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-pink-600 text-lg">📷</span>
+                <span>@{settings.name ? settings.name.replace(/\s+/g, '') : 'Hances.11'}</span>
+              </div>
+              <div className="flex items-center gap-2" dir="ltr">
+                <span className="text-emerald-600 text-lg">💬</span>
+                <span>{settings.phone || '+201149009410'} {settings.phone2 ? `- ${settings.phone2}` : ''}</span>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="text-center mt-10 pt-6 border-t border-dashed border-slate-200 text-[11px] text-slate-400 font-black italic">
-               شكراً لثقتكم بنا - {settings.name} ترحب بكم دائماً
+            <div className="text-center">
+              <div className="font-serif italic text-4xl font-normal leading-none">Thank<br/>You</div>
+              <div className="text-xs font-serif italic font-bold mt-1">“Hoping To See You Again”</div>
             </div>
           </div>
         </div>

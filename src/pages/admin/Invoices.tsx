@@ -4,11 +4,7 @@ import { Plus, ArrowRightLeft, Search, User, Printer, CreditCard, FileText, Tabl
 import { normalizeArabic } from '../../utils/textUtils';
 import { calculateInvoiceProfit } from '../../utils/invoiceProfit';
 import { calculateOrderReturnValue } from '../../utils/returns';
-import { escapeHtml } from '../../utils/escapeHtml';
-import { printDocument } from '../../utils/printWindow';
-import { buildPagesQrBlock } from '../../utils/pagesQr';
-import { ALL_PAYMENT_KEYS, EXTRA_PAYMENT_KEYS, isPaymentKeyEnabled, payLabelOf } from '../../utils/paymentMethods';
-import { paidSplitForDisplay, paidForDisplay, exchangeSettledTotal } from '../../utils/invoicePayments';
+import { EXTRA_PAYMENT_KEYS, isPaymentKeyEnabled, payLabelOf } from '../../utils/paymentMethods';
 import * as XLSX from 'xlsx';
 
 import jsPDF from 'jspdf';
@@ -16,6 +12,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas-pro';
 import { EditInvoiceModal } from '../../components/EditInvoiceModal';
 import { AddInvoiceModal } from '../../components/AddInvoiceModal';
+import { printShippingLabel } from '../../utils/printShippingLabel';
 
 export default function Invoices() {
   const { orders, storeSettings, deleteOrder, undoReturn, processReturn, syncInvoiceToPlatformCollection } = useStore();
@@ -146,191 +143,7 @@ export default function Invoices() {
   }, [activeOrders, returnInvoiceSearch]);
 
   const handlePrint = (order: any) => {
-    const printDate = new Date(order.created_at || Date.now()).toLocaleString('ar-EG', { calendar: 'gregory', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const isPayment = order.type === 'payment';
-    const subtotal = isPayment ? order.total : order.items.reduce((sum: number, item: any) => sum + (item.sale_price * item.quantity), 0);
-    const taxValue = isPayment ? 0 : Math.max(0, order.total - (subtotal - (order.discount || 0)));
-    
-    let debtAfter = 0;
-    if (order.customer && !order.is_deleted) {
-      const customerOrders = activeOrders.filter(o => o.customer?.id === order.customer.id);
-      const sortedOrders = [...customerOrders].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      const currentIndex = sortedOrders.findIndex(o => o.id === order.id);
-      
-      const calcDebt = (upToIndex: number) => sortedOrders.slice(0, upToIndex).reduce((sum, o) => {
-        const returnedValue = calculateOrderReturnValue(o);
-        const effectiveTotal = o.type === 'payment' ? 0 : (o.total - returnedValue);
-        const debt = effectiveTotal - (o.paid_amount || 0);
-
-        if (debt > 0.009 && o.type !== 'payment') {
-          return sum + debt;
-        } else if (o.type === 'payment' && !(o.notes && o.notes.includes('سداد أجل للفاتورة رقم'))) {
-          return sum + debt;
-        }
-        return sum;
-      }, 0);
-
-      debtAfter = calcDebt(currentIndex + 1);
-    }
-
-    const cart = isPayment 
-      ? [{name: order.notes || 'سداد مديونية سابقة', quantity: 1, sale_price: order.paid_amount}] 
-      : order.items;
-
-    const itemsHtml = cart.map((item: any, index: number) =>
-      `<tr>
-        <td style="text-align:center;">${index + 1}</td>
-        <td style="text-align:right;font-weight:bold;">${escapeHtml(item.name)}${item.returned_quantity > 0 ? ` <span style="color:red;font-size:8px;">(مرتجع: ${item.returned_quantity})</span>` : ''}</td>
-        <td style="text-align:center;">${item.quantity}</td>
-        <td style="text-align:center;">${item.sale_price.toFixed(2)}</td>
-        <td style="text-align:left;font-weight:bold;">${(item.sale_price * item.quantity).toFixed(2)}</td>
-      </tr>`
-    ).join('');
-
-    const invoiceUrl = `${window.location.origin}/view-invoice/${order.id}`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(invoiceUrl)}`;
-    const pagesQrBlock = buildPagesQrBlock(storeSettings);
-    // فرق الاستبدال متسجّل بره الفاتورة (بتاريخه) — نضمّه في تفاصيل الدفع
-    // عشان الأرقام المطبوعة تتوافق مع الإجمالي.
-    const paidSplit = paidSplitForDisplay(order, ALL_PAYMENT_KEYS as any);
-    const paidShown = paidForDisplay(order, ALL_PAYMENT_KEYS as any);
-    const exchangeSettled = exchangeSettledTotal(order);
-
-    const customerBlock = order.customer
-      ? `<div class="customer-info-grid">
-            <div class="info-item"><strong>اسم العميل:</strong> <span>${escapeHtml(order.customer.name || '—')}</span></div>
-            <div class="info-item"><strong>رقم الهاتف:</strong> <span dir="ltr">${escapeHtml(order.customer.phone || '—')}</span></div>
-            <div class="info-item"><strong>رقم الكارت (ID):</strong> <span dir="ltr">${escapeHtml(order.customer.custom_id || order.customer.id.substring(0, 8) || '—')}</span></div>
-            <div class="info-item"><strong>رقم الفاتورة:</strong> <span>#${order.id}</span></div>
-            <div class="info-item"><strong>التاريخ:</strong> <span>${printDate}</span></div>
-            <div class="info-item" style="grid-column: span 2; border-top: 1px dashed #e2e8f0; padding-top: 4px; margin-top: 2px;">
-              <strong>إجمالي المديونية الحالية:</strong> 
-              <span style="color: #dc2626; font-size: 14px;">${(debtAfter || 0).toFixed(2)} ${storeSettings.currency}</span>
-            </div>
-         </div>`
-      : `<div class="customer-info-grid">
-            <div class="info-item"><strong>اسم العميل:</strong> <span>عميل نقدي</span></div>
-            <div class="info-item"><strong>رقم الفاتورة:</strong> <span>#${order.id}</span></div>
-            <div class="info-item"><strong>التاريخ:</strong> <span>${printDate}</span></div>
-         </div>`;
-
-    const html = `<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-<meta charset="UTF-8"/>
-<title>فاتورة بيع #${order.id}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo', sans-serif;}
-  body{background:#fff;color:#000;margin:0;}
-  .invoice-container{width:72mm;margin:0 auto;padding:2mm 1.5mm;display:flex;flex-direction:column;}
-
-  .header-main{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;}
-  .logo{max-height:55px;max-width:62mm;width:auto;object-fit:contain;display:block;margin:0 auto 4px;}
-  .store-name{font-size:17px;font-weight:900;color:#000;line-height:1.2;}
-  .store-details{font-size:9px;color:#333;margin-top:2px;line-height:1.4;font-weight:bold;}
-
-  .customer-info-grid{display:flex;flex-direction:column;gap:2px;margin-bottom:6px;font-size:10px;}
-  .info-item{display:flex;justify-content:space-between;gap:6px;}
-  .info-item strong{color:#444;white-space:nowrap;}
-  .info-item span{color:#000;font-weight:700;}
-
-  table{width:100%;border-collapse:collapse;margin-bottom:5px;}
-  thead th{font-size:9px;padding:4px 1px;border-bottom:1px solid #000;font-weight:900;}
-  thead th:nth-child(2){text-align:right;}
-  thead th:last-child{text-align:left;}
-  tbody td{font-size:9px;padding:3px 1px;border-bottom:1px dotted #bbb;vertical-align:top;}
-
-  .summary-section{width:100%;margin-top:4px;}
-  .summary-row{display:flex;justify-content:space-between;padding:2px 0;font-size:10px;}
-  .summary-row.total{border-top:1px solid #000;border-bottom:1px solid #000;margin-top:3px;padding:4px 0;font-size:15px;font-weight:900;color:#000;}
-
-  .payment-status{margin-top:6px;padding:5px;border-radius:5px;text-align:center;font-weight:bold;font-size:11px;}
-  .status-paid{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;}
-  .status-debt{background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;}
-
-  .qr-row{display:flex;justify-content:center;align-items:flex-start;gap:14px;}
-  .qr-code-container{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:8px;}
-  .qr-code-img{width:90px;height:90px;}
-  .qr-label{font-size:9px;font-weight:900;color:#000;text-align:center;}
-
-  .footer{text-align:center;margin-top:8px;padding-top:6px;border-top:1px dashed #000;font-size:9px;color:#333;font-weight:bold;}
-
-  @media print{
-    @page{size:72mm auto;margin:0;}
-    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .invoice-container{width:72mm;padding:2mm 1.5mm;}
-  }
-</style>
-</head>
-<body>
-<div class="invoice-container">
-  <div class="header-main">
-    <img class="logo" src="${escapeHtml(storeSettings.logo)}" onerror="this.style.display='none'" />
-    <div class="store-name">${escapeHtml(storeSettings.name)}</div>
-    <div class="store-details">
-      ${storeSettings.address ? `📍 ${escapeHtml(storeSettings.address)}<br/>` : ''}
-      ${storeSettings.phone ? `📞 ${escapeHtml(storeSettings.phone)}` : ''}
-      ${storeSettings.phone2 ? ` | ${escapeHtml(storeSettings.phone2)}` : ''}
-    </div>
-  </div>
-
-  ${customerBlock}
-
-  <table>
-    <thead><tr>
-      <th style="width:40px">#</th>
-      <th style="text-align:right">${isPayment ? 'البيان' : 'المنتج'}</th>
-      <th style="width:60px">${isPayment ? '' : 'الكمية'}</th>
-      <th style="width:80px">${isPayment ? '' : 'السعر'}</th>
-      <th style="width:100px;text-align:left">الإجمالي</th>
-    </tr></thead>
-    <tbody>${itemsHtml}</tbody>
-  </table>
-
-  <div class="summary-section">
-    ${!isPayment ? `
-    <div class="summary-row"><span>المجموع الفرعي:</span><span>${subtotal.toFixed(2)} ${storeSettings.currency}</span></div>
-    ${order.coupon_code ? `<div class="summary-row" style="color:#e53e3e;font-weight:700;"><span>كوبون (${order.coupon_code}):</span><span>- ${(order.discount_amount || 0).toFixed(2)} ${storeSettings.currency}</span></div>` : ''}
-    ${(order.discount && !order.coupon_code) ? `<div class="summary-row" style="color:#e53e3e;font-weight:700;"><span>خصم الفاتورة:</span><span>- ${order.discount.toFixed(2)} ${storeSettings.currency}</span></div>` : ''}
-    <div class="summary-row"><span>الضريبة (${storeSettings.taxRate}%):</span><span>${taxValue.toFixed(2)} ${storeSettings.currency}</span></div>
-    <div class="summary-row total"><span>الإجمالي النهائي:</span><span>${order.total.toFixed(2)} ${storeSettings.currency}</span></div>
-    ` : ''}
-  
-    ${(paidShown < order.total - 0.009) ? `
-      <div class="payment-status status-debt">
-        <div>متبقي للتحصيل (آجل): ${(order.total - paidShown).toFixed(2)} ${storeSettings.currency}</div>
-        <div style="font-size:11px;opacity:0.8;margin-top:2px;">تم سداد: ${paidShown.toFixed(2)} ${storeSettings.currency}</div>
-      </div>
-    ` : `
-      <div class="payment-status status-paid">✓ تم سداد الفاتورة بالكامل</div>
-    `}
-
-    <div style="margin-top:10px; padding:8px; background:#f9fafb; border-radius:8px; border:1px solid #eee;">
-      <div style="font-size:11px; color:#64748b; margin-bottom:4px; border-bottom:1px solid #eee; padding-bottom:2px; text-align:right;">تفاصيل الدفع:</div>
-      ${ALL_PAYMENT_KEYS.filter((k) => Math.abs(paidSplit[k] || 0) > 0.009).map((k) =>
-        `<div class="summary-row" style="font-size:12px;"><span>${escapeHtml(payLabelOf(storeSettings as any, k))}:</span><span>${(paidSplit[k] || 0).toFixed(2)}</span></div>`
-      ).join('')}
-      ${Math.abs(exchangeSettled) > 0.009
-        ? `<div style="font-size:11px;color:#64748b;margin-top:4px;border-top:1px dashed #e2e8f0;padding-top:3px;">منها ${exchangeSettled > 0 ? 'محصّل' : 'مردود'} وقت الاستبدال: ${Math.abs(exchangeSettled).toFixed(2)} ${storeSettings.currency}</div>`
-        : ''}
-    </div>
-  </div>
-
-  <div class="qr-row">
-    <div class="qr-code-container">
-      <img class="qr-code-img" src="${qrCodeUrl}" alt="QR Code" />
-      <div class="qr-label">امسح الكود لعرض الفاتورة</div>
-    </div>
-    ${pagesQrBlock}
-  </div>
-
-  <div class="footer">شكراً لثقتكم بنا - ${escapeHtml(storeSettings.name)} ترحب بكم دائماً</div>
-</div>
-<script>window.onload=()=>{setTimeout(()=>{window.print();window.onafterprint=()=>window.close();},500);}</script>
-</body></html>`;
-
-    void printDocument('invoice', html);
+    void printShippingLabel(order, storeSettings);
   };
 
   const handleSendWhatsApp = (order: any) => {
