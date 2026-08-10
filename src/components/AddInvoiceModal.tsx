@@ -17,7 +17,7 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
     carriers, 
     activeCashier, 
     orders, 
-    addPlatformCollection, 
+    syncInvoiceToPlatformCollection,
     loadPlatformCollections, 
     loadHeldInvoices,
     loadAllHeldInvoices
@@ -263,17 +263,18 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
         console.warn('held_invoices collections notice:', e);
       }
 
-      // 5. 🔥 Immediate Insertion to Platform Collections (`platform_collections`)
+      // 5. 🔥 Sync to Platform Collections (`platform_collections`) with Net Collection Amount
       try {
-        await addPlatformCollection({
-          entity_type: 'platform',
-          entity_name: salesPlatform,
-          month: new Date().toISOString().slice(0, 7),
-          expected_amount: grandTotal,
-          collected_amount: 0,
-          status: 'pending',
-          notes: `فاتورة تحصيل #${invoiceId} - ${customerName.trim() || 'عميل'}`
-        });
+        await syncInvoiceToPlatformCollection({
+          id: invoiceId,
+          total: grandTotal,
+          paid_amount: 0,
+          customer_name: customerName.trim() || 'عميل',
+          notes: `تحصيل منصة: ${salesPlatform}`,
+          platform_name: salesPlatform,
+          items: orderItems,
+          is_collected: deliveryStatus === 'delivered'
+        } as any);
       } catch (e) {
         console.warn('platform_collections notice:', e);
       }

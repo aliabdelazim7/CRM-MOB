@@ -76,11 +76,21 @@ export default function Logistics() {
     (s.invoice_id && s.invoice_id.includes(search))
   );
 
-  // Statistics
-  const totalShipments = shipments.length;
+  // Statistics for Shipments
+  const totalShipmentsCount = shipments.length;
   const inTransitCount = shipments.filter((s) => s.status === 'in_transit').length;
   const deliveredCount = shipments.filter((s) => s.status === 'delivered').length;
   const totalShippingCosts = shipments.reduce((sum, s) => sum + (s.shipping_cost || 0), 0);
+
+  // Statistics for Platform Collections
+  const collectionsList = platformCollections || [];
+  const totalCollectionsCount = collectionsList.length;
+  const pendingCollectionsCount = collectionsList.filter((c) => c.status === 'pending').length;
+  const collectedCollectionsCount = collectionsList.filter((c) => c.status === 'collected').length;
+  const totalNetCollectedAmount = collectionsList.reduce((sum, c) => sum + (Number(c.collected_amount) || 0), 0);
+  const totalNetExpectedAmount = collectionsList.reduce((sum, c) => sum + (Number(c.expected_amount) || 0), 0);
+
+  const showCollectionStats = activeTab === 'collections' || (totalShipmentsCount === 0 && totalCollectionsCount > 0);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6" dir="rtl">
@@ -132,8 +142,12 @@ export default function Logistics() {
             <Truck size={24} />
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-400 block">إجمالي الشحنات</span>
-            <span className="text-2xl font-black text-slate-800 dark:text-white">{totalShipments}</span>
+            <span className="text-xs font-bold text-slate-400 block">
+              {showCollectionStats ? 'إجمالي فواتير التحصيل' : 'إجمالي الشحنات'}
+            </span>
+            <span className="text-2xl font-black text-slate-800 dark:text-white">
+              {showCollectionStats ? totalCollectionsCount : totalShipmentsCount}
+            </span>
           </div>
         </div>
 
@@ -142,8 +156,12 @@ export default function Logistics() {
             <Clock size={24} />
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-400 block">قيد التوصيل (In Transit)</span>
-            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{inTransitCount}</span>
+            <span className="text-xs font-bold text-slate-400 block">
+              {showCollectionStats ? 'قيد التحصيل والتوصيل' : 'قيد التوصيل (In Transit)'}
+            </span>
+            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
+              {showCollectionStats ? pendingCollectionsCount : inTransitCount}
+            </span>
           </div>
         </div>
 
@@ -152,8 +170,12 @@ export default function Logistics() {
             <CheckCircle2 size={24} />
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-400 block">تم التسليم (Delivered)</span>
-            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{deliveredCount}</span>
+            <span className="text-xs font-bold text-slate-400 block">
+              {showCollectionStats ? 'وصلت وتم التحصيل' : 'تم التسليم (Delivered)'}
+            </span>
+            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+              {showCollectionStats ? collectedCollectionsCount : deliveredCount}
+            </span>
           </div>
         </div>
 
@@ -162,8 +184,19 @@ export default function Logistics() {
             <PackageCheck size={24} />
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-400 block">تكاليف الشحن</span>
-            <span className="text-2xl font-black text-slate-800 dark:text-white">{totalShippingCosts.toLocaleString()} ج.م</span>
+            <span className="text-xs font-bold text-slate-400 block">
+              {showCollectionStats ? 'إجمالي التحصيل الصافي' : 'تكاليف الشحن'}
+            </span>
+            <span className="text-2xl font-black text-slate-800 dark:text-white">
+              {showCollectionStats 
+                ? `${totalNetCollectedAmount.toLocaleString('ar-EG')} ج.م` 
+                : `${totalShippingCosts.toLocaleString('ar-EG')} ج.م`}
+            </span>
+            {showCollectionStats && (
+              <span className="text-[10px] text-slate-400 font-bold block mt-0.5">
+                المتوقع الصافي: {totalNetExpectedAmount.toLocaleString('ar-EG')} ج.م
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -1064,6 +1064,8 @@ interface CashierStore {
     platform_name?: string;
     notes?: string;
     status?: 'pending' | 'collected';
+    items?: any[];
+    is_collected?: boolean;
   }) => Promise<boolean>;
   holdInvoice: (data: {
     customerName?: string;
@@ -2970,7 +2972,8 @@ export const useStore = create<CashierStore>((set, get) => ({
         paid_amount: savedPaidAmount,
         customer_name: finalCustomer?.name,
         notes: finalNotes || undefined,
-        platform_name: platformName || undefined
+        platform_name: platformName || undefined,
+        items: newOrder.items
       });
 
       return invoiceId;
@@ -7872,33 +7875,76 @@ setupRealtime: () => {
       const platformName = order.platform_name?.trim() || '';
       const invoiceIdStr = String(order.id);
 
-      // Detect fee from platform/carrier settings
-      let fee = 0;
+      // Item-level platform fees calculation (commissions % & platform shipping fees)
+      let totalCommissions = 0;
+      let totalPlatformShipping = 0;
+
+      if (platformName && order.items && Array.isArray(order.items)) {
+        const pLower = platformName.toLowerCase();
+        order.items.forEach((item: any) => {
+          const prod = state.products.find((p) => p.id === item.id || p.barcode === item.barcode || p.name === item.name);
+          const qty = Number(item.quantity) || 1;
+          const itemGross = (Number(item.sale_price) || 0) * qty;
+
+          if (prod) {
+            if (pLower.includes('noon') || pLower.includes('نون')) {
+              totalCommissions += itemGross * ((prod.noon_commission || 0) / 100);
+              totalPlatformShipping += (prod.noon_shipping || 0) * qty;
+            } else if (pLower.includes('amazon') || pLower.includes('أمازون')) {
+              totalCommissions += itemGross * ((prod.amazon_commission || 0) / 100);
+              totalPlatformShipping += (prod.amazon_shipping || 0) * qty;
+            } else if (pLower.includes('jumia') || pLower.includes('جوميا')) {
+              totalCommissions += itemGross * ((prod.jumia_commission || 0) / 100);
+              totalPlatformShipping += (prod.jumia_shipping || 0) * qty;
+            } else if (prod.custom_stores) {
+              const cs = prod.custom_stores.find((c) => pLower.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(pLower));
+              if (cs) {
+                totalCommissions += itemGross * ((cs.commission || 0) / 100);
+                totalPlatformShipping += (cs.shipping || 0) * qty;
+              }
+            }
+          }
+        });
+      }
+
+      // Carrier base fee check
+      let carrierFee = 0;
       if (platformName && platformName !== 'غير محدد (اختر المنصة)') {
         const pLower = platformName.toLowerCase();
         const carrier = state.carriers?.find(
           (c: any) => c.name && (c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()))
         );
         if (carrier && carrier.base_fee && carrier.base_fee > 0) {
-          fee = carrier.base_fee;
+          carrierFee = carrier.base_fee;
         }
       }
 
-      // Net expected collection amount after deducting platform base fee
-      const expectedAmount = Math.max(0, invoiceTotal - fee);
-      const collectedAmount = rawPaid > 0 ? Math.min(rawPaid, expectedAmount) : 0;
-      const feeNote = fee > 0 ? ` (خصم رسوم منصة: ${fee} ج.م)` : '';
+      const totalDeductions = totalCommissions + totalPlatformShipping + carrierFee;
+      // Net Expected Collection Amount = Gross Total - Platform Deductions - Upfront Deposit Paid
+      const expectedAmount = Math.max(0, invoiceTotal - totalDeductions - rawPaid);
+      const isCollected = (order as any).is_collected || false;
+      const collectedAmount = isCollected ? expectedAmount : 0;
+
+      const feeParts: string[] = [];
+      if (totalCommissions > 0) feeParts.push(`عمولة: ${totalCommissions.toFixed(1)}ج.م`);
+      if (totalPlatformShipping > 0) feeParts.push(`شحن منصة: ${totalPlatformShipping.toFixed(1)}ج.م`);
+      if (carrierFee > 0) feeParts.push(`رسوم شركة: ${carrierFee.toFixed(1)}ج.م`);
+      if (rawPaid > 0) feeParts.push(`مقدم: ${rawPaid.toFixed(1)}ج.م`);
+
+      const feeNote = feeParts.length > 0 ? ` [خصومات التحصيل الصافي: ${feeParts.join(' | ')}]` : '';
 
       const existing = state.platformCollections.find(
         (pc) => pc.notes && pc.notes.includes(`#${invoiceIdStr}`)
       );
 
+      const finalStatus: 'pending' | 'collected' = isCollected ? 'collected' : 'pending';
+
       if (existing) {
         const patch = {
           entity_name: platformName || existing.entity_name || 'غير محدد (اختر المنصة)',
           expected_amount: expectedAmount,
-          collected_amount: collectedAmount,
-          status: (collectedAmount >= expectedAmount - 0.01 && expectedAmount > 0) ? ('collected' as const) : ('pending' as const),
+          collected_amount: existing.status === 'collected' ? (existing.collected_amount || expectedAmount) : collectedAmount,
+          status: existing.status === 'collected' ? 'collected' : finalStatus,
         };
         await get().updatePlatformCollection(existing.id, patch);
         return true;
@@ -7910,7 +7956,7 @@ setupRealtime: () => {
         month: currentMonth,
         expected_amount: expectedAmount,
         collected_amount: collectedAmount,
-        status: (collectedAmount >= expectedAmount - 0.01 && expectedAmount > 0) ? ('collected' as const) : ('pending' as const),
+        status: finalStatus,
         notes: `فاتورة تحصيل #${invoiceIdStr} - ${order.customer_name?.trim() || 'عميل'}${feeNote}`
       };
 
