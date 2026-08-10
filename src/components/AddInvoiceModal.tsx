@@ -23,6 +23,19 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
     loadAllHeldInvoices
   } = useStore();
 
+  const defaultBuiltinPlatforms = [
+    'الويب سايت (المتجر الإلكتروني)',
+    'أمازون (Amazon)',
+    'نون (Noon)',
+    'جوميا (Jumia)',
+    'تيك توك شوب (TikTok Shop)',
+    'متجر سلة (Salla)',
+    'متجر زد (Zid)',
+    'المحل الرئيسي'
+  ];
+  const customCarrierNames = (carriers || []).filter((c) => c.status === 'active').map((c) => c.name);
+  const allDynamicPlatforms = Array.from(new Set([...defaultBuiltinPlatforms, ...customCarrierNames]));
+
   // Form Fields matching user image
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -471,14 +484,9 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
                 >
                   <option value="">اختر المنصة</option>
-                  <option value="الويب سايت (المتجر الإلكتروني)">الويب سايت (المتجر الإلكتروني)</option>
-                  <option value="أمازون (Amazon)">أمازون (Amazon)</option>
-                  <option value="نون (Noon)">نون (Noon)</option>
-                  <option value="جوميا (Jumia)">جوميا (Jumia)</option>
-                  <option value="تيك توك شوب (TikTok Shop)">تيك توك شوب (TikTok Shop)</option>
-                  <option value="متجر سلة (Salla)">متجر سلة (Salla)</option>
-                  <option value="متجر زد (Zid)">متجر زد (Zid)</option>
-                  <option value="المحل الرئيسي">المحل الرئيسي / البيع المباشر</option>
+                  {allDynamicPlatforms.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
                 </select>
               </div>
 
@@ -581,14 +589,9 @@ export function AddInvoiceModal({ isOpen, onClose, onSuccess }: AddInvoiceModalP
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-right"
               >
                 <option value="">اختر شركة الشحن</option>
-                <option value="بوسطة (Bosta)">بوسطة (Bosta)</option>
-                <option value="أرامكس (Aramex)">أرامكس (Aramex)</option>
-                <option value="سمسا (SMSA)">سمسا (SMSA)</option>
-                <option value="فيديكس (FedEx)">فيديكس (FedEx)</option>
-                {carriers.map(c => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
+                {Array.from(new Set(['بوسطة (Bosta)', 'أرامكس (Aramex)', 'سمسا (SMSA)', 'فيديكس (FedEx)', ...customCarrierNames, 'شحن خاص / مندوب'])).map((c) => (
+                  <option key={c} value={c}>{c}</option>
                 ))}
-                <option value="شحن خاص">شحن خاص / مندوب</option>
               </select>
             </div>
           </div>

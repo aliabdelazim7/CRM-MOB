@@ -4,10 +4,23 @@ import { useStore } from '../../store/useStore';
 import type { ShippingCarrier, Shipment, PlatformCollection } from '../../store/useStore';
 
 export default function Logistics() {
-  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection, recalculateAllPlatformCollections } = useStore();
+  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, addPlatformOrCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection, recalculateAllPlatformCollections } = useStore();
   const [activeTab, setActiveTab] = useState<'carriers' | 'shipments' | 'collections'>('collections');
   const [search, setSearch] = useState('');
   const [isRecalculating, setIsRecalculating] = useState(false);
+
+  const defaultBuiltinPlatforms = [
+    'الويب سايت (المتجر الإلكتروني)',
+    'أمازون (Amazon)',
+    'نون (Noon)',
+    'جوميا (Jumia)',
+    'تيك توك شوب (TikTok Shop)',
+    'متجر سلة (Salla)',
+    'متجر زد (Zid)',
+    'المحل الرئيسي'
+  ];
+  const customCarrierNames = (carriers || []).filter((c) => c.status === 'active').map((c) => c.name);
+  const allDynamicPlatforms = Array.from(new Set([...defaultBuiltinPlatforms, ...customCarrierNames]));
 
   useEffect(() => {
     loadEnterpriseData();
@@ -66,6 +79,7 @@ export default function Logistics() {
   const handleSaveCollection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!collectionForm.entity_name || !collectionForm.month) return;
+    await addPlatformOrCarrier(collectionForm.entity_name, collectionForm.entity_type || 'platform');
     const ok = await addPlatformCollection(collectionForm);
     if (ok) {
       setShowCollectionModal(false);
@@ -322,19 +336,28 @@ export default function Logistics() {
                               </span>
                               <select
                                 value={c.entity_name || ''}
-                                onChange={(e) => updatePlatformCollection(c.id, { entity_name: e.target.value })}
+                                onChange={async (e) => {
+                                  const val = e.target.value;
+                                  if (val === '__ADD_NEW__') {
+                                    const customName = prompt('أدخل اسم المنصة أو شركة الشحن الجديدة:');
+                                    if (customName && customName.trim()) {
+                                      const cleanName = customName.trim();
+                                      await addPlatformOrCarrier(cleanName, 'platform');
+                                      await updatePlatformCollection(c.id, { entity_name: cleanName });
+                                      void recalculateAllPlatformCollections();
+                                    }
+                                  } else if (val) {
+                                    await updatePlatformCollection(c.id, { entity_name: val });
+                                    void recalculateAllPlatformCollections();
+                                  }
+                                }}
                                 className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-xl px-2 py-1 text-xs font-black text-amber-800 dark:text-amber-300 focus:outline-none"
                               >
                                 <option value="">-- اختر منصة التحصيل --</option>
-                                <option value="الويب سايت (المتجر الإلكتروني)">الويب سايت (المتجر الإلكتروني)</option>
-                                <option value="أمازون (Amazon)">أمازون (Amazon)</option>
-                                <option value="نون (Noon)">نون (Noon)</option>
-                                <option value="جوميا (Jumia)">جوميا (Jumia)</option>
-                                <option value="تيك توك شوب (TikTok Shop)">تيك توك شوب (TikTok Shop)</option>
-                                <option value="متجر سلة (Salla)">متجر سلة (Salla)</option>
-                                <option value="متجر زد (Zid)">متجر زد (Zid)</option>
-                                <option value="المحل الرئيسي">المحل الرئيسي</option>
-                                <option value="شحن خاص">شحن خاص / أخرى</option>
+                                {allDynamicPlatforms.map((pName) => (
+                                  <option key={pName} value={pName}>{pName}</option>
+                                ))}
+                                <option value="__ADD_NEW__">➕ إضافة منصة / شركة شحن جديدة...</option>
                               </select>
                             </div>
                           ) : (
@@ -562,13 +585,32 @@ export default function Logistics() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">الجهة (المنصة / الشركة)</label>
-                  <input
-                    type="text" required
-                    placeholder="مثال: أمازون، نون، بوسطة"
-                    value={collectionForm.entity_name}
-                    onChange={(e) => setCollectionForm({ ...collectionForm, entity_name: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 dark:text-white"
-                  />
+                  <select
+                    value={allDynamicPlatforms.includes(collectionForm.entity_name || '') ? collectionForm.entity_name : '__CUSTOM__'}
+                    onChange={(e) => {
+                      if (e.target.value === '__CUSTOM__') {
+                        setCollectionForm({ ...collectionForm, entity_name: '' });
+                      } else {
+                        setCollectionForm({ ...collectionForm, entity_name: e.target.value });
+                      }
+                    }}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 dark:text-white font-bold text-sm mb-2"
+                  >
+                    <option value="">-- اختر من القائمة --</option>
+                    {allDynamicPlatforms.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                    <option value="__CUSTOM__">✍️ كتابة جهة / منصة جديدة أيدوياً...</option>
+                  </select>
+                  {(!collectionForm.entity_name || !allDynamicPlatforms.includes(collectionForm.entity_name)) && (
+                    <input
+                      type="text" required
+                      placeholder="اكتب اسم المنصة أو الشركة هنا..."
+                      value={collectionForm.entity_name || ''}
+                      onChange={(e) => setCollectionForm({ ...collectionForm, entity_name: e.target.value })}
+                      className="w-full bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-xl px-4 py-2 text-sm font-bold text-slate-800 dark:text-white"
+                    />
+                  )}
                 </div>
               </div>
               

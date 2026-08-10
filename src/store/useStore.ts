@@ -949,6 +949,7 @@ interface CashierStore {
   deletePlatformCollection: (id: string) => Promise<boolean>;
 
   addShippingCarrier: (carrier: Partial<ShippingCarrier>) => Promise<boolean>;
+  addPlatformOrCarrier: (name: string, type?: 'platform' | 'carrier') => Promise<boolean>;
   updateShippingCarrier: (id: string, carrier: Partial<ShippingCarrier>) => Promise<boolean>;
   deleteShippingCarrier: (id: string) => Promise<boolean>;
   addShipment: (shipment: Partial<Shipment>) => Promise<boolean>;
@@ -8094,6 +8095,26 @@ setupRealtime: () => {
   addShippingCarrier: async (carrier) => {
     try {
       const { data, error } = await supabase.from('shipping_carriers').insert(carrier).select().single();
+      if (error) { console.error(error); return false; }
+      if (data) set((s) => ({ carriers: [data as ShippingCarrier, ...s.carriers] }));
+      return true;
+    } catch (e) { console.error(e); return false; }
+  },
+
+  addPlatformOrCarrier: async (name: string, type: 'platform' | 'carrier' = 'platform') => {
+    try {
+      const trimmed = name.trim();
+      if (!trimmed) return false;
+      const state = get();
+      const existing = (state.carriers || []).find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+      if (existing) return true;
+
+      const newCarrier: Partial<ShippingCarrier> = {
+        name: trimmed,
+        status: 'active',
+        notes: type === 'platform' ? 'منصة مبيعات مخصصة' : 'شركة شحن مخصصة'
+      };
+      const { data, error } = await supabase.from('shipping_carriers').insert(newCarrier).select().single();
       if (error) { console.error(error); return false; }
       if (data) set((s) => ({ carriers: [data as ShippingCarrier, ...s.carriers] }));
       return true;
