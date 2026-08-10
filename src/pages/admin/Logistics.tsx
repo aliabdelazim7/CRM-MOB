@@ -4,7 +4,7 @@ import { useStore } from '../../store/useStore';
 import type { ShippingCarrier, Shipment, PlatformCollection } from '../../store/useStore';
 
 export default function Logistics() {
-  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, addPlatformOrCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection, recalculateAllPlatformCollections } = useStore();
+  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, updateShippingCarrier, addPlatformOrCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection, recalculateAllPlatformCollections } = useStore();
   const [activeTab, setActiveTab] = useState<'carriers' | 'shipments' | 'collections'>('collections');
   const [search, setSearch] = useState('');
   const [isRecalculating, setIsRecalculating] = useState(false);
@@ -44,11 +44,48 @@ export default function Logistics() {
   
   // Carrier Form Modal State
   const [showCarrierModal, setShowCarrierModal] = useState(false);
+  const [editingCarrierId, setEditingCarrierId] = useState<string | null>(null);
   const [carrierForm, setCarrierForm] = useState<Partial<ShippingCarrier>>({
-    name: '', contact_person: '', phone: '', email: '', rate_per_kg: 0, base_fee: 0, tracking_url_template: '', notes: '', status: 'active'
+    name: '', contact_person: '', phone: '', email: '', rate_per_kg: 0, base_fee: 0, commission_rate: 0, tracking_url_template: '', notes: '', status: 'active'
   });
+
+  const handleEditCarrier = (c: ShippingCarrier) => {
+    setEditingCarrierId(c.id);
+    setCarrierForm({
+      name: c.name,
+      contact_person: c.contact_person || '',
+      phone: c.phone || '',
+      email: c.email || '',
+      rate_per_kg: c.rate_per_kg || 0,
+      base_fee: c.base_fee || 0,
+      commission_rate: c.commission_rate || 0,
+      tracking_url_template: c.tracking_url_template || '',
+      notes: c.notes || '',
+      status: c.status || 'active'
+    });
+    setShowCarrierModal(true);
+  };
   
-  
+  const handleSaveCarrier = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!carrierForm.name) return;
+    if (editingCarrierId) {
+      const ok = await updateShippingCarrier(editingCarrierId, carrierForm);
+      if (ok) {
+        setShowCarrierModal(false);
+        setEditingCarrierId(null);
+        setCarrierForm({ name: '', contact_person: '', phone: '', email: '', rate_per_kg: 0, base_fee: 0, commission_rate: 0, tracking_url_template: '', notes: '', status: 'active' });
+        void recalculateAllPlatformCollections();
+      }
+    } else {
+      const ok = await addShippingCarrier(carrierForm);
+      if (ok) {
+        setShowCarrierModal(false);
+        setCarrierForm({ name: '', contact_person: '', phone: '', email: '', rate_per_kg: 0, base_fee: 0, commission_rate: 0, tracking_url_template: '', notes: '', status: 'active' });
+      }
+    }
+  };
+
   // Collection Form Modal State
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [collectionForm, setCollectionForm] = useState<Partial<PlatformCollection>>({
@@ -61,21 +98,6 @@ export default function Logistics() {
     carrier_id: '', invoice_id: '', tracking_number: '', status: 'pending', shipping_cost: 0, delivery_fee: 0, recipient_name: '', recipient_phone: '', recipient_address: '', notes: ''
   });
 
-  useEffect(() => {
-    loadEnterpriseData();
-  }, [loadEnterpriseData]);
-
-  const handleSaveCarrier = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!carrierForm.name) return;
-    const ok = await addShippingCarrier(carrierForm);
-    if (ok) {
-      setShowCarrierModal(false);
-      setCarrierForm({ name: '', contact_person: '', phone: '', email: '', rate_per_kg: 0, base_fee: 0, tracking_url_template: '', notes: '', status: 'active' });
-    }
-  };
-
-  
   const handleSaveCollection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!collectionForm.entity_name || !collectionForm.month) return;
@@ -529,21 +551,36 @@ export default function Logistics() {
                       {c.status === 'active' ? 'نشطة' : 'متوقفة'}
                     </span>
                   </div>
-                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
                     <div>مسؤول التواصل: <span className="font-bold text-slate-700 dark:text-slate-200">{c.contact_person || 'غير محدد'}</span></div>
                     <div>الهاتف: <span className="font-bold text-slate-700 dark:text-slate-200">{c.phone || '-'}</span></div>
-                    <div>السعر لكل كجم: <span className="font-bold text-indigo-600 dark:text-indigo-400">{c.rate_per_kg || 0} ج.م</span></div>
-                    <div>الرسوم الأساسية: <span className="font-bold text-slate-700 dark:text-slate-200">{c.base_fee || 0} ج.م</span></div>
+                    
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                      <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-lg font-black text-xs">
+                        🏷️ العمولة: {c.commission_rate || 0}%
+                      </span>
+                      <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-lg font-black text-xs">
+                        🚚 رسوم الشحن: {c.base_fee || 0} ج.م
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700 text-xs">
-                  <button
-                    onClick={() => deleteShippingCarrier(c.id)}
-                    className="text-rose-500 hover:text-rose-700 font-bold"
-                  >
-                    حذف الشركة
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleEditCarrier(c)}
+                      className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold"
+                    >
+                      ✏️ تعديل الخصومات
+                    </button>
+                    <button
+                      onClick={() => deleteShippingCarrier(c.id)}
+                      className="text-rose-500 hover:text-rose-700 font-bold"
+                    >
+                      حذف
+                    </button>
+                  </div>
                   {c.tracking_url_template && (
                     <a
                       href={c.tracking_url_template}
@@ -704,22 +741,33 @@ export default function Logistics() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">الرسوم الثابتة (ج.م)</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">العمولة (% الخصم)</label>
                   <input
                     type="number"
-                    value={carrierForm.base_fee}
-                    onChange={(e) => setCarrierForm({ ...carrierForm, base_fee: Number(e.target.value) })}
+                    step="0.1"
+                    placeholder="مثال: 10"
+                    value={carrierForm.commission_rate || ''}
+                    onChange={(e) => setCarrierForm({ ...carrierForm, commission_rate: Number(e.target.value) || 0 })}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-indigo-300 dark:border-indigo-700 rounded-xl p-2.5 font-black text-indigo-700 dark:text-indigo-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">رسوم الشحن (ج.م)</label>
+                  <input
+                    type="number"
+                    value={carrierForm.base_fee || ''}
+                    onChange={(e) => setCarrierForm({ ...carrierForm, base_fee: Number(e.target.value) || 0 })}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">السعر لكل كجم</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">السعر / كجم (ج.م)</label>
                   <input
                     type="number"
-                    value={carrierForm.rate_per_kg}
-                    onChange={(e) => setCarrierForm({ ...carrierForm, rate_per_kg: Number(e.target.value) })}
+                    value={carrierForm.rate_per_kg || ''}
+                    onChange={(e) => setCarrierForm({ ...carrierForm, rate_per_kg: Number(e.target.value) || 0 })}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 font-bold"
                   />
                 </div>

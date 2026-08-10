@@ -742,6 +742,7 @@ export interface ShippingCarrier {
   address?: string;
   rate_per_kg?: number;
   base_fee?: number;
+  commission_rate?: number;
   tracking_url_template?: string;
   notes?: string;
   status: 'active' | 'inactive';
@@ -7909,22 +7910,29 @@ setupRealtime: () => {
         }
 
         let carrierFee = 0;
+        let companyCommission = 0;
         if (platformName && platformName !== 'غير محدد (اختر المنصة)') {
           const pLower = platformName.toLowerCase();
           const carrier = carriers.find(
             (c: any) => c.name && (c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()))
           );
-          if (carrier && carrier.base_fee && carrier.base_fee > 0) {
-            carrierFee = carrier.base_fee;
+          if (carrier) {
+            if (carrier.base_fee && carrier.base_fee > 0) {
+              carrierFee = carrier.base_fee;
+            }
+            if (totalCommissions === 0 && carrier.commission_rate && carrier.commission_rate > 0) {
+              companyCommission = invoiceTotal * (carrier.commission_rate / 100);
+            }
           }
         }
 
-        const totalDeductions = totalCommissions + totalPlatformShipping + carrierFee;
+        const finalCommissions = totalCommissions > 0 ? totalCommissions : companyCommission;
+        const totalDeductions = finalCommissions + totalPlatformShipping + carrierFee;
         const netExpectedAmount = Math.max(0, invoiceTotal - totalDeductions - rawPaid);
         const updatedCollected = pc.status === 'collected' ? netExpectedAmount : (rawPaid > 0 ? Math.min(rawPaid, netExpectedAmount) : 0);
 
         const feeParts: string[] = [];
-        if (totalCommissions > 0) feeParts.push(`عمولة: ${totalCommissions.toFixed(1)}ج.م`);
+        if (finalCommissions > 0) feeParts.push(`عمولة: ${finalCommissions.toFixed(1)}ج.م`);
         if (totalPlatformShipping > 0) feeParts.push(`شحن منصة: ${totalPlatformShipping.toFixed(1)}ج.م`);
         if (carrierFee > 0) feeParts.push(`رسوم شركة: ${carrierFee.toFixed(1)}ج.م`);
         if (rawPaid > 0) feeParts.push(`مقدم: ${rawPaid.toFixed(1)}ج.م`);
@@ -8003,26 +8011,33 @@ setupRealtime: () => {
         });
       }
 
-      // Carrier base fee check
+      // Carrier / Company base fee & fallback commission check
       let carrierFee = 0;
+      let companyCommission = 0;
       if (platformName && platformName !== 'غير محدد (اختر المنصة)') {
         const pLower = platformName.toLowerCase();
         const carrier = state.carriers?.find(
           (c: any) => c.name && (c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()))
         );
-        if (carrier && carrier.base_fee && carrier.base_fee > 0) {
-          carrierFee = carrier.base_fee;
+        if (carrier) {
+          if (carrier.base_fee && carrier.base_fee > 0) {
+            carrierFee = carrier.base_fee;
+          }
+          if (totalCommissions === 0 && carrier.commission_rate && carrier.commission_rate > 0) {
+            companyCommission = invoiceTotal * (carrier.commission_rate / 100);
+          }
         }
       }
 
-      const totalDeductions = totalCommissions + totalPlatformShipping + carrierFee;
+      const finalCommissions = totalCommissions > 0 ? totalCommissions : companyCommission;
+      const totalDeductions = finalCommissions + totalPlatformShipping + carrierFee;
       // Net Expected Collection Amount = Gross Total - Platform Deductions - Upfront Deposit Paid
       const expectedAmount = Math.max(0, invoiceTotal - totalDeductions - rawPaid);
       const isCollected = (order as any).is_collected || false;
       const collectedAmount = isCollected ? expectedAmount : 0;
 
       const feeParts: string[] = [];
-      if (totalCommissions > 0) feeParts.push(`عمولة: ${totalCommissions.toFixed(1)}ج.م`);
+      if (finalCommissions > 0) feeParts.push(`عمولة: ${finalCommissions.toFixed(1)}ج.م`);
       if (totalPlatformShipping > 0) feeParts.push(`شحن منصة: ${totalPlatformShipping.toFixed(1)}ج.م`);
       if (carrierFee > 0) feeParts.push(`رسوم شركة: ${carrierFee.toFixed(1)}ج.م`);
       if (rawPaid > 0) feeParts.push(`مقدم: ${rawPaid.toFixed(1)}ج.م`);
