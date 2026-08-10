@@ -1,12 +1,33 @@
 import { useState, useEffect } from 'react';
-import { Truck, Plus, Search, ExternalLink, PackageCheck, CheckCircle2, Clock, Eye, Calendar } from 'lucide-react';
+import { Truck, Plus, Search, ExternalLink, PackageCheck, CheckCircle2, Clock, Eye, Calendar, RefreshCw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import type { ShippingCarrier, Shipment, PlatformCollection } from '../../store/useStore';
 
 export default function Logistics() {
-  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection } = useStore();
-  const [activeTab, setActiveTab] = useState<'carriers' | 'shipments' | 'collections'>('shipments');
+  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection, recalculateAllPlatformCollections } = useStore();
+  const [activeTab, setActiveTab] = useState<'carriers' | 'shipments' | 'collections'>('collections');
   const [search, setSearch] = useState('');
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
+  useEffect(() => {
+    loadEnterpriseData();
+  }, [loadEnterpriseData]);
+
+  // Automatically recalculate net collection payout for existing platform collections
+  useEffect(() => {
+    if (platformCollections && platformCollections.length > 0) {
+      void recalculateAllPlatformCollections();
+    }
+  }, [platformCollections?.length]);
+
+  const handleRecalculateCollections = async () => {
+    setIsRecalculating(true);
+    try {
+      await recalculateAllPlatformCollections();
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
   
   // Carrier Form Modal State
   const [showCarrierModal, setShowCarrierModal] = useState(false);
@@ -108,13 +129,24 @@ export default function Logistics() {
 
         <div className="flex items-center gap-3">
           {activeTab === 'collections' ? (
-            <button
-              onClick={() => setShowCollectionModal(true)}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold transition shadow-lg shadow-indigo-200 dark:shadow-none"
-            >
-              <Plus size={18} />
-              إضافة تحصيل جديد
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRecalculateCollections}
+                disabled={isRecalculating}
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-2xl font-bold transition shadow-sm disabled:opacity-50 text-xs"
+                title="إعادة حساب التحصيل الصافي لجميع الفواتير والتحصيلات الحالية"
+              >
+                <RefreshCw size={15} className={isRecalculating ? 'animate-spin' : ''} />
+                {isRecalculating ? 'جاري إعادة الحساب...' : 'تحديث التحصيلات الصافية'}
+              </button>
+              <button
+                onClick={() => setShowCollectionModal(true)}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold transition shadow-lg shadow-indigo-200 dark:shadow-none text-xs"
+              >
+                <Plus size={18} />
+                إضافة تحصيل جديد
+              </button>
+            </div>
           ) : activeTab === 'shipments' ? (
             <button
               onClick={() => setShowShipmentModal(true)}

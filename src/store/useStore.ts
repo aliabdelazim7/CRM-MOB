@@ -943,6 +943,7 @@ interface CashierStore {
   // Enterprise HANCES PRO Actions
   loadEnterpriseData: () => Promise<void>;
   loadPlatformCollections: () => Promise<void>;
+  recalculateAllPlatformCollections: () => Promise<boolean>;
   addPlatformCollection: (data: Partial<PlatformCollection>) => Promise<boolean>;
   updatePlatformCollection: (id: string, data: Partial<PlatformCollection>) => Promise<boolean>;
   deletePlatformCollection: (id: string) => Promise<boolean>;
@@ -7851,6 +7852,100 @@ setupRealtime: () => {
       set({ platformCollections: data as PlatformCollection[] });
     } catch (e) {
       console.warn('loadPlatformCollections error', e);
+    }
+  },
+
+  recalculateAllPlatformCollections: async () => {
+    try {
+      const state = get();
+      const collections = state.platformCollections || [];
+      const orders = state.orders || [];
+      const products = state.products || [];
+      const carriers = state.carriers || [];
+
+      for (const pc of collections) {
+        const invoiceMatch = pc.notes ? pc.notes.match(/#([a-zA-Z0-9_-]+)/) : null;
+        const invoiceId = invoiceMatch ? invoiceMatch[1] : null;
+
+        if (!invoiceId) continue;
+
+        const order = orders.find((o) => String(o.id) === invoiceId || String(o.id) === `#${invoiceId}`);
+        if (!order) continue;
+
+        const invoiceTotal = Number(order.total) || 0;
+        const rawPaid = Number(order.paid_amount) || 0;
+        const platformName = (pc.entity_name || order.platform_name || '').trim();
+
+        let totalCommissions = 0;
+        let totalPlatformShipping = 0;
+
+        if (platformName && order.items && Array.isArray(order.items)) {
+          const pLower = platformName.toLowerCase();
+          order.items.forEach((item: any) => {
+            const prod = products.find((p) => p.id === item.id || p.barcode === item.barcode || p.name === item.name);
+            const qty = Number(item.quantity) || 1;
+            const itemGross = (Number(item.sale_price) || 0) * qty;
+
+            if (prod) {
+              if (pLower.includes('noon') || pLower.includes('نون')) {
+                totalCommissions += itemGross * ((prod.noon_commission || 0) / 100);
+                totalPlatformShipping += (prod.noon_shipping || 0) * qty;
+              } else if (pLower.includes('amazon') || pLower.includes('أمازون')) {
+                totalCommissions += itemGross * ((prod.amazon_commission || 0) / 100);
+                totalPlatformShipping += (prod.amazon_shipping || 0) * qty;
+              } else if (pLower.includes('jumia') || pLower.includes('جوميا')) {
+                totalCommissions += itemGross * ((prod.jumia_commission || 0) / 100);
+                totalPlatformShipping += (prod.jumia_shipping || 0) * qty;
+              } else if (prod.custom_stores) {
+                const cs = prod.custom_stores.find((c) => pLower.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(pLower));
+                if (cs) {
+                  totalCommissions += itemGross * ((cs.commission || 0) / 100);
+                  totalPlatformShipping += (cs.shipping || 0) * qty;
+                }
+              }
+            }
+          });
+        }
+
+        let carrierFee = 0;
+        if (platformName && platformName !== 'غير محدد (اختر المنصة)') {
+          const pLower = platformName.toLowerCase();
+          const carrier = carriers.find(
+            (c: any) => c.name && (c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()))
+          );
+          if (carrier && carrier.base_fee && carrier.base_fee > 0) {
+            carrierFee = carrier.base_fee;
+          }
+        }
+
+        const totalDeductions = totalCommissions + totalPlatformShipping + carrierFee;
+        const netExpectedAmount = Math.max(0, invoiceTotal - totalDeductions - rawPaid);
+        const updatedCollected = pc.status === 'collected' ? netExpectedAmount : (rawPaid > 0 ? Math.min(rawPaid, netExpectedAmount) : 0);
+
+        const feeParts: string[] = [];
+        if (totalCommissions > 0) feeParts.push(`عمولة: ${totalCommissions.toFixed(1)}ج.م`);
+        if (totalPlatformShipping > 0) feeParts.push(`شحن منصة: ${totalPlatformShipping.toFixed(1)}ج.م`);
+        if (carrierFee > 0) feeParts.push(`رسوم شركة: ${carrierFee.toFixed(1)}ج.م`);
+        if (rawPaid > 0) feeParts.push(`مقدم: ${rawPaid.toFixed(1)}ج.م`);
+
+        const feeNote = feeParts.length > 0 ? ` [خصومات التحصيل الصافي: ${feeParts.join(' | ')}]` : '';
+        const baseNotes = (pc.notes || '').replace(/\s*\[خصومات التحصيل الصافي:[^\]]+\]/, '');
+        const updatedNotes = `${baseNotes}${feeNote}`;
+
+        const patch = {
+          expected_amount: netExpectedAmount,
+          collected_amount: updatedCollected,
+          notes: updatedNotes
+        };
+
+        await supabase.from('platform_collections').update(patch).eq('id', pc.id);
+      }
+
+      await get().loadPlatformCollections();
+      return true;
+    } catch (e) {
+      console.warn('recalculateAllPlatformCollections error:', e);
+      return false;
     }
   },
 
