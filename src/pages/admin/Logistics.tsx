@@ -4,7 +4,7 @@ import { useStore } from '../../store/useStore';
 import type { ShippingCarrier, Shipment, PlatformCollection } from '../../store/useStore';
 
 export default function Logistics() {
-  const { carriers, shipments, platformCollections, loadEnterpriseData, addShippingCarrier, updateShippingCarrier, addPlatformOrCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection, recalculateAllPlatformCollections } = useStore();
+  const { carriers, shipments, platformCollections, orders, loadEnterpriseData, addShippingCarrier, updateShippingCarrier, addPlatformOrCarrier, deleteShippingCarrier, addShipment, updateShipmentStatus, addPlatformCollection, updatePlatformCollection, deletePlatformCollection, recalculateAllPlatformCollections } = useStore();
   const [activeTab, setActiveTab] = useState<'carriers' | 'shipments' | 'collections'>('collections');
   const [search, setSearch] = useState('');
   const [isRecalculating, setIsRecalculating] = useState(false);
@@ -326,13 +326,14 @@ export default function Logistics() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-right">
-              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-bold">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-bold text-xs">
                 <tr>
                   <th className="py-4 px-4">المنصة / الجهة</th>
-                  <th className="py-4 px-4">ملاحظات / الفاتورة</th>
-                  <th className="py-4 px-4">الشهر</th>
-                  <th className="py-4 px-4">المتوقع</th>
-                  <th className="py-4 px-4">المحصل</th>
+                  <th className="py-4 px-4">الفاتورة والعميل</th>
+                  <th className="py-4 px-4">إجمالي البيع</th>
+                  <th className="py-4 px-4">الخصومات والعمولات</th>
+                  <th className="py-4 px-4 text-emerald-600 dark:text-emerald-400">الصافي المحصل المتوقع</th>
+                  <th className="py-4 px-4">المحصل الفعلي</th>
                   <th className="py-4 px-4">حالة التحصيل</th>
                   <th className="py-4 px-4 text-center">إجراءات</th>
                 </tr>
@@ -340,13 +341,22 @@ export default function Logistics() {
               <tbody>
                 {filteredCollections.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-slate-500 font-bold">لا توجد تحصيلات مسجلة حالياً</td>
+                    <td colSpan={8} className="text-center py-8 text-slate-500 font-bold">لا توجد تحصيلات مسجلة حالياً</td>
                   </tr>
                 ) : (
                   filteredCollections.map(c => {
                     const isUnassigned = !c.entity_name || c.entity_name.includes('غير محدد');
                     const invoiceMatch = c.notes ? c.notes.match(/#([a-zA-Z0-9_-]+)/) : null;
-                    const invoiceId = invoiceMatch ? invoiceMatch[1] : null;
+                    const invoiceId = c.invoice_id || (invoiceMatch ? invoiceMatch[1] : null);
+
+                    const order = orders?.find((o) => String(o.id) === String(invoiceId) || String(o.id) === `#${invoiceId}`);
+                    const grossTotal = order ? (Number(order.total) || 0) : (c.expected_amount + (c.applied_shipping_fee || 0) + (c.applied_commission_rate || 0));
+                    const appliedCommission = c.applied_commission_rate || 0;
+                    const appliedShipping = c.applied_shipping_fee || 0;
+                    const upfrontPaid = order ? (Number(order.paid_amount) || 0) : 0;
+                    const totalDeduction = appliedCommission + appliedShipping + upfrontPaid;
+
+                    const cleanNote = (c.notes || '').replace(/\s*\[خصومات التحصيل الصافي:[^\]]+\]/, '').trim();
 
                     return (
                       <tr key={c.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
@@ -391,15 +401,56 @@ export default function Logistics() {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 max-w-[220px]">
-                          {c.notes || '-'}
+
+                        <td className="py-3 px-4 text-xs font-bold text-slate-700 dark:text-slate-200">
+                          <div>{cleanNote || (invoiceId ? `فاتورة #${invoiceId}` : '-')}</div>
+                          {c.created_at && (
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
+                              <Calendar size={10} />
+                              {new Date(c.created_at).toLocaleDateString('ar-EG')}
+                            </div>
+                          )}
                         </td>
-                        <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-300 font-mono flex items-center gap-1">
-                          <Calendar size={12} className="text-slate-400" />
-                          {c.created_at ? new Date(c.created_at).toLocaleDateString('ar-EG') : c.month}
+
+                        <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-100">
+                          {grossTotal.toFixed(1)} ج.م
                         </td>
-                        <td className="py-3 px-4 text-slate-600 dark:text-slate-300 font-bold">{c.expected_amount} ج.م</td>
-                        <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-black">{c.collected_amount} ج.م</td>
+
+                        <td className="py-3 px-4 text-xs">
+                          <div className="space-y-1">
+                            {appliedCommission > 0 && (
+                              <span className="inline-block bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md font-bold text-[11px] ml-1">
+                                🏷️ عمولة: {appliedCommission.toFixed(1)}ج.م
+                              </span>
+                            )}
+                            {appliedShipping > 0 && (
+                              <span className="inline-block bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md font-bold text-[11px] ml-1">
+                                🚚 شحن: {appliedShipping.toFixed(1)}ج.م
+                              </span>
+                            )}
+                            {upfrontPaid > 0 && (
+                              <span className="inline-block bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-bold text-[11px] ml-1">
+                                💵 مقدم: {upfrontPaid.toFixed(1)}ج.م
+                              </span>
+                            )}
+                            {totalDeduction > 0 ? (
+                              <div className="text-rose-600 dark:text-rose-400 font-black text-[11px] mt-1">
+                                إجمالي الخصم: -{totalDeduction.toFixed(1)} ج.م
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">لا توجد خصومات</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 font-mono font-black text-emerald-600 dark:text-emerald-400 text-base">
+                          {c.expected_amount.toFixed(1)} ج.م
+                        </td>
+
+                        <td className="py-3 px-4 font-mono font-black text-slate-700 dark:text-slate-200">
+                          {c.collected_amount.toFixed(1)} ج.م
+                        </td>
+
                         <td className="py-3 px-4">
                           <select
                             value={c.status}
@@ -418,6 +469,7 @@ export default function Logistics() {
                             <option value="collected">🟢 وصلت وتم التحصيل</option>
                           </select>
                         </td>
+
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             {invoiceId && (
@@ -426,7 +478,7 @@ export default function Logistics() {
                                 className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-1 rounded-lg text-xs font-black transition"
                                 title="فتح وطباعة تفاصيل الفاتورة"
                               >
-                                <Eye size={13} /> فتح الفاتورة
+                                <Eye size={13} /> الفاتورة
                               </button>
                             )}
                             <button 
