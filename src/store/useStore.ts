@@ -752,6 +752,40 @@ export interface ShippingCarrier {
   created_at?: string;
 }
 
+export const findMatchingCarrier = (platformName: string, carriers: ShippingCarrier[]) => {
+  if (!platformName || !carriers || carriers.length === 0) return null;
+  const clean = (s: string) => s.toLowerCase().replace(/[\(\)\[\]\{\}\s_-]/g, '').trim();
+  const pClean = clean(platformName);
+
+  for (const c of carriers) {
+    if (!c.name) continue;
+    const cClean = clean(c.name);
+    if (cClean && (pClean.includes(cClean) || cClean.includes(pClean))) return c;
+  }
+
+  const aliases: Record<string, string[]> = {
+    noon: ['noon', 'نون'],
+    amazon: ['amazon', 'أمازون', 'امازون'],
+    jumia: ['jumia', 'جوميا'],
+    bosta: ['bosta', 'بوسطة', 'بوسطه'],
+    aramex: ['aramex', 'أرامكس', 'ارامكس'],
+    smsa: ['smsa', 'سمسا'],
+    jnt: ['j&t', 'jnt', 'جي اند تي', 'جاي اند تي']
+  };
+
+  for (const c of carriers) {
+    if (!c.name) continue;
+    const cClean = clean(c.name);
+    for (const keywords of Object.values(aliases)) {
+      const carrierMatches = keywords.some((k) => cClean.includes(clean(k)));
+      const platformMatches = keywords.some((k) => pClean.includes(clean(k)));
+      if (carrierMatches && platformMatches) return c;
+    }
+  }
+
+  return null;
+};
+
 export interface Shipment {
   id: string;
   carrier_id?: string;
@@ -7868,22 +7902,23 @@ setupRealtime: () => {
       const products = state.products || [];
       const carriers = state.carriers || [];
 
+      const updatedCollections: PlatformCollection[] = [];
+
       for (const pc of collections) {
         const targetId = pc.invoice_id ? String(pc.invoice_id) : (pc.notes ? (pc.notes.match(/#([a-zA-Z0-9_-]+)/)?.[1] || null) : null);
+        const order = targetId ? orders.find((o) => {
+          const oIdStr = String(o.id);
+          return oIdStr === targetId || oIdStr === `#${targetId}` || oIdStr.replace(/\D/g, '') === String(targetId).replace(/\D/g, '');
+        }) : null;
 
-        if (!targetId) continue;
-
-        const order = orders.find((o) => String(o.id) === targetId || String(o.id) === `#${targetId}`);
-        if (!order) continue;
-
-        const invoiceTotal = Number(order.total) || 0;
-        const rawPaid = Number(order.paid_amount) || 0;
-        const platformName = (pc.entity_name || order.platform_name || '').trim();
+        const invoiceTotal = order ? (Number(order.total) || 0) : (Number(pc.expected_amount) || 0);
+        const rawPaid = order ? (Number(order.paid_amount) || 0) : 0;
+        const platformName = (pc.entity_name || order?.platform_name || '').trim();
 
         let totalCommissions = 0;
         let totalPlatformShipping = 0;
 
-        if (platformName && order.items && Array.isArray(order.items)) {
+        if (order && platformName && order.items && Array.isArray(order.items)) {
           const pLower = platformName.toLowerCase();
           order.items.forEach((item: any) => {
             const prod = products.find((p) => p.id === item.id || p.barcode === item.barcode || p.name === item.name);
@@ -7913,18 +7948,13 @@ setupRealtime: () => {
 
         let carrierFee = 0;
         let companyCommission = 0;
-        if (platformName && platformName !== 'غير محدد (اختر المنصة)') {
-          const pLower = platformName.toLowerCase();
-          const carrier = carriers.find(
-            (c: any) => c.name && (c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()))
-          );
-          if (carrier) {
-            if (carrier.base_fee && carrier.base_fee > 0) {
-              carrierFee = carrier.base_fee;
-            }
-            if (totalCommissions === 0 && carrier.commission_rate && carrier.commission_rate > 0) {
-              companyCommission = invoiceTotal * (carrier.commission_rate / 100);
-            }
+        const matchedCarrier = findMatchingCarrier(platformName, carriers);
+        if (matchedCarrier) {
+          if (matchedCarrier.base_fee && matchedCarrier.base_fee > 0) {
+            carrierFee = matchedCarrier.base_fee;
+          }
+          if (totalCommissions === 0 && matchedCarrier.commission_rate && matchedCarrier.commission_rate > 0) {
+            companyCommission = invoiceTotal * (matchedCarrier.commission_rate / 100);
           }
         }
 
@@ -7943,8 +7973,9 @@ setupRealtime: () => {
         const baseNotes = (pc.notes || '').replace(/\s*\[خصومات التحصيل الصافي:[^\]]+\]/, '');
         const updatedNotes = `${baseNotes}${feeNote}`;
 
-        const patch = {
-          invoice_id: String(order.id),
+        const updatedItem: PlatformCollection = {
+          ...pc,
+          invoice_id: order ? String(order.id) : (pc.invoice_id || targetId || undefined),
           expected_amount: netExpectedAmount,
           collected_amount: updatedCollected,
           applied_commission_rate: finalCommissions,
@@ -7952,10 +7983,19 @@ setupRealtime: () => {
           notes: updatedNotes
         };
 
-        await supabase.from('platform_collections').update(patch).eq('id', pc.id);
+        updatedCollections.push(updatedItem);
+
+        await supabase.from('platform_collections').update({
+          invoice_id: updatedItem.invoice_id,
+          expected_amount: updatedItem.expected_amount,
+          collected_amount: updatedItem.collected_amount,
+          applied_commission_rate: updatedItem.applied_commission_rate,
+          applied_shipping_fee: updatedItem.applied_shipping_fee,
+          notes: updatedItem.notes
+        }).eq('id', pc.id);
       }
 
-      await get().loadPlatformCollections();
+      set({ platformCollections: updatedCollections });
       return true;
     } catch (e) {
       console.warn('recalculateAllPlatformCollections error:', e);
@@ -8020,10 +8060,7 @@ setupRealtime: () => {
       let carrierFee = 0;
       let companyCommission = 0;
       if (platformName && platformName !== 'غير محدد (اختر المنصة)') {
-        const pLower = platformName.toLowerCase();
-        const carrier = state.carriers?.find(
-          (c: any) => c.name && (c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()))
-        );
+        const carrier = findMatchingCarrier(platformName, state.carriers || []);
         if (carrier) {
           if (carrier.base_fee && carrier.base_fee > 0) {
             carrierFee = carrier.base_fee;
