@@ -727,6 +727,7 @@ export interface PlatformCollection {
   entity_type: 'platform' | 'carrier';
   entity_name: string;
   month: string;
+  gross_amount?: number;
   expected_amount: number;
   collected_amount: number;
   status: 'pending' | 'collected';
@@ -7925,7 +7926,11 @@ setupRealtime: () => {
           return oIdStr === targetId || oIdStr === `#${targetId}` || oIdStr.replace(/\D/g, '') === String(targetId).replace(/\D/g, '');
         }) : null;
 
-        const invoiceTotal = order ? (Number(order.total) || 0) : (Number(pc.expected_amount) || 0);
+        // Gross total before any deductions
+        const grossTotal = Number(pc.gross_amount) > 0 
+          ? Number(pc.gross_amount) 
+          : (order ? (Number(order.total) || 0) : (Number(pc.expected_amount) + (Number(pc.applied_shipping_fee) || 0) + (Number(pc.applied_commission_rate) || 0)));
+
         const rawPaid = order ? (Number(order.paid_amount) || 0) : 0;
         const platformName = (pc.entity_name || order?.platform_name || '').trim();
 
@@ -7968,13 +7973,13 @@ setupRealtime: () => {
             carrierFee = matchedCarrier.base_fee;
           }
           if (totalCommissions === 0 && matchedCarrier.commission_rate && matchedCarrier.commission_rate > 0) {
-            companyCommission = invoiceTotal * (matchedCarrier.commission_rate / 100);
+            companyCommission = grossTotal * (matchedCarrier.commission_rate / 100);
           }
         }
 
         const finalCommissions = totalCommissions > 0 ? totalCommissions : companyCommission;
         const totalDeductions = finalCommissions + totalPlatformShipping + carrierFee;
-        const netExpectedAmount = Math.max(0, invoiceTotal - totalDeductions - rawPaid);
+        const netExpectedAmount = Math.max(0, grossTotal - totalDeductions - rawPaid);
         const updatedCollected = pc.status === 'collected' ? netExpectedAmount : (rawPaid > 0 ? Math.min(rawPaid, netExpectedAmount) : 0);
 
         const feeParts: string[] = [];
@@ -7990,6 +7995,7 @@ setupRealtime: () => {
         const updatedItem: PlatformCollection = {
           ...pc,
           invoice_id: order ? String(order.id) : (pc.invoice_id || targetId || undefined),
+          gross_amount: grossTotal,
           expected_amount: netExpectedAmount,
           collected_amount: updatedCollected,
           applied_commission_rate: finalCommissions,
@@ -8001,6 +8007,7 @@ setupRealtime: () => {
 
         await supabase.from('platform_collections').update({
           invoice_id: updatedItem.invoice_id,
+          gross_amount: updatedItem.gross_amount,
           expected_amount: updatedItem.expected_amount,
           collected_amount: updatedItem.collected_amount,
           applied_commission_rate: updatedItem.applied_commission_rate,
@@ -8110,6 +8117,7 @@ setupRealtime: () => {
         const patch = {
           invoice_id: invoiceIdStr,
           entity_name: platformName || existing.entity_name || 'غير محدد (اختر المنصة)',
+          gross_amount: invoiceTotal,
           expected_amount: expectedAmount,
           collected_amount: existing.status === 'collected' ? (existing.collected_amount || expectedAmount) : collectedAmount,
           status: existing.status === 'collected' ? 'collected' : finalStatus,
@@ -8125,6 +8133,7 @@ setupRealtime: () => {
         entity_type: 'platform' as const,
         entity_name: platformName || 'غير محدد (اختر المنصة)',
         month: currentMonth,
+        gross_amount: invoiceTotal,
         expected_amount: expectedAmount,
         collected_amount: collectedAmount,
         status: finalStatus,

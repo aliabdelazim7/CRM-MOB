@@ -350,7 +350,9 @@ export default function Logistics() {
                     const invoiceId = c.invoice_id || (invoiceMatch ? invoiceMatch[1] : null);
 
                     const order = orders?.find((o) => String(o.id) === String(invoiceId) || String(o.id) === `#${invoiceId}`);
-                    const grossTotal = order ? (Number(order.total) || 0) : (c.expected_amount + (c.applied_shipping_fee || 0) + (c.applied_commission_rate || 0));
+                    const grossTotal = Number(c.gross_amount) > 0 
+                      ? Number(c.gross_amount) 
+                      : (order ? (Number(order.total) || 0) : (c.expected_amount + (c.applied_shipping_fee || 0) + (c.applied_commission_rate || 0)));
                     const appliedCommission = c.applied_commission_rate || 0;
                     const appliedShipping = c.applied_shipping_fee || 0;
                     const upfrontPaid = order ? (Number(order.paid_amount) || 0) : 0;
