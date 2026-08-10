@@ -8,6 +8,9 @@ export default function Logistics() {
   const [activeTab, setActiveTab] = useState<'carriers' | 'shipments' | 'collections'>('collections');
   const [search, setSearch] = useState('');
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<PlatformCollection | null>(null);
+  const [editCommFee, setEditCommFee] = useState<number>(0);
+  const [editShipFee, setEditShipFee] = useState<number>(0);
 
   const defaultBuiltinPlatforms = [
     'الويب سايت (المتجر الإلكتروني)',
@@ -474,6 +477,17 @@ export default function Logistics() {
 
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingCollection(c);
+                                setEditCommFee(c.applied_commission_rate || 0);
+                                setEditShipFee(c.applied_shipping_fee || 0);
+                              }}
+                              className="flex items-center gap-1 text-amber-700 dark:text-amber-300 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 rounded-lg text-xs font-black transition"
+                              title="تعديل عمولة المنصة ورسوم شحن هذا العميل/المنطقة"
+                            >
+                              ✏️ تعديل الخصم
+                            </button>
                             {invoiceId && (
                               <button
                                 onClick={() => window.open(`/view-invoice/${invoiceId}`, '_blank')}
@@ -931,6 +945,112 @@ export default function Logistics() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal for editing invoice-specific commission and shipping fee */}
+      {editingCollection && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 dark:border-slate-700 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+              <h3 className="font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                ✏️ تعديل خصومات الفاتورة والعميل
+              </h3>
+              <button
+                onClick={() => setEditingCollection(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-2xl space-y-1 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-bold">المنصة / الجهة:</span>
+                <span className="font-black text-slate-800 dark:text-slate-100">{editingCollection.entity_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-bold">إجمالي بيع الفاتورة الأصلي:</span>
+                <span className="font-black text-slate-800 dark:text-slate-100">
+                  {((editingCollection.gross_amount || editingCollection.expected_amount + (editingCollection.applied_commission_rate || 0) + (editingCollection.applied_shipping_fee || 0))).toFixed(1)} ج.م
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  🚚 رسوم شحن هذه العملية (مصاريف شحن المنطقة/العميل):
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={editShipFee}
+                    onChange={(e) => setEditShipFee(Number(e.target.value) || 0)}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-black focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">ج.م</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  🏷️ عمولة المنصة / الشريك لهذه الفاتورة:
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={editCommFee}
+                    onChange={(e) => setEditCommFee(Number(e.target.value) || 0)}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-black focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">ج.م</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Calculation Preview */}
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-800 space-y-1">
+              <div className="text-xs text-emerald-800 dark:text-emerald-300 font-bold flex justify-between">
+                <span>الصافي المحصل الجديد المتوقع:</span>
+                <span className="font-black text-sm text-emerald-600 dark:text-emerald-400">
+                  {Math.max(
+                    0,
+                    (editingCollection.gross_amount || (editingCollection.expected_amount + (editingCollection.applied_commission_rate || 0) + (editingCollection.applied_shipping_fee || 0))) - editCommFee - editShipFee
+                  ).toFixed(1)} ج.م
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={async () => {
+                  const gross = editingCollection.gross_amount || (editingCollection.expected_amount + (editingCollection.applied_commission_rate || 0) + (editingCollection.applied_shipping_fee || 0));
+                  const newNet = Math.max(0, gross - editCommFee - editShipFee);
+                  await updatePlatformCollection(editingCollection.id, {
+                    gross_amount: gross,
+                    applied_commission_rate: editCommFee,
+                    applied_shipping_fee: editShipFee,
+                    expected_amount: newNet,
+                    collected_amount: editingCollection.status === 'collected' ? newNet : 0
+                  });
+                  setEditingCollection(null);
+                }}
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-black text-xs transition shadow-md"
+              >
+                💾 حفظ وتحديث الخصم
+              </button>
+              <button
+                onClick={() => setEditingCollection(null)}
+                className="px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2.5 rounded-xl font-bold text-xs transition"
+              >
+                إلغاء
+              </button>
+            </div>
           </div>
         </div>
       )}

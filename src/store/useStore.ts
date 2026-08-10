@@ -7967,9 +7967,17 @@ setupRealtime: () => {
 
         let carrierFee = 0;
         let companyCommission = 0;
+
+        // Prioritize order/customer specific shipping fee
+        if (order && Number((order as any).shipping_fee) > 0) {
+          carrierFee = Number((order as any).shipping_fee);
+        } else if (pc.applied_shipping_fee && pc.applied_shipping_fee > 0) {
+          carrierFee = pc.applied_shipping_fee;
+        }
+
         const matchedCarrier = findMatchingCarrier(platformName, carriers);
         if (matchedCarrier) {
-          if (matchedCarrier.base_fee && matchedCarrier.base_fee > 0) {
+          if (carrierFee === 0 && matchedCarrier.base_fee && matchedCarrier.base_fee > 0) {
             carrierFee = matchedCarrier.base_fee;
           }
           if (totalCommissions === 0 && matchedCarrier.commission_rate && matchedCarrier.commission_rate > 0) {
@@ -8080,10 +8088,15 @@ setupRealtime: () => {
       // Carrier / Company base fee & fallback commission check
       let carrierFee = 0;
       let companyCommission = 0;
+
+      if (order && Number((order as any).shipping_fee) > 0) {
+        carrierFee = Number((order as any).shipping_fee);
+      }
+
       if (platformName && platformName !== 'غير محدد (اختر المنصة)') {
         const carrier = findMatchingCarrier(platformName, state.carriers || []);
         if (carrier) {
-          if (carrier.base_fee && carrier.base_fee > 0) {
+          if (carrierFee === 0 && carrier.base_fee && carrier.base_fee > 0) {
             carrierFee = carrier.base_fee;
           }
           if (totalCommissions === 0 && carrier.commission_rate && carrier.commission_rate > 0) {
