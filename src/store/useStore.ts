@@ -723,12 +723,15 @@ export interface AdminUser {
 // ─── HANCES PRO Enterprise Interfaces ─────────────────────────
 export interface PlatformCollection {
   id: string;
+  invoice_id?: string;
   entity_type: 'platform' | 'carrier';
   entity_name: string;
   month: string;
   expected_amount: number;
   collected_amount: number;
   status: 'pending' | 'collected';
+  applied_commission_rate?: number;
+  applied_shipping_fee?: number;
   notes?: string;
   created_at?: string;
 }
@@ -7866,12 +7869,11 @@ setupRealtime: () => {
       const carriers = state.carriers || [];
 
       for (const pc of collections) {
-        const invoiceMatch = pc.notes ? pc.notes.match(/#([a-zA-Z0-9_-]+)/) : null;
-        const invoiceId = invoiceMatch ? invoiceMatch[1] : null;
+        const targetId = pc.invoice_id ? String(pc.invoice_id) : (pc.notes ? (pc.notes.match(/#([a-zA-Z0-9_-]+)/)?.[1] || null) : null);
 
-        if (!invoiceId) continue;
+        if (!targetId) continue;
 
-        const order = orders.find((o) => String(o.id) === invoiceId || String(o.id) === `#${invoiceId}`);
+        const order = orders.find((o) => String(o.id) === targetId || String(o.id) === `#${targetId}`);
         if (!order) continue;
 
         const invoiceTotal = Number(order.total) || 0;
@@ -7942,8 +7944,11 @@ setupRealtime: () => {
         const updatedNotes = `${baseNotes}${feeNote}`;
 
         const patch = {
+          invoice_id: String(order.id),
           expected_amount: netExpectedAmount,
           collected_amount: updatedCollected,
+          applied_commission_rate: finalCommissions,
+          applied_shipping_fee: totalPlatformShipping + carrierFee,
           notes: updatedNotes
         };
 
@@ -8045,29 +8050,35 @@ setupRealtime: () => {
       const feeNote = feeParts.length > 0 ? ` [خصومات التحصيل الصافي: ${feeParts.join(' | ')}]` : '';
 
       const existing = state.platformCollections.find(
-        (pc) => pc.notes && pc.notes.includes(`#${invoiceIdStr}`)
+        (pc) => (pc.invoice_id && String(pc.invoice_id) === invoiceIdStr) || (pc.notes && pc.notes.includes(`#${invoiceIdStr}`))
       );
 
       const finalStatus: 'pending' | 'collected' = isCollected ? 'collected' : 'pending';
 
       if (existing) {
         const patch = {
+          invoice_id: invoiceIdStr,
           entity_name: platformName || existing.entity_name || 'غير محدد (اختر المنصة)',
           expected_amount: expectedAmount,
           collected_amount: existing.status === 'collected' ? (existing.collected_amount || expectedAmount) : collectedAmount,
           status: existing.status === 'collected' ? 'collected' : finalStatus,
+          applied_commission_rate: finalCommissions,
+          applied_shipping_fee: totalPlatformShipping + carrierFee,
         };
         await get().updatePlatformCollection(existing.id, patch);
         return true;
       }
 
       const collectionRecord = {
+        invoice_id: invoiceIdStr,
         entity_type: 'platform' as const,
         entity_name: platformName || 'غير محدد (اختر المنصة)',
         month: currentMonth,
         expected_amount: expectedAmount,
         collected_amount: collectedAmount,
         status: finalStatus,
+        applied_commission_rate: finalCommissions,
+        applied_shipping_fee: totalPlatformShipping + carrierFee,
         notes: `فاتورة تحصيل #${invoiceIdStr} - ${order.customer_name?.trim() || 'عميل'}${feeNote}`
       };
 
