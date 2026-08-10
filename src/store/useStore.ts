@@ -7865,8 +7865,22 @@ setupRealtime: () => {
         supabase.from('purchase_invoices').select('*, items:purchase_invoice_items(*)').order('created_at', { ascending: false }),
       ]);
 
+      const loadedCarriers = (carriersRes.data as ShippingCarrier[] || []).map((c: any) => {
+        let commRate = Number(c.commission_rate) || 0;
+        if (commRate === 0 && c.notes) {
+          const match = c.notes.match(/\[Commission:(\d+(?:\.\d+)?)%\]/);
+          if (match) {
+            commRate = parseFloat(match[1]);
+          }
+        }
+        return {
+          ...c,
+          commission_rate: commRate
+        };
+      });
+
       set({
-        carriers: carriersRes.data ? (carriersRes.data as ShippingCarrier[]) : [],
+        carriers: loadedCarriers,
         platformCollections: platformCollectionsRes.data ? (platformCollectionsRes.data as PlatformCollection[]) : [],
         shipments: shipmentsRes.data ? (shipmentsRes.data as Shipment[]) : [],
         logisticsOrders: logisticsOrdersRes.data ? (logisticsOrdersRes.data as LogisticsOrder[]) : [],
@@ -8157,6 +8171,10 @@ setupRealtime: () => {
 
   addShippingCarrier: async (carrier) => {
     try {
+      const commRate = Number(carrier.commission_rate) || 0;
+      const baseNotes = (carrier.notes || '').replace(/\[Commission:\d+(?:\.\d+)?%\]\s*/g, '').trim();
+      const finalNotes = commRate > 0 ? `${baseNotes} [Commission:${commRate}%]`.trim() : baseNotes;
+
       const newCarrier: ShippingCarrier = {
         id: carrier.id || 'carrier_' + Date.now(),
         name: carrier.name || '',
@@ -8166,9 +8184,9 @@ setupRealtime: () => {
         address: carrier.address || '',
         rate_per_kg: Number(carrier.rate_per_kg) || 0,
         base_fee: Number(carrier.base_fee) || 0,
-        commission_rate: Number(carrier.commission_rate) || 0,
+        commission_rate: commRate,
         tracking_url_template: carrier.tracking_url_template || '',
-        notes: carrier.notes || '',
+        notes: finalNotes,
         status: carrier.status || 'active',
         created_at: new Date().toISOString()
       };
@@ -8188,11 +8206,13 @@ setupRealtime: () => {
           rate_per_kg: newCarrier.rate_per_kg,
           base_fee: newCarrier.base_fee,
           tracking_url_template: newCarrier.tracking_url_template,
-          notes: newCarrier.notes ? `${newCarrier.notes} [Commission:${newCarrier.commission_rate}%]` : `[Commission:${newCarrier.commission_rate}%]`,
+          notes: finalNotes,
           status: newCarrier.status
         };
         await supabase.from('shipping_carriers').insert(fallbackPayload);
       }
+
+      void get().recalculateAllPlatformCollections();
       return true;
     } catch (e) {
       console.error('addShippingCarrier exception:', e);
@@ -8222,17 +8242,35 @@ setupRealtime: () => {
 
   updateShippingCarrier: async (id, carrier) => {
     try {
+      const state = get();
+      const existing = state.carriers.find((c) => c.id === id);
+
+      const commRate = carrier.commission_rate !== undefined ? Number(carrier.commission_rate) : (existing?.commission_rate || 0);
+
+      const rawNotes = carrier.notes !== undefined ? carrier.notes : (existing?.notes || '');
+      const baseNotes = rawNotes.replace(/\[Commission:\d+(?:\.\d+)?%\]\s*/g, '').trim();
+      const finalNotes = commRate > 0 ? `${baseNotes} [Commission:${commRate}%]`.trim() : baseNotes;
+
+      const fullCarrierData = {
+        ...existing,
+        ...carrier,
+        commission_rate: commRate,
+        notes: finalNotes
+      };
+
       set((s) => ({
-        carriers: s.carriers.map((c) => (c.id === id ? { ...c, ...carrier } : c))
+        carriers: s.carriers.map((c) => (c.id === id ? { ...c, ...fullCarrierData } : c))
       }));
 
-      const { error } = await supabase.from('shipping_carriers').update(carrier).eq('id', id);
+      const { error } = await supabase.from('shipping_carriers').update(fullCarrierData).eq('id', id);
       if (error) {
         console.warn('updateShippingCarrier warning, using fallback payload:', error);
-        const fallbackPayload: any = { ...carrier };
+        const fallbackPayload: any = { ...fullCarrierData };
         delete fallbackPayload.commission_rate;
         await supabase.from('shipping_carriers').update(fallbackPayload).eq('id', id);
       }
+
+      void get().recalculateAllPlatformCollections();
       return true;
     } catch (e) {
       console.error('updateShippingCarrier exception:', e);
