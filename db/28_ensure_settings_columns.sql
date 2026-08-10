@@ -21,9 +21,12 @@ alter table store_settings add column if not exists theme_color           text d
 alter table store_settings add column if not exists address               text default '';
 alter table store_settings add column if not exists phone                 text default '';
 alter table store_settings add column if not exists phone2                text default '';
-alter table store_settings add column if not exists whatsapp_country_code text default '2';
 alter table store_settings add column if not exists initial_balance       numeric default 0;
+alter table store_settings add column if not exists whatsapp_country_code text default '2';
 alter table store_settings add column if not exists location_url          text default '';
+alter table store_settings add column if not exists tax_number             text default '';
+alter table store_settings add column if not exists commercial_record          text default '';
+alter table store_settings add column if not exists default_invoice_format     text default 'A4';
 
 -- ── وسائل الدفع والصلاحيات (19، 22، 24) ─────────────────────────────────────
 alter table store_settings add column if not exists payment_labels                 jsonb;

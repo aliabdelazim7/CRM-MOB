@@ -94,6 +94,7 @@ beforeEach(() => {
   insertedRow = null;
   counter = 1;
   (globalThis as any).alert = vi.fn();
+  if (typeof window !== 'undefined') (window as any).alert = (globalThis as any).alert;
   useStore.setState({
     products: [PRODUCT] as any,
     cart: [{ ...PRODUCT, quantity: 1, returned_quantity: 0 }] as any,
@@ -119,7 +120,10 @@ describe('بيعة سليمة', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 describe('عمود client_ref ناقص — ده اللي حصل فعلاً', () => {
-  beforeEach(() => { orderColumns.delete('client_ref'); });
+  beforeEach(() => {
+    orderColumns.delete('client_ref');
+    useStore.setState({ cart: [{ ...PRODUCT, quantity: 1, returned_quantity: 0 }] as any });
+  });
 
   it('البيعة بتتسجّل من غير العمود بدل ما تضيع', async () => {
     const id = await useStore.getState().checkout(100, undefined, 100);

@@ -47,6 +47,9 @@ export const SETTING_LABEL_AR: Record<string, string> = {
   taxNumber: 'الرقم الضريبي / التسجيل الضريبي',
   commercialRecord: 'السجل التجاري',
   defaultInvoiceFormat: 'صيغة الفاتورة الافتراضية',
+  tax_number: 'الرقم الضريبي / التسجيل الضريبي',
+  commercial_record: 'السجل التجاري',
+  default_invoice_format: 'صيغة الفاتورة الافتراضية',
   name: 'اسم المحل',
   currency: 'العملة',
   logo: 'اللوجو',
@@ -71,6 +74,19 @@ export const SETTING_LABEL_AR: Record<string, string> = {
   pages_qr_url: 'رابط QR الصفحات',
   pages_qr_label: 'اسم QR الصفحات',
   pages_qr_image: 'صورة QR الصفحات',
+};
+
+/** أسماء عربية لأعمدة جدول orders — بتظهر للمستخدم عند تخطّي الحقول. */
+export const ORDER_LABEL_AR: Record<string, string> = {
+  client_ref: 'معرّف العميل المرجعي',
+  coupon_code: 'كود الكوبون',
+  discount_amount: 'مبلغ الخصم',
+  car_id: 'سيارة التوصيل',
+  salesperson_id: 'البائع',
+  salesperson_name: 'اسم البائع',
+  notes: 'الملاحظات',
+  platform_name: 'اسم المنصة',
+  shipping_fee: 'رسوم الشحن',
 };
 /**
  * أسماء عربية لأعمدة جدول products — بتظهر للمستخدم لما حقل مايتحفظش لأن
@@ -2898,7 +2914,16 @@ export const useStore = create<CashierStore>((set, get) => ({
       }
 
       if (droppedColumns.length > 0) {
+        const arLabels = droppedColumns.map((col) => ORDER_LABEL_AR[col] || col).join('، ');
         console.warn(`الفاتورة ${invoiceId} اتحفظت. الأعمدة التالية تم تجاوزها لعدم وجودها في DB: ${droppedColumns.join('، ')}`);
+        const alertMsg = `تنبيه: الفاتورة رقم ${invoiceId} اتحفظت، لكن تم تخطّي الحقول التالية لعدم وجودها في قاعدة البيانات:
+${arLabels} (${droppedColumns.join('، ')})
+
+الموقع مكمّل شغال عادي والبيعة اتسجّلت. لتحديث قاعدة البيانات وتشغيل هذه الحقول، شغّل الهجرة db/73_ensure_orders_columns.sql.`;
+        const alertFn = (globalThis as any)?.alert || (typeof window !== 'undefined' ? (window as any).alert : undefined);
+        if (typeof alertFn === 'function') {
+          alertFn(alertMsg);
+        }
       }
 
       // تحصيل عام رايح للخزنة الرئيسية: نسجّل نظيره في دفتر الرئيسية (مربوط بالـ groupId).
