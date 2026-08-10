@@ -480,8 +480,8 @@ export default function Logistics() {
                             <button
                               onClick={() => {
                                 setEditingCollection(c);
-                                setEditCommFee(c.applied_commission_rate || 0);
-                                setEditShipFee(c.applied_shipping_fee || 0);
+                                setEditCommFee(Number((c.applied_commission_rate || 0).toFixed(2)));
+                                setEditShipFee(Number((c.applied_shipping_fee || 0).toFixed(2)));
                               }}
                               className="flex items-center gap-1 text-amber-700 dark:text-amber-300 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 rounded-lg text-xs font-black transition"
                               title="تعديل عمولة المنصة ورسوم شحن هذا العميل/المنطقة"
@@ -1029,14 +1029,31 @@ export default function Logistics() {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={async () => {
-                  const gross = editingCollection.gross_amount || (editingCollection.expected_amount + (editingCollection.applied_commission_rate || 0) + (editingCollection.applied_shipping_fee || 0));
-                  const newNet = Math.max(0, gross - editCommFee - editShipFee);
+                  const cleanComm = Number((Number(editCommFee) || 0).toFixed(2));
+                  const cleanShip = Number((Number(editShipFee) || 0).toFixed(2));
+                  const gross = Number((editingCollection.gross_amount || (editingCollection.expected_amount + (editingCollection.applied_commission_rate || 0) + (editingCollection.applied_shipping_fee || 0))).toFixed(2));
+
+                  const orderMatch = orders?.find((o) => String(o.id) === String(editingCollection.invoice_id) || (editingCollection.notes && editingCollection.notes.includes('#' + o.id)));
+                  const rawPaid = orderMatch ? (Number(orderMatch.paid_amount) || 0) : 0;
+
+                  const newNet = Math.max(0, Number((gross - cleanComm - cleanShip - rawPaid).toFixed(2)));
+
+                  const feeParts: string[] = [];
+                  if (cleanComm > 0) feeParts.push(`عمولة: ${cleanComm.toFixed(1)}ج.م`);
+                  if (cleanShip > 0) feeParts.push(`شحن: ${cleanShip.toFixed(1)}ج.م`);
+                  if (rawPaid > 0) feeParts.push(`مقدم: ${rawPaid.toFixed(1)}ج.م`);
+
+                  const feeNote = feeParts.length > 0 ? ` [خصومات التحصيل الصافي: ${feeParts.join(' | ')}]` : '';
+                  const baseNotes = (editingCollection.notes || '').replace(/\s*\[خصومات التحصيل الصافي:[^\]]+\]/, '');
+                  const updatedNotes = `${baseNotes}${feeNote}`;
+
                   await updatePlatformCollection(editingCollection.id, {
                     gross_amount: gross,
-                    applied_commission_rate: editCommFee,
-                    applied_shipping_fee: editShipFee,
+                    applied_commission_rate: cleanComm,
+                    applied_shipping_fee: cleanShip,
                     expected_amount: newNet,
-                    collected_amount: editingCollection.status === 'collected' ? newNet : 0
+                    collected_amount: editingCollection.status === 'collected' ? newNet : 0,
+                    notes: updatedNotes
                   });
                   setEditingCollection(null);
                 }}
