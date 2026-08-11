@@ -28,11 +28,12 @@ function branding(env: Record<string, string>): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const env = loadEnv(mode, process.cwd(), ['VITE_', 'NEXT_PUBLIC_', 'SUPABASE_']);
   const appName = env.VITE_APP_NAME || 'HANCES System';
   const appDescription = env.VITE_APP_DESCRIPTION || 'نظام لإدارة المبيعات والمخزون والكاشير.';
 
   return {
+    envPrefix: ['VITE_', 'NEXT_PUBLIC_', 'SUPABASE_'],
     plugins: [
       react(),
       branding(env),
