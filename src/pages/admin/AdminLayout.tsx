@@ -176,13 +176,86 @@ export default function AdminLayout() {
           <span className="font-bold text-sm truncate flex-1">{storeSettings.name}</span>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 relative">
+        <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 relative pb-20 lg:pb-0">
           <div
             style={{ backgroundColor: storeSettings.themeColor + '10' }}
             className="absolute top-0 left-0 w-full h-64 -z-10"
           ></div>
           <Outlet />
         </div>
+
+        {/* شريط التنقل السريع السفلي للموبايل (Mobile Bottom Navigation Bar) */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 safe-area-bottom shadow-2xl">
+          <div className="grid grid-cols-6 gap-1 px-1 py-1.5 text-center">
+            <NavLink
+              to="/admin/pos"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1.5 rounded-xl transition touch-feedback ${
+                  isActive ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60' : 'text-slate-500 dark:text-slate-400'
+                }`
+              }
+            >
+              <Printer size={20} />
+              <span className="text-[10px] mt-1 font-bold">الكاشير</span>
+            </NavLink>
+
+            <NavLink
+              to="/admin/overview"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1.5 rounded-xl transition touch-feedback ${
+                  isActive ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60' : 'text-slate-500 dark:text-slate-400'
+                }`
+              }
+            >
+              <LayoutDashboard size={20} />
+              <span className="text-[10px] mt-1 font-bold">الرئيسية</span>
+            </NavLink>
+
+            <NavLink
+              to="/admin/inventory"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1.5 rounded-xl transition touch-feedback ${
+                  isActive ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60' : 'text-slate-500 dark:text-slate-400'
+                }`
+              }
+            >
+              <Package size={20} />
+              <span className="text-[10px] mt-1 font-bold">المنتجات</span>
+            </NavLink>
+
+            <NavLink
+              to="/admin/invoices"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1.5 rounded-xl transition touch-feedback ${
+                  isActive ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60' : 'text-slate-500 dark:text-slate-400'
+                }`
+              }
+            >
+              <FileText size={20} />
+              <span className="text-[10px] mt-1 font-bold">الفواتير</span>
+            </NavLink>
+
+            <NavLink
+              to="/admin/finance"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1.5 rounded-xl transition touch-feedback ${
+                  isActive ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60' : 'text-slate-500 dark:text-slate-400'
+                }`
+              }
+            >
+              <Wallet size={20} />
+              <span className="text-[10px] mt-1 font-bold">المصروفات</span>
+            </NavLink>
+
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 transition touch-feedback"
+            >
+              <Menu size={20} />
+              <span className="text-[10px] mt-1 font-bold">المزيد</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </div>
   );
