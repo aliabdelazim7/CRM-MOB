@@ -489,6 +489,8 @@ export default function POS() {
 
   // Mobile Responsiveness & Camera Scanner States
   const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
+  const [showMobileCustomerForm, setShowMobileCustomerForm] = useState(false);
+  const [showMobileOptions, setShowMobileOptions] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<any>(null);
   const [scanQty, setScanQty] = useState(1);
@@ -3896,55 +3898,75 @@ export default function POS() {
             </div>
           </div>
 
-          {/* Customer Inputs Grid */}
-          <div className="relative flex flex-col sm:flex-row gap-2 text-sm h-auto sm:h-11">
-            <div className="flex-1 relative group">
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:scale-110 transition-transform"><CreditCard size={14} /></span>
-              <input
-                id="pos-cust-card"
-                type="text" dir="ltr" value={customerId} onChange={handleIdChange}
-                onKeyDown={(e) => keyNext(e, 'pos-salesperson')}
-                className="w-full bg-white/95 text-indigo-600 dark:text-indigo-400 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-black shadow-inner text-xs h-10 sm:h-full"
-                placeholder="رقم الكارت"
-              />
+          {/* Customer Inputs Section */}
+          <div className="relative">
+            {/* On Mobile: Compact Collapsible Header */}
+            <div className="lg:hidden flex items-center justify-between bg-black/25 px-3 py-2 rounded-xl border border-white/20">
+              <div className="flex items-center gap-1.5 text-xs font-bold truncate">
+                <CreditCard size={14} className="text-indigo-300 shrink-0" />
+                <span className="truncate">
+                  {customerName || customerPhone ? `العميل: ${customerName || customerPhone}` : 'بيانات العميل (اختياري)'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileCustomerForm(v => !v)}
+                className="bg-white/20 hover:bg-white/30 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg border border-white/30 transition touch-feedback shrink-0"
+              >
+                {showMobileCustomerForm ? 'إخفاء ▲' : (customerName || customerPhone ? 'تعديل ✏️' : '+ تسجيل بيانات العميل 👤')}
+              </button>
             </div>
-            <div className="flex-1 relative group">
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:scale-110 transition-transform"><Smartphone size={14} /></span>
-              <input
-                id="pos-cust-phone"
-                type="text" dir="ltr" value={customerPhone} onChange={handlePhoneChange}
-                onKeyDown={(e) => keyNext(e, 'pos-cust-card')}
-                className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-10 sm:h-full"
-                placeholder="الموبايل"
-              />
-            </div>
-            <div className="flex-[1.2] relative group">
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:scale-110 transition-transform"><ShoppingCart size={14} /></span>
-              <input
-                id="pos-cust-name"
-                type="text" value={customerName}
-                onChange={e => { setCustomerName(e.target.value); setShowCustomerSuggestions(true); }}
-                onFocus={() => setShowCustomerSuggestions(true)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setShowCustomerSuggestions(false); focusById('pos-cust-phone'); } }}
-                className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-10 sm:h-full"
-                placeholder="الاسم"
-              />
-              {showCustomerSuggestions && filteredCustomers.length > 0 && (
-                <div className="absolute z-[200] left-0 right-0 top-full mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 max-h-64 overflow-y-auto">
-                  {filteredCustomers.map(c => (
-                    <button
-                      key={c.id} onClick={() => handleSelectCustomer(c)}
-                      className="w-full text-right px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center justify-between border-b border-gray-50 dark:border-slate-700 last:border-0"
-                    >
-                      <div className="flex flex-col text-right">
-                        <span className="font-bold text-slate-800 dark:text-slate-100">{c.name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono" dir="ltr">{c.phone}</span>
-                      </div>
-                      <div className="bg-indigo-600 px-3 py-1.5 rounded-lg text-white font-mono text-[10px] font-black">{c.card_number || c.custom_id || c.id.substring(0, 6)}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
+
+            {/* Input Fields Grid (Always visible on desktop lg:flex, collapsible on mobile) */}
+            <div className={`relative flex-col sm:flex-row gap-2 text-sm h-auto sm:h-11 ${showMobileCustomerForm || customerName || customerPhone ? 'flex mt-2' : 'hidden lg:flex'}`}>
+              <div className="flex-1 relative group">
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:scale-110 transition-transform"><CreditCard size={14} /></span>
+                <input
+                  id="pos-cust-card"
+                  type="text" dir="ltr" value={customerId} onChange={handleIdChange}
+                  onKeyDown={(e) => keyNext(e, 'pos-salesperson')}
+                  className="w-full bg-white/95 text-indigo-600 dark:text-indigo-400 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-black shadow-inner text-xs h-10 sm:h-full"
+                  placeholder="رقم الكارت"
+                />
+              </div>
+              <div className="flex-1 relative group">
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:scale-110 transition-transform"><Smartphone size={14} /></span>
+                <input
+                  id="pos-cust-phone"
+                  type="text" dir="ltr" value={customerPhone} onChange={handlePhoneChange}
+                  onKeyDown={(e) => keyNext(e, 'pos-cust-card')}
+                  className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-10 sm:h-full"
+                  placeholder="الموبايل"
+                />
+              </div>
+              <div className="flex-[1.2] relative group">
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:scale-110 transition-transform"><ShoppingCart size={14} /></span>
+                <input
+                  id="pos-cust-name"
+                  type="text" value={customerName}
+                  onChange={e => { setCustomerName(e.target.value); setShowCustomerSuggestions(true); }}
+                  onFocus={() => setShowCustomerSuggestions(true)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setShowCustomerSuggestions(false); focusById('pos-cust-phone'); } }}
+                  className="w-full bg-white/95 text-slate-800 dark:text-slate-100 placeholder-slate-400 border-0 py-2.5 sm:py-2 pr-8 pl-2 rounded-xl focus:ring-2 focus:ring-white focus:outline-none transition font-medium shadow-inner text-xs h-10 sm:h-full"
+                  placeholder="الاسم"
+                />
+                {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                  <div className="absolute z-[200] left-0 right-0 top-full mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 max-h-64 overflow-y-auto">
+                    {filteredCustomers.map(c => (
+                      <button
+                        key={c.id} onClick={() => handleSelectCustomer(c)}
+                        className="w-full text-right px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center justify-between border-b border-gray-50 dark:border-slate-700 last:border-0"
+                      >
+                        <div className="flex flex-col text-right">
+                          <span className="font-bold text-slate-800 dark:text-slate-100">{c.name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono" dir="ltr">{c.phone}</span>
+                        </div>
+                        <div className="bg-indigo-600 px-3 py-1.5 rounded-lg text-white font-mono text-[10px] font-black">{c.card_number || c.custom_id || c.id.substring(0, 6)}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -4025,48 +4047,68 @@ export default function POS() {
 
         {/* Footer Checkout */}
         <div className="p-3 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 shadow-2xl">
-          {/* Sales Platform Selection (منصة البيع) */}
-          <div className="mb-3">
-            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">🏬 منصة / قناة البيع (تطبييق أسعار المنصة تلقائياً)</label>
-            <select
-              id="pos-sales-platform"
-              value={selectedPlatform}
-              onChange={(e) => handlePlatformChange(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/50 rounded-xl px-3 py-2.5 text-sm font-black text-indigo-700 dark:text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+          {/* Mobile Options Collapsible Header */}
+          <div className="lg:hidden mb-2">
+            <button
+              type="button"
+              onClick={() => setShowMobileOptions(v => !v)}
+              className="w-full bg-slate-100 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300"
             >
-              <option value="website">🌐 متجر الموقع الرئيسي (المباشر)</option>
-              <option value="amazon">📦 متجر أمازون (Amazon)</option>
-              <option value="noon">🏪 متجر نون (Noon)</option>
-              <option value="jumia">🛍️ متجر جوميا (Jumia)</option>
-              <option value="salla">🏬 متجر سلة (Salla)</option>
-              <option value="zid">🏬 متجر زد (Zid)</option>
-              <option value="tiktok">📱 متجر تيك توك (TikTok)</option>
-              {availableCustomStores.map((cs: any) => (
-                <option key={cs.id} value={`custom_${cs.id}`}>
-                  🟣 {cs.name}
-                </option>
-              ))}
-              {(carriers || []).filter((c: any) => c.status === 'active' && !['amazon', 'noon', 'jumia', 'salla', 'zid', 'tiktok'].includes((c.name || '').toLowerCase())).map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  🚚 {c.name}
-                </option>
-              ))}
-            </select>
+              <div className="flex items-center gap-1.5 truncate">
+                <Truck size={14} className="text-indigo-500 shrink-0" />
+                <span className="truncate">المنصة: {selectedPlatform === 'website' ? 'المباشر' : selectedPlatform} {salesperson ? `· البائع: ${salesperson.name}` : ''}</span>
+              </div>
+              <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold shrink-0">
+                {showMobileOptions ? 'إخفاء الخيارات ▲' : 'خيارات المنصة والبائع ⚙️'}
+              </span>
+            </button>
           </div>
 
-          {/* Salesperson (for commission tracking) */}
-          <div className="mb-3">
-            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">👤 الموظف البائع (لحساب مبيعاته وعمولته)</label>
-            <select
-              id="pos-salesperson"
-              value={salesperson?.id || ''}
-              onChange={(e) => { const emp = employees.find((x) => x.id === e.target.value); setSalesperson(emp ? { id: emp.id, name: emp.name } : null); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); focusById('pos-checkout-print-btn'); } }}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="">— بدون تحديد —</option>
-              {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}{emp.job_title ? ` (${emp.job_title})` : ''}</option>)}
-            </select>
+          {/* Sales Platform & Salesperson Section (Always visible on desktop lg:block, collapsible on mobile) */}
+          <div className={`${showMobileOptions ? 'block' : 'hidden lg:block'}`}>
+            {/* Sales Platform Selection (منصة البيع) */}
+            <div className="mb-3">
+              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">🏬 منصة / قناة البيع (تطبييق أسعار المنصة تلقائياً)</label>
+              <select
+                id="pos-sales-platform"
+                value={selectedPlatform}
+                onChange={(e) => handlePlatformChange(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/50 rounded-xl px-3 py-2.5 text-sm font-black text-indigo-700 dark:text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+              >
+                <option value="website">🌐 متجر الموقع الرئيسي (المباشر)</option>
+                <option value="amazon">📦 متجر أمازون (Amazon)</option>
+                <option value="noon">🏪 متجر نون (Noon)</option>
+                <option value="jumia">🛍️ متجر جوميا (Jumia)</option>
+                <option value="salla">🏬 متجر سلة (Salla)</option>
+                <option value="zid">🏬 متجر زد (Zid)</option>
+                <option value="tiktok">📱 متجر تيك توك (TikTok)</option>
+                {availableCustomStores.map((cs: any) => (
+                  <option key={cs.id} value={`custom_${cs.id}`}>
+                    🟣 {cs.name}
+                  </option>
+                ))}
+                {(carriers || []).filter((c: any) => c.status === 'active' && !['amazon', 'noon', 'jumia', 'salla', 'zid', 'tiktok'].includes((c.name || '').toLowerCase())).map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    🚚 {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Salesperson (for commission tracking) */}
+            <div className="mb-3">
+              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">👤 الموظف البائع (لحساب مبيعاته وعمولته)</label>
+              <select
+                id="pos-salesperson"
+                value={salesperson?.id || ''}
+                onChange={(e) => { const emp = employees.find((x) => x.id === e.target.value); setSalesperson(emp ? { id: emp.id, name: emp.name } : null); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); focusById('pos-checkout-print-btn'); } }}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
+              >
+                <option value="">— بدون تحديد —</option>
+                {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}{emp.job_title ? ` (${emp.job_title})` : ''}</option>)}
+              </select>
+            </div>
           </div>
 
           {/* Wholesale / half OTP gate */}
