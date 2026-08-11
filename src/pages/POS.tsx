@@ -3594,7 +3594,6 @@ export default function POS() {
                   </span>
                 )}
               </div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-tight">{storeSettings.name}</span>
             </div>
 
             {/* Left: Dark Mode Toggle */}
@@ -3632,14 +3631,14 @@ export default function POS() {
                  </div>
               </div>
 
-              {/* Desktop Only Search */}
-              <div className="relative flex-1 hidden lg:block">
-                <Search className="absolute right-4 top-3.5 text-gray-400" size={20} />
+              {/* Product Search Bar (Mobile & Desktop) */}
+              <div className="relative flex-1">
+                <Search className="absolute right-3 lg:right-4 top-3 lg:top-3.5 text-gray-400" size={18} />
                 <input
                   type="text"
                   placeholder="ابحث باسم المنتج..."
                   style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
-                  className="w-full h-[52px] bg-slate-100 dark:bg-slate-800 dark:text-white border-none rounded-2xl py-3.5 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 shadow-inner transition"
+                  className="w-full h-[44px] lg:h-[52px] bg-slate-100 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 lg:py-3.5 pr-9 lg:pr-12 pl-3 text-xs lg:text-sm focus:outline-none focus:ring-2 shadow-inner transition"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
