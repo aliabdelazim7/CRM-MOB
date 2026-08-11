@@ -10,17 +10,11 @@ import { totalOpeningBalance } from '../../utils/paymentMethods';
 import { isMainTreasuryExpense, isMainTreasuryPurchase } from '../../utils/treasury';
 import { useNavigate } from 'react-router-dom';
 
-import { isSupabaseConfigured, saveCustomSupabaseConfig, supabaseUrl } from '../../lib/supabase';
-import { Database, AlertTriangle, Key } from 'lucide-react';
-
 type PeriodFilter = 'today' | 'week' | 'month' | 'all';
 
 export default function Overview() {
-  const { orders, products, expenses, storeSettings, purchaseInvoices, offlineQueue, loadAll } = useStore();
+  const { orders, products, expenses, storeSettings, purchaseInvoices, offlineQueue } = useStore();
   const [period, setPeriod] = useState<PeriodFilter>('today');
-  const [showDbModal, setShowDbModal] = useState(false);
-  const [dbUrl, setDbUrl] = useState(supabaseUrl || '');
-  const [dbKey, setDbKey] = useState('');
   const navigate = useNavigate();
 
   const activeOrders = orders.filter((order) => !order.is_deleted);
@@ -148,38 +142,6 @@ export default function Overview() {
   return (
     <div className="p-4 md:p-8 space-y-8" dir="rtl">
       {/* Database Connection Alert Banner */}
-      {(!isSupabaseConfigured || products.length === 0) && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl">
-              <Database size={24} />
-            </div>
-            <div>
-              <h3 className="font-bold text-amber-200 text-sm md:text-base">ربط قاعدة البيانات Supabase</h3>
-              <p className="text-xs text-amber-300/80 mt-0.5">
-                {!isSupabaseConfigured
-                  ? 'لم يتم العثور على مفاتيح الاتصال المباشر بقاعدة البيانات في البيئة الحالية.'
-                  : 'قاعدة البيانات فارغة أو لم تُحمل البيانات بعد. اضغط لربط مفاتيح Supabase مباشرةً.'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowDbModal(true)}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition"
-            >
-              <Key size={14} /> ربط المفاتيح مباشرةً
-            </button>
-            <button
-              onClick={() => loadAll(true)}
-              className="bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 transition"
-            >
-              <RefreshCw size={14} /> تحديث
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Header & Period Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
         <div className="flex items-center gap-4">
@@ -193,14 +155,9 @@ export default function Overview() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button onClick={() => setShowDbModal(true)} className="flex-1 sm:flex-none justify-center bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition">
-              <Database size={14} /> مفاتيح Supabase
-            </button>
-            <button onClick={() => navigate('/admin/settings')} className="flex-1 sm:flex-none justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition">
-              <Edit size={14} /> الإعدادات
-            </button>
-          </div>
+          <button onClick={() => navigate('/admin/settings')} className="justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition">
+            <Edit size={14} /> الإعدادات
+          </button>
 
           <div className="bg-slate-100 dark:bg-slate-700/80 p-1 rounded-xl flex items-center justify-between gap-1 border border-slate-200 dark:border-slate-600 w-full sm:w-auto">
             {(['today', 'week', 'month', 'all'] as PeriodFilter[]).map((p) => {
@@ -514,96 +471,6 @@ export default function Overview() {
         </div>
 
       </div>
-
-      {/* Supabase Connection Modal */}
-      {showDbModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" dir="rtl">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-lg w-full shadow-2xl text-white">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-amber-500/20 text-amber-400 rounded-2xl">
-                  <Database size={24} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black">إعداد مفاتيح Supabase</h2>
-                  <p className="text-xs text-slate-400">ربط مباشر بدون إعادة تشغيل خادم البناء</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowDbModal(false)}
-                className="text-slate-400 hover:text-white text-xl font-bold w-8 h-8 rounded-full flex items-center justify-center bg-slate-800"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (dbUrl && dbKey) {
-                  saveCustomSupabaseConfig(dbUrl, dbKey);
-                } else {
-                  alert('الرجاء إدخال الـ URL والـ Anon Key الخاص بـ Supabase');
-                }
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  رابط المشروع (SUPABASE_URL):
-                </label>
-                <input
-                  type="url"
-                  dir="ltr"
-                  value={dbUrl}
-                  onChange={(e) => setDbUrl(e.target.value)}
-                  placeholder="https://xyz.supabase.co"
-                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl py-2.5 px-4 text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  المفتاح العام (SUPABASE_ANON_KEY):
-                </label>
-                <textarea
-                  dir="ltr"
-                  rows={3}
-                  value={dbKey}
-                  onChange={(e) => setDbKey(e.target.value)}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl py-2.5 px-4 text-xs font-mono focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300 flex items-start gap-2">
-                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-                <p>
-                  يتم حفظ هذه البيانات في متصفحك محلياً لطلب وتحديث البيانات مباشرةً من Supabase.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowDbModal(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-bold transition"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-6 py-2.5 rounded-xl text-xs font-black shadow-lg transition"
-                >
-                  حفظ وتوصيل القاعدة ⚡
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
