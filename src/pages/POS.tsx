@@ -4052,19 +4052,21 @@ export default function POS() {
             <button
               type="button"
               onClick={() => setShowMobileOptions(v => !v)}
-              className="w-full bg-slate-100 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300"
+              className="w-full bg-slate-100 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 touch-feedback"
             >
               <div className="flex items-center gap-1.5 truncate">
                 <Truck size={14} className="text-indigo-500 shrink-0" />
-                <span className="truncate">المنصة: {selectedPlatform === 'website' ? 'المباشر' : selectedPlatform} {salesperson ? `· البائع: ${salesperson.name}` : ''}</span>
+                <span className="truncate">
+                  {discountStr || couponInput ? 'خصم / كوبون مفعل 🏷️' : `المنصة: ${selectedPlatform === 'website' ? 'المباشر' : selectedPlatform}`}
+                </span>
               </div>
               <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold shrink-0">
-                {showMobileOptions ? 'إخفاء الخيارات ▲' : 'خيارات المنصة والبائع ⚙️'}
+                {showMobileOptions ? 'إخفاء الخيارات ▲' : 'الخصم والمنصة والتعليق ⚙️'}
               </span>
             </button>
           </div>
 
-          {/* Sales Platform & Salesperson Section (Always visible on desktop lg:block, collapsible on mobile) */}
+          {/* Sales Platform, Salesperson, Discount, Coupon & Hold Section (Always visible on desktop lg:block, collapsible on mobile) */}
           <div className={`${showMobileOptions ? 'block' : 'hidden lg:block'}`}>
             {/* Sales Platform Selection (منصة البيع) */}
             <div className="mb-3">
@@ -4109,6 +4111,64 @@ export default function POS() {
                 {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}{emp.job_title ? ` (${emp.job_title})` : ''}</option>)}
               </select>
             </div>
+
+            {/* Discounts and Coupons */}
+            <div className="space-y-2 mb-3 px-1">
+              <div className="flex justify-between items-center text-sm font-bold text-slate-500 dark:text-slate-400">
+                <span>المجموع: <span className="text-slate-800 dark:text-slate-200 text-lg">{pricesHidden ? '🔒' : subtotal.toFixed(2)}</span></span>
+                <div className="flex items-center gap-2 bg-orange-100/50 dark:bg-orange-900/30 px-4 py-2 rounded-2xl border-2 border-orange-200 dark:border-orange-800/50 shadow-sm transition-all focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100">
+                  <span className="text-xs text-orange-600 dark:text-orange-400 font-black flex items-center gap-1">🏷️ خصم:</span>
+                  <input
+                    type="number" dir="ltr" value={discountStr}
+                    onChange={(e) => setDiscountStr(e.target.value)}
+                    placeholder="0.00"
+                    className="w-20 bg-transparent border-0 p-0 text-base font-black focus:ring-0 text-left text-orange-700 dark:text-orange-300 placeholder-orange-300"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center text-sm font-bold mt-2 text-slate-500 dark:text-slate-400">
+                <span className="flex items-center gap-1">
+                  كوبون:
+                  {validCoupon && (
+                    <span className="text-xs bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 rounded-full">
+                      مفعل (خصم {couponDiscountAmount} ج.م)
+                    </span>
+                  )}
+                  {couponInput.trim() && !validCoupon && (
+                    <div className="flex flex-col text-right">
+                      <span className="text-xs text-red-500 font-bold">غير صالح</span>
+                      <span className="text-[10px] text-red-400 max-w-[200px] break-words">{couponErrorMsg || 'الكوبون غير موجود أو غير مفعل'}</span>
+                    </div>
+                  )}
+                </span>
+                <div className="flex items-center gap-2 bg-rose-50/50 dark:bg-rose-900/30 px-4 py-2 rounded-2xl border-2 border-rose-200 dark:border-rose-800/50 shadow-sm transition-all focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-100">
+                  <input
+                    type="text" dir="ltr" value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="كود الخصم"
+                    className="w-28 uppercase bg-transparent border-0 p-0 text-sm font-black focus:ring-0 text-left text-rose-700 dark:text-rose-300 placeholder-rose-300"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {perm('held') && (
+              <button
+                onClick={openHoldForm}
+                disabled={cart.length === 0 || pricesHidden || holdBusy}
+                className="w-full mb-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/25 disabled:opacity-40 disabled:cursor-not-allowed py-2.5 rounded-xl font-black flex items-center justify-center gap-2 transition-all text-xs active:scale-95 border border-orange-100 dark:border-orange-900/30"
+              >
+                <PauseCircle size={16} /> {holdBusy ? 'جاري الحفظ...' : 'حفظ كفاتورة معلقة'}
+              </button>
+            )}
+            <button
+              onClick={parkCurrentCart}
+              disabled={cart.length === 0}
+              className="w-full mb-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed py-2.5 rounded-xl font-black flex items-center justify-center gap-2 transition-all text-xs active:scale-95 border border-amber-100 dark:border-amber-900/30"
+            >
+              <Hourglass size={16} /> وضع الفاتورة في الانتظار
+            </button>
           </div>
 
           {/* Wholesale / half OTP gate */}
@@ -4124,106 +4184,52 @@ export default function POS() {
             </div>
           )}
 
-          <div className="space-y-2 mb-3 px-1">
-            <div className="flex justify-between items-center text-sm font-bold text-slate-500 dark:text-slate-400">
-              <span>المجموع: <span className="text-slate-800 dark:text-slate-200 text-lg">{pricesHidden ? '🔒' : subtotal.toFixed(2)}</span></span>
-              <div className="flex items-center gap-2 bg-orange-100/50 dark:bg-orange-900/30 px-4 py-2 rounded-2xl border-2 border-orange-200 dark:border-orange-800/50 shadow-sm transition-all focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100">
-                <span className="text-xs text-orange-600 dark:text-orange-400 font-black flex items-center gap-1">🏷️ خصم:</span>
-                <input
-                  type="number" dir="ltr" value={discountStr}
-                  onChange={(e) => setDiscountStr(e.target.value)}
-                  placeholder="0.00"
-                  className="w-20 bg-transparent border-0 p-0 text-base font-black focus:ring-0 text-left text-orange-700 dark:text-orange-300 placeholder-orange-300"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center text-sm font-bold mt-2 text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1">
-                كوبون:
-                {validCoupon && (
-                  <span className="text-xs bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 rounded-full">
-                    مفعل (خصم {couponDiscountAmount} ج.م)
-                  </span>
-                )}
-                {couponInput.trim() && !validCoupon && (
-                  <div className="flex flex-col text-right">
-                    <span className="text-xs text-red-500 font-bold">غير صالح</span>
-                    <span className="text-[10px] text-red-400 max-w-[200px] break-words">{couponErrorMsg || 'الكوبون غير موجود أو غير مفعل'}</span>
-                  </div>
-                )}
+          {/* Total & Primary Action Buttons (Always visible) */}
+          <div className="flex justify-between items-center mb-2.5 pt-1">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">الإجمالي النهائي</span>
+            <div className="flex flex-col items-end">
+              <span className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">
+                {pricesHidden ? '🔒' : total.toFixed(2)} <span className="text-xs text-slate-400 font-bold tracking-normal">{storeSettings.currency}</span>
               </span>
-              <div className="flex items-center gap-2 bg-rose-50/50 dark:bg-rose-900/30 px-4 py-2 rounded-2xl border-2 border-rose-200 dark:border-rose-800/50 shadow-sm transition-all focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-100">
-                <input
-                  type="text" dir="ltr" value={couponInput}
-                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                  placeholder="كود الخصم"
-                  className="w-28 uppercase bg-transparent border-0 p-0 text-sm font-black focus:ring-0 text-left text-rose-700 dark:text-rose-300 placeholder-rose-300"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-3 mt-3 border-t border-slate-100 dark:border-slate-700/50">
-              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">الإجمالي النهائي</span>
-              <div className="flex flex-col items-end">
-                <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">
-                  {pricesHidden ? '🔒' : total.toFixed(2)} <span className="text-xs text-slate-400 font-bold tracking-normal">{storeSettings.currency}</span>
-                </span>
-                {/* ربح الفاتورة مخفي في الكاشير */}
-              </div>
             </div>
           </div>
 
           {activeDeposit && activeDeposit.amount > 0 && (
-            <div className="mb-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-2xl px-4 py-3 flex items-center justify-between">
+            <div className="mb-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-2xl px-4 py-2 flex items-center justify-between">
               <span className="text-xs font-black text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><Clock size={14} /> عربون محصّل من الحجز</span>
               <div className="text-left">
                 <div className="text-sm font-black text-orange-700 dark:text-orange-300">{activeDeposit.amount.toFixed(2)} {storeSettings.currency}</div>
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">الباقي المطلوب: {Math.max(0, total - activeDeposit.amount).toFixed(2)}</div>
+                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">الباقي: {Math.max(0, total - activeDeposit.amount).toFixed(2)}</div>
               </div>
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               id="pos-checkout-btn"
               onClick={() => { setShouldPrint(false); setShowCheckoutModal(true); }}
               disabled={cart.length === 0 || pricesHidden}
               style={cart.length > 0 && !pricesHidden ? { background: storeSettings.themeColor } : {}}
-              className="flex-1 disabled:bg-gray-300 text-white py-4 rounded-2xl font-black flex flex-col items-center justify-center gap-1 transition-all text-sm active:scale-95 shadow-lg disabled:shadow-none group"
+              className="flex-1 disabled:bg-gray-300 text-white py-3.5 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-lg disabled:shadow-none group"
             >
-              <Banknote size={20} className="group-hover:scale-110 transition-transform" />
+              <Banknote size={18} className="group-hover:scale-110 transition-transform" />
               <span>تحصيل ودفع</span>
             </button>
             <button
               id="pos-checkout-print-btn"
               onClick={() => { setShouldPrint(true); setShowCheckoutModal(true); }}
               disabled={cart.length === 0 || pricesHidden}
-              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 disabled:from-gray-300 disabled:to-gray-300 text-white py-4 rounded-2xl font-black flex flex-col items-center justify-center gap-1 transition-all text-sm active:scale-95 shadow-lg shadow-emerald-500/20 disabled:shadow-none group"
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 disabled:from-gray-300 disabled:to-gray-300 text-white py-3.5 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-95 shadow-lg shadow-emerald-500/20 disabled:shadow-none group"
             >
-              <Printer size={20} className="group-hover:rotate-12 transition-transform" />
+              <Printer size={18} className="group-hover:rotate-12 transition-transform" />
               <span>دفع وطباعة</span>
             </button>
           </div>
-          {perm('held') && (
-          <button
-            onClick={openHoldForm}
-            disabled={cart.length === 0 || pricesHidden || holdBusy}
-            className="w-full mt-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/25 disabled:opacity-40 disabled:cursor-not-allowed py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-sm active:scale-95 border border-orange-100 dark:border-orange-900/30"
-          >
-            <PauseCircle size={18} /> {holdBusy ? 'جاري الحفظ...' : 'حفظ كفاتورة معلقة'}
-          </button>
+          {cart.length > 0 && (
+            <button onClick={clearCart} className="w-full text-slate-400 hover:text-red-500 text-[11px] font-bold pt-2 transition-colors">
+              إلغاء الطلب والتفريغ
+            </button>
           )}
-          <button
-            onClick={parkCurrentCart}
-            disabled={cart.length === 0}
-            className="w-full mt-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-sm active:scale-95 border border-amber-100 dark:border-amber-900/30"
-          >
-            <Hourglass size={18} /> وضع الفاتورة في الانتظار
-          </button>
-          <button onClick={clearCart} className="w-full text-slate-400 hover:text-red-500 text-xs font-bold py-3 transition-colors">
-            إلغاء الطلب والتفريغ
-          </button>
         </div>
       </div>
       {/* Checkout Payment Modal */}
