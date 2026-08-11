@@ -192,14 +192,17 @@ export default function Overview() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowDbModal(true)} className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition">
-            <Database size={16} /> مفاتيح Supabase
-          </button>
-          <button onClick={() => navigate('/admin/settings')} className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition">
-            <Edit size={16} /> إعدادات الداشبورد
-          </button>
-          <div className="bg-slate-100 dark:bg-slate-700 p-1.5 rounded-xl flex items-center gap-1 border border-slate-200 dark:border-slate-600">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button onClick={() => setShowDbModal(true)} className="flex-1 sm:flex-none justify-center bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition">
+              <Database size={14} /> مفاتيح Supabase
+            </button>
+            <button onClick={() => navigate('/admin/settings')} className="flex-1 sm:flex-none justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition">
+              <Edit size={14} /> الإعدادات
+            </button>
+          </div>
+
+          <div className="bg-slate-100 dark:bg-slate-700/80 p-1 rounded-xl flex items-center justify-between gap-1 border border-slate-200 dark:border-slate-600 w-full sm:w-auto">
             {(['today', 'week', 'month', 'all'] as PeriodFilter[]).map((p) => {
               const labels: Record<PeriodFilter, string> = { today: 'اليوم', week: 'الأسبوع', month: 'الشهر', all: 'الكل' };
               const active = period === p;
@@ -207,7 +210,7 @@ export default function Overview() {
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+                  className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition text-center ${
                     active
                       ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm'
                       : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'

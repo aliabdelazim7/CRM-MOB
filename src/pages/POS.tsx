@@ -8,7 +8,7 @@ import {
 } from '../utils/permissions';
 import { HeldReturnModal } from '../components/HeldReturnModal';
 import { EditInvoiceModal } from '../components/EditInvoiceModal';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Banknote, RefreshCcw, Moon, Sun, ArrowRightLeft, X, Printer, CreditCard, Smartphone, Zap, ScanLine, Camera, Box, Check, ChevronRight, ChevronLeft, FileText, MessageSquare, Send, Wallet, Edit2, Eye, HandCoins, UserMinus, Clock, PauseCircle, Undo2, Truck, Hourglass, Play } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Banknote, RefreshCcw, Moon, Sun, ArrowRightLeft, ArrowLeft, ArrowRight, X, Printer, CreditCard, Smartphone, Zap, ScanLine, Camera, Box, Check, ChevronRight, ChevronLeft, FileText, MessageSquare, Send, Wallet, Edit2, Eye, HandCoins, UserMinus, Clock, PauseCircle, Undo2, Truck, Hourglass, Play } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { normalizeArabic, formatImageUrl } from '../utils/textUtils';
 import { printBarcodeLabelsBatch, generateBarcode } from '../utils/printBarcodeLabels';
@@ -3827,7 +3827,7 @@ export default function POS() {
       </div>
 
       {/* Cart Sidebar */}
-      <div className={`w-full pb-16 lg:pb-0 lg:w-1/3 min-w-0 lg:min-w-[320px] xl:min-w-[420px] bg-white dark:bg-slate-800 flex flex-col z-20 shadow-2xl relative ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'}`}>
+      <div className={`w-full pb-24 lg:pb-0 lg:w-1/3 min-w-0 lg:min-w-[320px] xl:min-w-[420px] bg-white dark:bg-slate-800 flex flex-col z-20 shadow-2xl relative ${mobileView === 'catalog' ? 'hidden lg:flex' : 'flex'}`}>
         <div
           style={{
             background: `linear-gradient(160deg, ${storeSettings.themeColor} 0%, ${storeSettings.themeColor}dd 100%)`,
@@ -3839,11 +3839,20 @@ export default function POS() {
           <div className="absolute inset-0 bg-black/20 rounded-bl-[40px]"></div>
 
           <div className="relative flex justify-between items-start mb-4 gap-2 flex-wrap">
-            <div className="flex flex-col gap-1.5">
-              <h2 className="text-xl font-black flex items-center gap-2 drop-shadow">
-                <ShoppingCart size={24} />
-                الفاتورة
-              </h2>
+            <div className="flex flex-col gap-1.5 w-full">
+              <div className="flex items-center justify-between w-full">
+                <h2 className="text-xl font-black flex items-center gap-2 drop-shadow">
+                  <ShoppingCart size={24} />
+                  الفاتورة
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setMobileView('catalog')}
+                  className="lg:hidden bg-black/30 hover:bg-black/40 text-white font-bold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1 border border-white/30 backdrop-blur-sm transition touch-feedback"
+                >
+                  <ArrowRight size={16} /> المنتجات
+                </button>
+              </div>
               {/* التاريخ المحاسبي الحالي — قابل للتغيير للمستخدم الرئيسي لإدخال فواتير قديمة */}
               {(() => {
                 const effBd = workDateOverride || businessDateStr(storeSettings);
@@ -4784,26 +4793,35 @@ export default function POS() {
         );
       })()}
 
-      {/* Mobile Bottom Navigation (Visible only on small screens) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-[100] flex items-center justify-around px-2 pb-5 pt-2">
-        <button 
-          onClick={() => setMobileView('catalog')}
-          className={`flex flex-col items-center p-2 rounded-xl flex-1 transition-all ${mobileView === 'catalog' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 shadow-inner' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
-        >
-          <Box size={20} className={mobileView === 'catalog' ? 'animate-bounce' : ''} />
-          <span className="text-[11px] font-bold mt-1">المنتجات</span>
-        </button>
-        <button 
-          onClick={() => setMobileView('cart')}
-          className={`flex flex-col items-center p-2 rounded-xl flex-1 relative transition-all ${mobileView === 'cart' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 shadow-inner' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
-        >
-          <ShoppingCart size={20} className={mobileView === 'cart' ? 'animate-bounce' : ''} />
-          <span className="text-[11px] font-bold mt-1">الفاتورة</span>
-          {cart.length > 0 && (
-             <span className="absolute top-1 right-[25%] bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md animate-pulse border-2 border-white dark:border-slate-800">{cart.length}</span>
-          )}
-        </button>
-      </div>
+      {/* Floating Cart Button for Mobile when in catalog view */}
+      {cart.length > 0 && mobileView === 'catalog' && (
+        <div className="lg:hidden fixed bottom-20 left-3 right-3 z-30">
+          <button
+            type="button"
+            onClick={() => setMobileView('cart')}
+            style={{
+              background: storeSettings.themeColor || '#4f46e5',
+              boxShadow: `0 10px 25px ${storeSettings.themeColor || '#4f46e5'}66`
+            }}
+            className="w-full py-3.5 px-4 text-white font-black rounded-2xl flex items-center justify-between touch-feedback border border-white/20 shadow-xl"
+          >
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <ShoppingCart size={22} />
+                <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                  {cart.length}
+                </span>
+              </div>
+              <span className="text-xs font-black">عرض الفاتورة ({cart.length} أصناف)</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm font-black">
+              <span>{subtotal.toFixed(2)}</span>
+              <span className="text-xs opacity-90">{storeSettings.currency}</span>
+              <ArrowLeft size={16} />
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
