@@ -1,5 +1,5 @@
 -- =============================================================================
--- ADRIA / HANCES PRO ERP - سكريبت إعداد قاعدة البيانات الشامل الموحد + بيانات ديمو
+-- ADRIA / HANCES PRO ERP - سكريبت إعداد قاعدة البيانات الشامل الموحد + بيانات ديمو كاملة
 -- =============================================================================
 -- شغّل هذا الملف بالكامل في Supabase SQL Editor:
 -- Supabase Dashboard > SQL Editor > New query > Run
@@ -32,7 +32,7 @@ alter table store_settings add column if not exists phone text default '01000000
 alter table store_settings add column if not exists phone2 text default '';
 alter table store_settings add column if not exists whatsapp_country_code text default '20';
 alter table store_settings add column if not exists whatsappcountrycode text default '20';
-alter table store_settings add column if not exists initial_balance numeric default 0;
+alter table store_settings add column if not exists initial_balance numeric default 100000;
 alter table store_settings add column if not exists location_url text default '';
 alter table store_settings add column if not exists locationurl text default '';
 alter table store_settings add column if not exists cashierpermissions boolean default false;
@@ -214,10 +214,10 @@ alter table orders add column if not exists car_id text;
 -- عداد أرقام الفواتير
 create table if not exists invoice_counter (
   id int primary key default 1,
-  current_value integer default 1,
+  current_value integer default 10,
   check (id = 1)
 );
-insert into invoice_counter (id, current_value) values (1, 1) on conflict (id) do nothing;
+insert into invoice_counter (id, current_value) values (1, 10) on conflict (id) do update set current_value = greatest(invoice_counter.current_value, 10);
 
 -- 11. بنود الفاتورة (order_items)
 create table if not exists order_items (
@@ -386,7 +386,7 @@ end;
 $$;
 
 -- -----------------------------------------------------------------------------
--- 5) إضافة بيانات الديمو المتكاملة (Rich Demo Data Seeding)
+-- 5) إضافة بيانات الديمو المتكاملة والشاملة (Comprehensive Demo Data Seeding)
 -- -----------------------------------------------------------------------------
 
 -- 1. إعدادات المتجر الافتراضية
@@ -405,7 +405,7 @@ values (
   '01012345678',
   '01187654321',
   '20',
-  50000,
+  100000,
   'كهرباء وإيجار,بضائع ومشتريات,رواتب وسلف,صيانة وتشغيل,مصاريف شحن,نثريات',
   'مبيعات محل,مبيعات أونلاين,خدمات صيانة,إيرادات أخرى'
 )
@@ -413,6 +413,7 @@ on conflict (id) do update set
   name = excluded.name,
   currency = excluded.currency,
   logo = excluded.logo,
+  initial_balance = excluded.initial_balance,
   address = excluded.address,
   phone = excluded.phone;
 
@@ -440,7 +441,7 @@ insert into categories (id, name, image_url) values
   ('cat_gifts',       'علاب وهدايا VIP',      'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80')
 on conflict (id) do nothing;
 
--- 5. منتجات الديمو (20+ منتج مع باركود وأسعار وصور وتفاصيل متكاملة)
+-- 5. منتجات الديمو (20+ منتج مع أسعار وصور وتفاصيل متكاملة)
 insert into products (
   id, name, barcode, purchase_price, average_purchase_price, sale_price, half_wholesale_price, wholesale_price, discount_price, stock_quantity, display_quantity, category_id, unit, supplier_name, image_url
 ) values
@@ -486,7 +487,8 @@ on conflict (id) do update set
 insert into customers (id, name, phone, custom_id, card_number) values
   ('cust_1', 'أحمد محمود العبد', '01011112222', 'CUST-101', 'CRD-9001'),
   ('cust_2', 'سارة محمد الشريف',  '01133334444', 'CUST-102', 'CRD-9002'),
-  ('cust_3', 'محمود إبراهيم علي', '01255556666', 'CUST-103', 'CRD-9003')
+  ('cust_3', 'محمود إبراهيم علي', '01255556666', 'CUST-103', 'CRD-9003'),
+  ('cust_4', 'منى عبد العزيز',   '01077778888', 'CUST-104', 'CRD-9004')
 on conflict (id) do nothing;
 
 -- 7. الموردين
@@ -515,6 +517,52 @@ insert into coupons (id, code, discount_type, discount_value, is_active) values
   ('cp_2', 'VIP50',      'fixed',      50, true)
 on conflict (id) do nothing;
 
+-- 11. فواتير مبيعات ديمو لتغذية الإحصائيات (Orders & Order Items)
+insert into orders (
+  id, total, paid_amount, paid_cash, paid_visa, payment_method, type, customer, customer_id, cashier_name, notes, date, created_at
+) values
+  ('INV-1001', 3200, 3200, 3200, 0, 'cash', 'sale', 'أحمد محمود العبد', 'cust_1', 'المدير العام (Admin)', 'فاتورة ديمو مبيعات اليوم', to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now()),
+  ('INV-1002', 1750, 1750, 1750, 0, 'cash', 'sale', 'سارة محمد الشريف',  'cust_2', 'المدير العام (Admin)', 'فاتورة ديمو حقيبة كوتش', to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now()),
+  ('INV-1003', 1350, 1350, 0, 1350, 'visa', 'sale', 'محمود إبراهيم علي', 'cust_3', 'كاشير الفرع الرئيسي', 'فاتورة فيزا كاسيو إيديفيس', to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now()),
+  ('INV-1004', 680,  680,  680,  0, 'cash', 'sale', 'منى عبد العزيز',   'cust_4', 'المدير العام (Admin)', 'فاتورة إسوارة كارتييه', to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now()),
+  ('INV-1005', 2400, 2400, 2400, 0, 'cash', 'sale', 'أحمد محمود العبد', 'cust_1', 'المدير العام (Admin)', 'مبيعات هذا الأسبوع', to_char(now() - interval '2 days', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now() - interval '2 days'),
+  ('INV-1006', 4200, 4200, 4200, 0, 'cash', 'sale', 'سارة محمد الشريف',  'cust_2', 'المدير العام (Admin)', 'مبيعات هذا الأسبوع', to_char(now() - interval '3 days', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now() - interval '3 days'),
+  ('INV-1007', 3800, 3800, 3800, 0, 'cash', 'sale', 'محمود إبراهيم علي', 'cust_3', 'المدير العام (Admin)', 'مبيعات هذا الشهر', to_char(now() - interval '10 days', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now() - interval '10 days')
+on conflict (id) do update set
+  total = excluded.total,
+  paid_amount = excluded.paid_amount,
+  date = excluded.date;
+
+-- بنود الفواتير (Order Items)
+insert into order_items (id, order_id, product_id, product_name, barcode, quantity, sale_price, purchase_price) values
+  ('item_101', 'INV-1001', 'prod_1', 'ساعة رولكس دايتونا استيل سبورت', '1001', 1, 3200, 1800),
+  ('item_102', 'INV-1002', 'prod_6', 'حقيبة يد كوتش جلد طبيعي بيج',   '2001', 1, 1750, 950),
+  ('item_103', 'INV-1003', 'prod_2', 'ساعة كاسيو إيديفيس رجالي أسود',  '1002', 1, 1350, 700),
+  ('item_104', 'INV-1004', 'prod_10','إسوارة كارتييه لوف ستيل ذهبي',   '3001', 1, 680,  350),
+  ('item_105', 'INV-1005', 'prod_8', 'شنطة ظهر لويس فيتون مونوغرام',  '2003', 1, 2400, 1350),
+  ('item_106', 'INV-1006', 'prod_4', 'ساعة أوميغا سيمستر استيل فضي', '1004', 1, 4200, 2400),
+  ('item_107', 'INV-1007', 'prod_3', 'ساعة كارتييه سانتوس جلد بني',   '1003', 1, 3800, 2100)
+on conflict (id) do nothing;
+
+-- 12. المصروفات ديمو (Expenses)
+insert into expenses (id, category, amount, paid_cash, note, payment_method, date, created_at) values
+  ('exp_101', 'كهرباء وإيجار', 1500, 1500, 'فاتورة كهرباء وإيجار الفرع الرئيسي', 'cash', to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now()),
+  ('exp_102', 'مصاريف شحن',   350,  350,  'مصاريف شحن طرد بوسطة للعميل',        'cash', to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now()),
+  ('exp_103', 'نثريات',       250,  250,  'نثريات وضيافة العملاء بالمعرض',     'cash', to_char(now() - interval '2 days', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now() - interval '2 days'),
+  ('exp_104', 'صيانة وتشغيل',  600,  600,  'صيانة طابعة الفواتير والسيستم',      'cash', to_char(now() - interval '5 days', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), now() - interval '5 days')
+on conflict (id) do nothing;
+
+-- 13. فواتير المشتريات ديمو (Purchase Invoices & Items)
+insert into purchase_invoices (id, invoice_number, supplier_id, total, paid_amount, paid_cash, payment_method, notes, created_at) values
+  ('pur_101', 'PINV-501', 'sup_1', 12500, 12500, 12500, 'cash', 'توريد طقم ساعات رولكس وأوميغا', now()),
+  ('pur_102', 'PINV-502', 'sup_2', 8400,  8400,  8400,  'cash', 'توريد تشكيلة شنط ومافظ جلد', now())
+on conflict (id) do nothing;
+
+insert into purchase_items (id, invoice_id, product_id, quantity, purchase_price, to_display) values
+  ('pitem_101', 'pur_101', 'prod_1', 5, 1800, 5),
+  ('pitem_102', 'pur_102', 'prod_6', 4, 950, 4)
+on conflict (id) do nothing;
+
 -- -----------------------------------------------------------------------------
--- تم تجهيز وإعداد قاعدة البيانات بنجاح!
+-- تم إعداد وتعبئة قاعدة البيانات بنجاح بكافة بيانات المبيعات والمصروفات والديمو!
 -- -----------------------------------------------------------------------------
