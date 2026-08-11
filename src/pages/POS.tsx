@@ -3602,8 +3602,35 @@ export default function POS() {
             </button>
           </div>
 
+          {/* Dedicated Mobile Search Bar (Full Width on Mobile) */}
+          <div className="lg:hidden w-full mt-1.5 mb-1">
+            <div className="relative w-full">
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-indigo-500" size={18} />
+              <input
+                type="text"
+                placeholder="ابحث باسم المنتج، الكود، أو الباركود..."
+                style={{ '--tw-ring-color': storeSettings.themeColor + '40' } as any}
+                className="w-full h-11 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-indigo-200 dark:border-indigo-900/50 focus:border-indigo-500 rounded-2xl py-2 pr-10 pl-8 text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 shadow-sm transition"
+                value={searchQuery || barcodeInput}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setBarcodeInput(e.target.value);
+                }}
+                onKeyDown={handleBarcodeScan}
+              />
+              {(searchQuery || barcodeInput) && (
+                <button
+                  onClick={() => { setSearchQuery(''); setBarcodeInput(''); }}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs bg-slate-200 dark:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Bottom Row: Camera (Right), Scanner/Search (Center), Returns (Left) */}
-          <div className="flex items-center justify-between gap-2 lg:gap-4 w-full">
+          <div className="flex items-center justify-between gap-2 lg:gap-4 w-full overflow-x-auto lg:overflow-visible pb-1 lg:pb-0 scrollbar-none">
             {/* Right: Camera Button */}
             <button 
               onClick={() => setShowCameraScanner(true)}
@@ -3631,8 +3658,8 @@ export default function POS() {
                  </div>
               </div>
 
-              {/* Product Search Bar (Mobile & Desktop) */}
-              <div className="relative flex-1">
+              {/* Product Search Bar (Desktop) */}
+              <div className="relative flex-1 hidden lg:block">
                 <Search className="absolute right-3 lg:right-4 top-3 lg:top-3.5 text-gray-400" size={18} />
                 <input
                   type="text"
