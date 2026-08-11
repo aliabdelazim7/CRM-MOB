@@ -2092,15 +2092,8 @@ export const useStore = create<CashierStore>((set, get) => ({
       set({ isLoading: false, dbError: 'لا يوجد اتصال بالإنترنت ولا توجد نسخة محفوظة على هذا الجهاز.' });
       return;
     }
-    // من غير جلسة مسجّلة، الـ RLS بيرفض كل قراءة (401) — يعني عشرات الطلبات
-    // بتتبعت وبترجع فاضية قبل ما حد يدخل أصلاً، وبتبطّئ الفتح على نت ضعيف.
-    // كل مسارات الدخول بتنادي loadAll تاني بعد نجاحها، فمفيش حاجة بتضيع.
-    try {
-      const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 2000, 'الجلسة');
-      if (!sessionData?.session) { set({ isLoading: false, isRefreshing: false }); return; }
-    } catch {
-      // منقدرش نتأكد من الجلسة — نكمّل عادي وسيب الطلبات تتصرّف.
-    }
+    // لا نشترط وجود جلسة Supabase Auth لأن التطبيق يدعم الدخول برقم PIN (Cashier Auth)
+    // ومُهيأ بصلاحيات anon على الجداول.
 
     if (!silent) set({ isLoading: !bootedFromCache, dbError: null });
     set({ isRefreshing: true });
