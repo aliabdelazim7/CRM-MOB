@@ -18,8 +18,11 @@ const envKey = (
   ''
 ) as string;
 
-export const supabaseUrl = customUrl || envUrl;
-export const supabaseAnonKey = customKey || envKey;
+const DEFAULT_SUPABASE_URL = 'https://cysweirlohrlsofrdrgr.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5c3dlaXJsb2hybHNvZnJkcmdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NDgyMzcsImV4cCI6MjEwMjAyNDIzN30.u0cxdSdh3eESW_vynIC1Q1gUUVRW59Te2Jem8w9MfpU';
+
+export const supabaseUrl = customUrl || envUrl || DEFAULT_SUPABASE_URL;
+export const supabaseAnonKey = customKey || envKey || DEFAULT_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
